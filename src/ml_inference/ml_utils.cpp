@@ -9,6 +9,11 @@ void ml::Utils::print(const Graph &graph) {
       {NodeOperator::Sigmoid, "Sigmoid"}};
 
   std::cout << "Input: " << graph.input_name << "\n";
+  std::cout << "Input shape: [";
+
+  for (const auto &i : graph.input_shape)
+    std::cout << i << ",";
+  std::cout << "]\n";
 
   for (const auto &node : graph.nodes) {
     std::cout << "Node: " << operator_names.at(node.op) << "\n";
