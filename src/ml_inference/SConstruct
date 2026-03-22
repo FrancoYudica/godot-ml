@@ -1,0 +1,14 @@
+# SConstruct
+import os
+
+env = Environment(ENV=os.environ)
+env["ML_SOURCES"] = []
+
+SConscript("SCsub", exports="env")
+
+env.Program(
+    target="build/parser_test",
+    source=env["ML_SOURCES"] + [env.Object("build/parser_test_main", "tests/parser_test.cpp")],
+    LIBS=env["ML_ENV"]["LIBS"],
+    CPPPATH=env["ML_ENV"]["CPPPATH"],
+)
