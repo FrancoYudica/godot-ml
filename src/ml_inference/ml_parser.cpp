@@ -2,6 +2,9 @@
 #include "ml_types.hpp"
 #include "onnx/onnx_pb.h"
 #include <fstream>
+#include <godot_cpp/classes/project_settings.hpp>
+#include <godot_cpp/core/error_macros.hpp>
+#include <godot_cpp/core/print_string.hpp>
 
 namespace ml {
 
@@ -60,8 +63,8 @@ static void _parse_nodes(const onnx::GraphProto &proto, Graph &graph) {
     n.op = parse_operator(node.op_type());
 
     if (n.op == NodeOperator::Unknown) {
-      throw std::runtime_error("Parser: unsupported operator: " +
-                               node.op_type());
+      ERR_FAIL_MSG("Parser: unsupported operator: " +
+                   godot::String(node.op_type().c_str()));
     }
 
     for (const auto &inp : node.input())
@@ -87,25 +90,32 @@ static void _parse_nodes(const onnx::GraphProto &proto, Graph &graph) {
 
 namespace Parser {
 
-Graph parse(const std::string &path) {
+bool parse(const std::string &path, Graph &graph) {
+  // Convert res:// path to absolute filesystem path
+  godot::String godot_path(path.c_str());
+  godot::String global_path =
+      godot::ProjectSettings::get_singleton()->globalize_path(godot_path);
+  std::string absolute_path = global_path.utf8().get_data();
+
   // Load and deserialize the protobuf file
   onnx::ModelProto model;
-  std::ifstream file(path, std::ios::binary);
+  std::ifstream file(absolute_path, std::ios::binary);
   if (!file.is_open()) {
-    throw std::runtime_error("ONNXParser: could not open file: " + path);
+    ERR_PRINT("ONNXParser: could not open file: " +
+              godot::String(absolute_path.c_str()));
+    return false;
   }
   if (!model.ParseFromIstream(&file)) {
-    throw std::runtime_error("ONNXParser: failed to parse ONNX file: " + path);
+    ERR_PRINT("ONNXParser: failed to parse ONNX file: " +
+              godot::String(absolute_path.c_str()));
+    return false;
   }
 
   const onnx::GraphProto &proto = model.graph();
-  Graph graph;
-
   _parse_inputs(proto, graph);
   _parse_initializers(proto, graph);
   _parse_nodes(proto, graph);
-
-  return graph;
+  return true;
 }
 } // namespace Parser
 } // namespace ml

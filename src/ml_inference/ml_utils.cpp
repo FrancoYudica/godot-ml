@@ -1,5 +1,8 @@
 #include "ml_utils.hpp"
-#include <iostream>
+#include <godot_cpp/variant/string.hpp>
+#include <godot_cpp/variant/utility_functions.hpp>
+
+using namespace godot;
 
 void ml::Utils::print(const Graph &graph) {
   static const std::unordered_map<NodeOperator, std::string> operator_names = {
@@ -8,31 +11,36 @@ void ml::Utils::print(const Graph &graph) {
       {NodeOperator::ReLU, "ReLU"},
       {NodeOperator::Sigmoid, "Sigmoid"}};
 
-  std::cout << "Input: " << graph.input_name << "\n";
-  std::cout << "Input shape: [";
+  auto to_gstring = [](const std::string &s) { return String(s.c_str()); };
 
+  UtilityFunctions::print("Input: ", to_gstring(graph.input_name));
+
+  String shape_str = "Input shape: [";
   for (const auto &i : graph.input_shape)
-    std::cout << i << ",";
-  std::cout << "]\n";
+    shape_str += String::num_int64(i) + ",";
+  shape_str += "]";
+  UtilityFunctions::print(shape_str);
 
   for (const auto &node : graph.nodes) {
-    std::cout << "Node: " << operator_names.at(node.op) << "\n";
-    std::cout << "  inputs: ";
-    for (const auto &i : node.inputs)
-      std::cout << i << " ";
-    std::cout << "\n";
+    UtilityFunctions::print("Node: ", to_gstring(operator_names.at(node.op)));
 
-    std::cout << "  outputs: ";
+    String inputs_str = "  inputs: ";
+    for (const auto &i : node.inputs)
+      inputs_str += to_gstring(i) + " ";
+    UtilityFunctions::print(inputs_str);
+
+    String outputs_str = "  outputs: ";
     for (const auto &o : node.outputs)
-      std::cout << o << " ";
-    std::cout << "\n";
+      outputs_str += to_gstring(o) + " ";
+    UtilityFunctions::print(outputs_str);
   }
 
-  std::cout << "Initializers:\n";
+  UtilityFunctions::print("Initializers:");
   for (const auto &[name, tensor] : graph.initializers) {
-    std::cout << "  " << name << ": [";
+    String tensor_str = "  " + to_gstring(name) + ": [";
     for (auto d : tensor.shape)
-      std::cout << d << ",";
-    std::cout << "]\n";
+      tensor_str += String::num_int64(d) + ",";
+    tensor_str += "]";
+    UtilityFunctions::print(tensor_str);
   }
 }

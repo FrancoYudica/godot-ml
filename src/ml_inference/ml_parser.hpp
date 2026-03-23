@@ -4,7 +4,7 @@
 namespace ml {
 
 namespace Parser {
-Graph parse(const std::string &path);
+bool parse(const std::string &path, Graph &graph);
 }
 
 } // namespace ml

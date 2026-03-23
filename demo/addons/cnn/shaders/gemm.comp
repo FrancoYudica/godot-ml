@@ -1,0 +1,53 @@
+#version 450
+
+// BUFFERS
+
+layout(set = 0, binding = 0, std430) restrict readonly buffer InputBuffer {
+  float A[]; // (M, K)
+};
+
+layout(set = 0, binding = 1, std430) restrict readonly buffer WeightBuffer {
+  float B[]; // (N, K)
+};
+
+layout(set = 0, binding = 2, std430) restrict readonly buffer BiasBuffer {
+  float C[]; // (N,)
+};
+
+layout(set = 0, binding = 3, std430) restrict writeonly buffer OutputBuffer {
+  float out_data[]; // (M, N)
+};
+
+// PUSH CONSTANT
+layout(push_constant) uniform PushConstants {
+  uint M;      // number of rows in A    (pixels)
+  uint N;      // number of columns in B (output features)
+  uint K;      // inner dimension        (input features)
+  float alpha; // output scale
+  float beta;  // bias scale
+};
+
+layout(local_size_x = 64, local_size_y = 1, local_size_z = 1) in;
+
+void main() {
+  uint m = gl_GlobalInvocationID.x; // pixel index
+
+  // Guard against threads launched beyond the buffer size
+  if (m >= M)
+    return;
+
+  // Here we solve: alpha * A * B + beta * C
+
+  // For each output feature j
+  for (uint n = 0; n < N; n++) {
+
+    // Dot product: A[m, :] * B[n, :]
+    float sum = 0.0;
+    for (uint k = 0; k < K; k++) {
+      sum += A[m * K + k] * B[n * K + k];
+    }
+
+    // output = alpha * dot + beta * bias
+    out_data[m * N + n] = alpha * sum + beta * C[n];
+  }
+}

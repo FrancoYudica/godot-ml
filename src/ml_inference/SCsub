@@ -5,11 +5,13 @@ Import("env")
 
 env_ml = env.Clone()
 
-onnx_dir = "thirdparty/onnx"
+# Absolute path to this SCsub's directory
+scsub_dir = Dir(".").abspath
+onnx_dir = os.path.join(scsub_dir, "thirdparty/onnx")
 
 env_ml.Append(CPPDEFINES=["ONNX_ML=0"])
 env_ml.Append(CPPPATH=[
-    ".",
+    scsub_dir,
     onnx_dir,
     onnx_dir + "/onnx",
 ])
@@ -57,7 +59,7 @@ env_ml.Append(LIBS=[
 ])
 
 env["ML_SOURCES"] = [
-    env_ml.Object(target=f"build/{os.path.splitext(os.path.basename(src))[0]}", source=src)
+    env_ml.SharedObject(target=f"build/{os.path.splitext(os.path.basename(src))[0]}", source=src)
     for src in all_sources
 ]
 

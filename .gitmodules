@@ -1,3 +1,7 @@
 [submodule "src/ml_inference/thirdparty/onnx"]
 	path = src/ml_inference/thirdparty/onnx
 	url = https://github.com/onnx/onnx.git
+[submodule "godot-cpp"]
+	path = godot-cpp
+	url = git@github.com:godotengine/godot-cpp.git
+	branch = 4.5

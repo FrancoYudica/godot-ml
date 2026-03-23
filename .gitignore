@@ -1,1 +1,7 @@
 .vscode
+bin
+*.os
+
+.sconsign.dblite
+config.log
+.sconf_temp
