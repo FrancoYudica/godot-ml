@@ -24,14 +24,21 @@ namespace ml {
          * exist, based on it's shape
          */
         RID get_or_create(const std::string& name,
+                          const std::vector<int64_t>& shape,
+                          const std::vector<float>& data);
+
+        RID get_or_create(const std::string& name,
                           const std::vector<int64_t>& shape = {},
-                          const std::vector<float>& data = {});
+                          const PackedByteArray& data = {});
 
         const std::vector<int64_t> get_tensor_shape(const std::string& name);
 
     private:
         void _write_tensor_buffer(const std::string& name,
-                                  const std::vector<float>& data);
+                                  const PackedByteArray& data);
+
+        void _create_tensor_storage(const std::string& name,
+                                    const std::vector<int64_t>& shape);
 
     private:
         RenderingDevice* _rd;

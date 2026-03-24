@@ -88,8 +88,7 @@ namespace godot {
                     uint32_t N = static_cast<uint32_t>(w_shape[0]);
                     uint32_t K = static_cast<uint32_t>(w_shape[1]);
 
-                    RID out_buf =
-                        _tm->get_or_create(node.outputs[0], {M, N}, {});
+                    RID out_buf = _tm->get_or_create(node.outputs[0], {M, N});
                 } break;
 
                 // Element wise operations
