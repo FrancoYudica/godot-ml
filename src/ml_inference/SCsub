@@ -1,5 +1,6 @@
 # SCsub
 import os
+import glob
 
 Import("env")
 
@@ -43,7 +44,7 @@ for i in range(1, len(generated_cc)):
 
 # ── Sources → compile to build/ ───────────────────────────────────────────────
 
-ml_sources = ["ml_parser.cpp", "ml_utils.cpp"]
+ml_sources = glob.glob("*.cpp")
 
 all_sources = ml_sources + generated_cc
 

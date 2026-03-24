@@ -3,8 +3,8 @@
 
 namespace ml {
 
-namespace Parser {
-bool parse(const std::string &path, Graph &graph);
-}
+    namespace Parser {
+        bool parse(const std::string& path, Graph& graph);
+    }
 
-} // namespace ml
+}  // namespace ml

@@ -1,3 +1,4 @@
+#[compute]
 #version 450
 
 // BUFFERS
@@ -22,8 +23,8 @@ void main() {
   if (m >= M)
     return;
 
-  // sigmoid: 1 / (1 + e^(-x * feature))
+  // max(0, feature)
   for (uint k = 0; k < K; k++) {
-    out_data[m * K + k] = 1.0 / (1.0 + exp(-A[m * K + k]));
+    out_data[m * K + k] = max(0.0, A[m * K + k]);
   }
 }

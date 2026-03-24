@@ -4,43 +4,64 @@
 
 using namespace godot;
 
-void ml::Utils::print(const Graph &graph) {
-  static const std::unordered_map<NodeOperator, std::string> operator_names = {
-      {NodeOperator::Unknown, "Unknown"},
-      {NodeOperator::Gemm, "Gemm"},
-      {NodeOperator::ReLU, "ReLU"},
-      {NodeOperator::Sigmoid, "Sigmoid"}};
+namespace ml {
+    namespace Utils {
 
-  auto to_gstring = [](const std::string &s) { return String(s.c_str()); };
+        godot::String get_project_relative_path(
+            const godot::String& addon_relative_path) {
+            static const godot::String base_path = "res://addons/cnn/";
+            return base_path + addon_relative_path;
+        }
 
-  UtilityFunctions::print("Input: ", to_gstring(graph.input_name));
+        godot::String node_operator_to_string(NodeOperator op) {
+            static const std::unordered_map<NodeOperator, std::string>
+                operator_names = {{NodeOperator::Unknown, "Unknown"},
+                                  {NodeOperator::Gemm, "Gemm"},
+                                  {NodeOperator::ReLU, "ReLU"},
+                                  {NodeOperator::Sigmoid, "Sigmoid"}};
+            auto it = operator_names.find(op);
+            if (it != operator_names.end()) {
+                return godot::String(it->second.c_str());
+            }
+            return godot::String("Unknown");
+        }
 
-  String shape_str = "Input shape: [";
-  for (const auto &i : graph.input_shape)
-    shape_str += String::num_int64(i) + ",";
-  shape_str += "]";
-  UtilityFunctions::print(shape_str);
+        void print(const Graph& graph) {
+            auto to_gstring = [](const std::string& s) {
+                return String(s.c_str());
+            };
 
-  for (const auto &node : graph.nodes) {
-    UtilityFunctions::print("Node: ", to_gstring(operator_names.at(node.op)));
+            UtilityFunctions::print("Input: ", to_gstring(graph.input_name));
 
-    String inputs_str = "  inputs: ";
-    for (const auto &i : node.inputs)
-      inputs_str += to_gstring(i) + " ";
-    UtilityFunctions::print(inputs_str);
+            String shape_str = "Input shape: [";
+            for (const auto& i : graph.input_shape)
+                shape_str += String::num_int64(i) + ",";
+            shape_str += "]";
+            UtilityFunctions::print(shape_str);
 
-    String outputs_str = "  outputs: ";
-    for (const auto &o : node.outputs)
-      outputs_str += to_gstring(o) + " ";
-    UtilityFunctions::print(outputs_str);
-  }
+            for (const auto& node : graph.nodes) {
+                UtilityFunctions::print("Node: ",
+                                        node_operator_to_string(node.op));
 
-  UtilityFunctions::print("Initializers:");
-  for (const auto &[name, tensor] : graph.initializers) {
-    String tensor_str = "  " + to_gstring(name) + ": [";
-    for (auto d : tensor.shape)
-      tensor_str += String::num_int64(d) + ",";
-    tensor_str += "]";
-    UtilityFunctions::print(tensor_str);
-  }
-}
+                String inputs_str = "  inputs: ";
+                for (const auto& i : node.inputs)
+                    inputs_str += to_gstring(i) + " ";
+                UtilityFunctions::print(inputs_str);
+
+                String outputs_str = "  outputs: ";
+                for (const auto& o : node.outputs)
+                    outputs_str += to_gstring(o) + " ";
+                UtilityFunctions::print(outputs_str);
+            }
+
+            UtilityFunctions::print("Initializers:");
+            for (const auto& [name, tensor] : graph.initializers) {
+                String tensor_str = "  " + to_gstring(name) + ": [";
+                for (auto d : tensor.shape)
+                    tensor_str += String::num_int64(d) + ",";
+                tensor_str += "]";
+                UtilityFunctions::print(tensor_str);
+            }
+        }
+    }  // namespace Utils
+}  // namespace ml
