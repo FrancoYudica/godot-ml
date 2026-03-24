@@ -41,9 +41,7 @@ namespace ml {
         }
 
         // Creates a new entry
-        _TensorBuffer tensor;
-        tensor.shape = shape;
-        _tensors_data[name] = tensor;
+        _tensors_data[name] = {.shape = shape};
 
         _create_tensor_storage(name, shape);
 
@@ -52,7 +50,7 @@ namespace ml {
             _write_tensor_buffer(name, data);
         }
 
-        return tensor.storage_buffer;
+        return _tensors_data[name].storage_buffer;
     }
 
     const std::vector<int64_t> TensorResourceManager::get_tensor_shape(

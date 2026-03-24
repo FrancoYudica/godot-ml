@@ -13,16 +13,20 @@ namespace godot {
 
     public:
         bool load(String model_path);
-        bool run(const std::vector<float>& input,
-                 uint32_t width,
-                 uint32_t height);
+        bool run(const PackedFloat32Array& input);
+
+        PackedFloat32Array get_output_data(const String& tensor_name);
 
     protected:
         static void _bind_methods();
 
     private:
         bool _setup_shaders();
-        void _dispatch_gemm(RID input_sb,
+
+        void _run_node(const ml::GraphNode& node, int64_t compute_list);
+
+        void _dispatch_gemm(int64_t compute_list,
+                            RID input_sb,
                             RID weight_sb,
                             RID bias_sb,
                             RID output_sb,
@@ -32,13 +36,23 @@ namespace godot {
                             float alpha,
                             float beta);
 
+        void _dispatch_elementwise(int64_t compute_list,
+                                   RID shader,
+                                   RID pipeline,
+                                   RID input,
+                                   RID output,
+                                   uint32_t M,
+                                   uint32_t K);
+
         RID _get_shader(ml::NodeOperator op);
+        RID _get_pipeline(ml::NodeOperator op);
 
     private:
         Ref<ml::TensorResourceManager> _tm;
         ml::Graph _graph;
         RenderingDevice* _rd;
         std::unordered_map<ml::NodeOperator, RID> _operator_shader;
+        std::unordered_map<ml::NodeOperator, RID> _operator_pipeline;
         bool _load_success;
     };
 }  // namespace godot

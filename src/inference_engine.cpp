@@ -7,16 +7,15 @@
 #include <godot_cpp/classes/resource_loader.hpp>
 
 struct GemmPushConstants {
-    uint32_t M;
-    uint32_t N;
-    uint32_t K;
-    float alpha;
-    float beta;
+    uint32_t M, N, K;
+    float alpha, beta;
+    float padding[3];
 };
 
 struct ElementwisePushConstants {
     uint32_t M;
     uint32_t K;
+    float padding[2];
 };
 
 namespace godot {
@@ -24,6 +23,11 @@ namespace godot {
     void MLInferenceEngine::_bind_methods() {
         ClassDB::bind_method(D_METHOD("load", "model_path"),
                              &MLInferenceEngine::load);
+
+        ClassDB::bind_method(D_METHOD("run", "input"), &MLInferenceEngine::run);
+
+        ClassDB::bind_method(D_METHOD("get_output_data", "tensor"),
+                             &MLInferenceEngine::get_output_data);
     }
 
     bool MLInferenceEngine::load(String model_path) {
@@ -58,47 +62,48 @@ namespace godot {
         return true;
     }
 
-    bool MLInferenceEngine::run(const std::vector<float>& input,
-                                uint32_t width,
-                                uint32_t height) {
+    bool MLInferenceEngine::run(const PackedFloat32Array& input) {
         if (!_load_success) {
             UtilityFunctions::print("InferenceEngine: model not loaded.");
             return false;
         }
 
-        uint32_t num_pixels = width * height;
-
         // Upload input buffer
-        std::vector<int64_t> dim = {num_pixels, _graph.input_shape[1]};
-        _tm->get_or_create(_graph.input_name, dim, input);
+        // If we have 300 float, that means that we have 100 pixels.
+        int64_t first_axis = input.size() / _graph.input_shape[1];
 
-        for (const ml::GraphNode& node : _graph.nodes) {
-            switch (node.op) {
-                case ml::NodeOperator::Gemm: {
-                    // input[0] activations, input[1] weights, input[2] bias
-                    RID input_sb = _tm->get_or_create(node.inputs[0]);
-                    RID weight_sb = _tm->get_or_create(node.inputs[1]);
-                    RID bias_sb = _tm->get_or_create(node.inputs[2]);
+        std::vector<int64_t> dim = {first_axis, _graph.input_shape[1]};
+        _tm->get_or_create(_graph.input_name, dim, input.to_byte_array());
 
-                    // Derive output shape from weight matrix: (M, N)
-                    // weights stored as (N, K) with transB=true
-                    auto& w_shape =
-                        _graph.initializers.at(node.inputs[1]).shape;
-                    uint32_t M = num_pixels;
-                    uint32_t N = static_cast<uint32_t>(w_shape[0]);
-                    uint32_t K = static_cast<uint32_t>(w_shape[1]);
+        int compute_list = _rd->compute_list_begin();
 
-                    RID out_buf = _tm->get_or_create(node.outputs[0], {M, N});
-                } break;
+        for (size_t i = 0; i < _graph.nodes.size(); ++i) {
+            const ml::GraphNode& node = _graph.nodes[i];
 
-                // Element wise operations
-                case ml::NodeOperator::ReLU:
-                case ml::NodeOperator::Sigmoid: {
-                } break;
+            _run_node(node, compute_list);
+            // Add a barrier unless it's the very last node
+            if (i < _graph.nodes.size() - 1) {
+                _rd->compute_list_add_barrier(compute_list);
             }
         }
+        _rd->compute_list_end();
+        return true;
+    }
 
-        return false;
+    PackedFloat32Array MLInferenceEngine::get_output_data(
+        const String& tensor) {
+        RID sb = _tm->get_or_create(tensor.utf8().ptr());
+
+        PackedByteArray byte_array = _rd->buffer_get_data(sb);
+
+        // Transform byte array to float array
+        PackedFloat32Array float_array;
+        for (size_t i = 0; i < byte_array.size(); i += sizeof(float)) {
+            float value;
+            memcpy(&value, byte_array.ptr() + i, sizeof(float));
+            float_array.append(value);
+        }
+        return float_array;
     }
 
     bool MLInferenceEngine::_setup_shaders() {
@@ -134,10 +139,84 @@ namespace godot {
             }
             _operator_shader[op] = rid;
         }
+
+        // All shaders loaded successfully
+        // time to create the pipelines
+
+        for (const auto& [op, shader_rid] : _operator_shader) {
+            // Create pipeline for each operator
+            RID rid = _rd->compute_pipeline_create(shader_rid);
+            if (!rid.is_valid()) {
+                return false;
+            }
+            _operator_pipeline[op] = rid;
+        }
+
         return true;
     }
 
-    void MLInferenceEngine::_dispatch_gemm(RID input_sb,
+    void MLInferenceEngine::_run_node(const ml::GraphNode& node,
+                                      int64_t compute_list) {
+        UtilityFunctions::print("Running node: " +
+                                ml::Utils::node_operator_to_string(node.op));
+
+        switch (node.op) {
+            case ml::NodeOperator::Gemm: {
+                UtilityFunctions::print(" - Input: " +
+                                        String(node.inputs[0].c_str()));
+                UtilityFunctions::print(" - Weights: " +
+                                        String(node.inputs[1].c_str()));
+                UtilityFunctions::print(" - Bias: " +
+                                        String(node.inputs[2].c_str()));
+
+                RID input_sb = _tm->get_or_create(node.inputs[0]);
+                RID weight_sb = _tm->get_or_create(node.inputs[1]);
+                RID bias_sb = _tm->get_or_create(node.inputs[2]);
+
+                // Derive full shape from stored tensors
+                // input: (M, K)
+                // weights: (N, K) with transB = true
+                auto& in_shape = _tm->get_tensor_shape(node.inputs[0]);
+                auto& w_shape = _tm->get_tensor_shape(node.inputs[1]);
+
+                // pixels
+                uint32_t M = static_cast<uint32_t>(in_shape[0]);
+
+                // output features
+                uint32_t N = static_cast<uint32_t>(w_shape[0]);
+
+                // input features
+                uint32_t K = static_cast<uint32_t>(w_shape[1]);
+
+                RID out_buf = _tm->get_or_create(node.outputs[0], {M, N});
+                _dispatch_gemm(compute_list, input_sb, weight_sb, bias_sb,
+                               out_buf, M, N, K, node.alpha, node.beta);
+            } break;
+
+            case ml::NodeOperator::ReLU:
+            case ml::NodeOperator::Sigmoid: {
+                UtilityFunctions::print(" - Input: " +
+                                        String(node.inputs[0].c_str()));
+
+                RID input_sb = _tm->get_or_create(node.inputs[0]);
+
+                auto& in_shape = _tm->get_tensor_shape(node.inputs[0]);
+                uint32_t M = static_cast<uint32_t>(in_shape[0]);
+                uint32_t K = static_cast<uint32_t>(in_shape[1]);
+
+                RID out_buf = _tm->get_or_create(node.outputs[0], {M, K});
+                _dispatch_elementwise(compute_list, _get_shader(node.op),
+                                      _get_pipeline(node.op), input_sb, out_buf,
+                                      M, K);
+            } break;
+
+            default:
+                ERR_PRINT("MLInferenceEngine: unsupported operator.");
+                break;
+        }
+    }
+    void MLInferenceEngine::_dispatch_gemm(int64_t compute_list,
+                                           RID input_sb,
                                            RID weights_sb,
                                            RID bias_sb,
                                            RID output_sb,
@@ -166,22 +245,55 @@ namespace godot {
         RID uniform_set = _rd->uniform_set_create(
             uniforms, _get_shader(ml::NodeOperator::Gemm), 0);
 
-        // Push constants
-        GemmPushConstants pc{M, N, K, alpha, beta};
-        PackedByteArray pc_bytes;
-        pc_bytes.resize(sizeof(GemmPushConstants));
-        memcpy(pc_bytes.ptrw(), &pc, sizeof(GemmPushConstants));
+        // Push constant
+        GemmPushConstants pc = {M, N, K, alpha, beta, {0, 0, 0}};
+        PackedByteArray packed_pc;
+        packed_pc.resize(sizeof(GemmPushConstants));
+        memcpy(packed_pc.ptrw(), &pc, sizeof(GemmPushConstants));
 
         // Dispatch
-        int64_t compute_list = _rd->compute_list_begin();
         _rd->compute_list_bind_compute_pipeline(
-            compute_list,
-            _rd->compute_pipeline_create(_get_shader(ml::NodeOperator::Gemm)));
+            compute_list, _get_pipeline(ml::NodeOperator::Gemm));
+        _rd->compute_list_bind_uniform_set(compute_list, uniform_set, 0);
+        _rd->compute_list_set_push_constant(compute_list, packed_pc,
+                                            sizeof(GemmPushConstants));
+
+        _rd->compute_list_dispatch(compute_list, (M + 63) / 64, 1, 1);
+    }
+
+    void MLInferenceEngine::_dispatch_elementwise(int64_t compute_list,
+                                                  RID shader,
+                                                  RID pipeline,
+                                                  RID input,
+                                                  RID output,
+                                                  uint32_t M,
+                                                  uint32_t K) {
+        TypedArray<RDUniform> uniforms;
+
+        auto make_uniform = [&](RID rid, int binding) {
+            Ref<RDUniform> u;
+            u.instantiate();
+            u->set_uniform_type(RenderingDevice::UNIFORM_TYPE_STORAGE_BUFFER);
+            u->set_binding(binding);
+            u->add_id(rid);
+            return u;
+        };
+
+        uniforms.push_back(make_uniform(input, 0));
+        uniforms.push_back(make_uniform(output, 1));
+
+        RID uniform_set = _rd->uniform_set_create(uniforms, shader, 0);
+
+        ElementwisePushConstants pc{M, K};
+        PackedByteArray pc_bytes;
+        pc_bytes.resize(sizeof(ElementwisePushConstants));
+        memcpy(pc_bytes.ptrw(), &pc, sizeof(ElementwisePushConstants));
+
+        _rd->compute_list_bind_compute_pipeline(compute_list, pipeline);
         _rd->compute_list_bind_uniform_set(compute_list, uniform_set, 0);
         _rd->compute_list_set_push_constant(compute_list, pc_bytes,
-                                            sizeof(GemmPushConstants));
-        _rd->compute_list_dispatch(compute_list, (M + 63) / 64, 1, 1);
-        _rd->compute_list_end();
+                                            sizeof(ElementwisePushConstants));
+        _rd->compute_list_dispatch(compute_list, (M * K + 63) / 64, 1, 1);
     }
 
     RID MLInferenceEngine::_get_shader(ml::NodeOperator op) {
@@ -190,6 +302,16 @@ namespace godot {
             return it->second;
         }
         ERR_PRINT("Shader not found for operator: " +
+                  String(ml::Utils::node_operator_to_string(op)));
+        return RID();
+    }
+
+    RID MLInferenceEngine::_get_pipeline(ml::NodeOperator op) {
+        auto it = _operator_pipeline.find(op);
+        if (it != _operator_pipeline.end()) {
+            return it->second;
+        }
+        ERR_PRINT("Pipeline not found for operator: " +
                   String(ml::Utils::node_operator_to_string(op)));
         return RID();
     }
