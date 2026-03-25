@@ -13,7 +13,9 @@ namespace godot {
 
     public:
         bool load(String model_path);
+        void unload();
         bool run(const PackedFloat32Array& input);
+        void print_model();
 
         PackedFloat32Array get_output_data(const String& tensor_name);
 
@@ -53,6 +55,7 @@ namespace godot {
         RenderingDevice* _rd;
         std::unordered_map<ml::NodeOperator, RID> _operator_shader;
         std::unordered_map<ml::NodeOperator, RID> _operator_pipeline;
+        std::vector<RID> _transient_uniform_sets;
         bool _load_success;
     };
 }  // namespace godot

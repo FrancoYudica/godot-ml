@@ -6,6 +6,15 @@ namespace ml {
         _rd = rendering_device;
     }
 
+    void TensorResourceManager::clear() {
+        for (auto& [name, tensor] : _tensors_data) {
+            if (tensor.storage_buffer.is_valid()) {
+                _rd->free_rid(tensor.storage_buffer);
+            }
+        }
+        _tensors_data.clear();
+    }
+
     RID TensorResourceManager::get_or_create(const std::string& name,
                                              const std::vector<int64_t>& shape,
                                              const std::vector<float>& data) {
@@ -24,31 +33,17 @@ namespace ml {
     RID TensorResourceManager::get_or_create(const std::string& name,
                                              const std::vector<int64_t>& shape,
                                              const PackedByteArray& data) {
-        // Already loaded
-        if (_tensors_data.find(name) != _tensors_data.end()) {
-            if (data.size() > 0) {
-                _write_tensor_buffer(name, data);
-            }
-
-            return _tensors_data[name].storage_buffer;
+        // If it doesn't exist, initialize the metadata
+        if (_tensors_data.find(name) == _tensors_data.end()) {
+            _TensorBuffer new_tensor;
+            new_tensor.shape = shape;  // This makes a DEEP COPY of the vector
+            new_tensor.buffer_size = 0;
+            new_tensor.storage_buffer = RID();
+            _tensors_data[name] = new_tensor;
         }
 
-        if (shape.empty()) {
-            ERR_PRINT(
-                "Shape is empty. Cannot create storage buffer for tensor \"" +
-                String(name.c_str()) + "\".");
-            return RID();
-        }
-
-        // Creates a new entry
-        _tensors_data[name] = {.shape = shape};
-
-        _create_tensor_storage(name, shape);
-
-        //  Write gpu data
-        if (data.size() > 0) {
-            _write_tensor_buffer(name, data);
-        }
+        // Now that we definitely have an entry, ensure the GPU buffer matches
+        _update_gpu_buffer(name, data, shape);
 
         return _tensors_data[name].storage_buffer;
     }
@@ -62,34 +57,34 @@ namespace ml {
         return std::vector<int64_t>();
     }
 
-    void TensorResourceManager::_write_tensor_buffer(
-        const std::string& name, const PackedByteArray& data) {
-        if (_tensors_data.find(name) == _tensors_data.end()) {
-            UtilityFunctions::print("Tensor named \"" + String(name.c_str()) +
-                                    "\" does not exist. Cannot write data.");
-            return;
-        }
-
-        if (data.size() == 0) {
-            ERR_PRINT("Data is empty. Cannot write to tensor \"" +
-                      String(name.c_str()) + "\".");
-            return;
-        }
-
+    void TensorResourceManager::_update_gpu_buffer(
+        const std::string& name,
+        const PackedByteArray& data,
+        const std::vector<int64_t>& shape) {
         _TensorBuffer& tensor = _tensors_data[name];
 
-        // Create the storage buffer if null or if the size is different
+        // Calculate required size based on shape if data is empty
+        uint32_t required_size = data.size();
+
+        // Initialization
+        if (required_size == 0) {
+            uint32_t elements = 1;
+            for (int64_t d : shape) elements *= (uint32_t)d;
+            required_size = elements * sizeof(float);
+        }
+
+        // Reallocate only if size grows or RID is null
         if (tensor.storage_buffer == RID() ||
-            tensor.buffer_size <= data.size()) {
-            // Free previous storage buffer
-            if (tensor.storage_buffer != RID()) {
+            tensor.buffer_size < required_size) {
+            if (tensor.storage_buffer.is_valid()) {
                 _rd->free_rid(tensor.storage_buffer);
             }
-
-            tensor.buffer_size = data.size();
+            tensor.buffer_size = required_size;
             tensor.storage_buffer =
                 _rd->storage_buffer_create(tensor.buffer_size, data);
-        } else {
+        }
+        // Reuse existing buffer if it's big enough
+        else if (data.size() > 0) {
             _rd->buffer_update(tensor.storage_buffer, 0, data.size(), data);
         }
     }

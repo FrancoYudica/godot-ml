@@ -18,7 +18,7 @@ namespace ml {
     class TensorResourceManager : public RefCounted {
     public:
         void init(RenderingDevice* rendering_device);
-
+        void clear();
         /**
          * Gets an existing storage buffer or creates a new one if it doesn't
          * exist, based on it's shape
@@ -34,8 +34,9 @@ namespace ml {
         const std::vector<int64_t> get_tensor_shape(const std::string& name);
 
     private:
-        void _write_tensor_buffer(const std::string& name,
-                                  const PackedByteArray& data);
+        void _update_gpu_buffer(const std::string& name,
+                                const PackedByteArray& data,
+                                const std::vector<int64_t>& shape);
 
         void _create_tensor_storage(const std::string& name,
                                     const std::vector<int64_t>& shape);

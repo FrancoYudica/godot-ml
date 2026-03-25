@@ -5,3 +5,5 @@ pillow
 numpy
 matplotlib
 ipykernel
+numpy
+onnx

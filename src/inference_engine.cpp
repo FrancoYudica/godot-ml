@@ -28,19 +28,23 @@ namespace godot {
 
         ClassDB::bind_method(D_METHOD("get_output_data", "tensor"),
                              &MLInferenceEngine::get_output_data);
+
+        ClassDB::bind_method(D_METHOD("print_model"),
+                             &MLInferenceEngine::print_model);
+
+        ClassDB::bind_method(D_METHOD("unload"), &MLInferenceEngine::unload);
     }
 
     bool MLInferenceEngine::load(String model_path) {
         _load_success = false;
 
         print_line("Loading ML inference engine with model: " + model_path);
+
         bool success = ml::Parser::parse(model_path.utf8().ptr(), _graph);
 
         if (!success) return false;
 
         UtilityFunctions::print("InferenceEngine: model parsed successfully.");
-
-        ml::Utils::print(_graph);
 
         _rd = RenderingServer::get_singleton()->get_rendering_device();
 
@@ -60,6 +64,39 @@ namespace godot {
 
         _load_success = true;
         return true;
+    }
+    void MLInferenceEngine::unload() {
+        _load_success = false;
+
+        for (auto& it : _operator_pipeline) {
+            if (it.second.is_valid()) {
+                _rd->free_rid(it.second);
+            }
+        }
+
+        _operator_pipeline.clear();
+        for (auto& it : _operator_shader) {
+            if (it.second.is_valid()) {
+                _rd->free_rid(it.second);
+            }
+        }
+        _operator_shader.clear();
+
+        if (_tm.is_valid()) {
+            _tm->clear();
+        }
+
+        for (auto& it : _transient_uniform_sets) {
+            if (it.is_valid() && _rd->uniform_set_is_valid(it)) {
+                _rd->free_rid(it);
+            }
+        }
+        _transient_uniform_sets.clear();
+
+        _graph.input_name = "";
+        // _graph.input_shape.clear(); WHY IS THIS BREAKING????
+        _graph.initializers.clear();
+        _graph.nodes.clear();
     }
 
     bool MLInferenceEngine::run(const PackedFloat32Array& input) {
@@ -88,6 +125,14 @@ namespace godot {
         }
         _rd->compute_list_end();
         return true;
+    }
+
+    void MLInferenceEngine::print_model() {
+        if (_load_success) {
+            ml::Utils::print(_graph);
+        } else {
+            UtilityFunctions::print("InferenceEngine: model not loaded.");
+        }
     }
 
     PackedFloat32Array MLInferenceEngine::get_output_data(
@@ -245,6 +290,7 @@ namespace godot {
         RID uniform_set = _rd->uniform_set_create(
             uniforms, _get_shader(ml::NodeOperator::Gemm), 0);
 
+        _transient_uniform_sets.push_back(uniform_set);
         // Push constant
         GemmPushConstants pc = {M, N, K, alpha, beta, {0, 0, 0}};
         PackedByteArray packed_pc;
@@ -283,6 +329,7 @@ namespace godot {
         uniforms.push_back(make_uniform(output, 1));
 
         RID uniform_set = _rd->uniform_set_create(uniforms, shader, 0);
+        _transient_uniform_sets.push_back(uniform_set);
 
         ElementwisePushConstants pc{M, K};
         PackedByteArray pc_bytes;
