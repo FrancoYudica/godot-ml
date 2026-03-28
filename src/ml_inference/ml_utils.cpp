@@ -41,15 +41,15 @@ namespace ml {
             Ref<RDShaderFile> shader_file =
                 ResourceLoader::get_singleton()->load(path);
 
-            if (shader_file.is_null()) {
-                ERR_PRINT("Failed to load path tracer shader file. " + path);
-                return RID();
-            }
+            ERR_FAIL_COND_V_MSG(shader_file.is_null(), RID(),
+                                "Failed to load shader file: " + path);
+
             Ref<RDShaderSPIRV> spirv = shader_file->get_spirv();
-            if (spirv.is_null()) {
-                ERR_PRINT("Shader  not contain SPIR-V : " + path);
-                return RID();
-            }
+
+            ERR_FAIL_COND_V_MSG(
+                spirv.is_null(), RID(),
+                "Failed to load SPIR-V from shader file: " + path);
+
             return rd->shader_create_from_spirv(spirv);
         }
 

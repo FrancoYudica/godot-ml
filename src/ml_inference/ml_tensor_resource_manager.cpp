@@ -100,35 +100,4 @@ namespace ml {
             _rd->buffer_update(tensor.storage_buffer, 0, data.size(), data);
         }
     }
-
-    void TensorResourceManager::_create_tensor_storage(
-        const std::string& name, const std::vector<int64_t>& shape) {
-        if (_tensors_data.find(name) == _tensors_data.end()) {
-            UtilityFunctions::print(
-                "Tensor named \"" + String(name.c_str()) +
-                "\" does not exist. Cannot create storage.");
-            return;
-        }
-
-        _TensorBuffer& tensor = _tensors_data[name];
-
-        if (tensor.storage_buffer == RID()) {
-            // Calculate the total size of the tensor
-            uint32_t total_size = 1;
-            for (int64_t dim : shape) {
-                total_size *= static_cast<uint32_t>(dim);
-            }
-
-            // Create the storage buffer
-            tensor.buffer_size = total_size * sizeof(float);
-            tensor.storage_buffer = _rd->storage_buffer_create(
-                tensor.buffer_size, PackedByteArray());
-        }
-
-        else {
-            ERR_PRINT("Tensor named \"" + String(name.c_str()) +
-                      "\" already exists.");
-        }
-    }
-
 }  // namespace ml

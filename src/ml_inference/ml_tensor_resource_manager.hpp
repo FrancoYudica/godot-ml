@@ -42,9 +42,6 @@ namespace ml {
                                 const PackedByteArray& data,
                                 const std::vector<int64_t>& shape);
 
-        void _create_tensor_storage(const std::string& name,
-                                    const std::vector<int64_t>& shape);
-
     private:
         RenderingDevice* _rd;
         std::unordered_map<std::string, _TensorBuffer> _tensors_data;

@@ -5,7 +5,7 @@ extends Node
 
 var engine: MLInferenceEngine
 var model_id: int = 0
-var is_processing: bool = false
+var is_processing_model: bool = false
 var result_texture: ImageTexture
 
 func _ready() -> void:
@@ -23,7 +23,7 @@ func _process(_delta: float) -> void:
 		return
 		
 	# THREAD SAFETY: Don't start a new task if the GPU is still working on the last one
-	if not is_processing:
+	if not is_processing_model:
 		_dispatch_inference()
 
 func _dispatch_inference() -> void:
@@ -37,7 +37,7 @@ func _dispatch_inference() -> void:
 	var src_size = img.get_size()
 	var input_data = img.get_data().to_float32_array()
 	
-	is_processing = true
+	is_processing_model = true
 	
 	var task = engine.run_async(model_id, input_data)
 	task.completed.connect(_on_inference_completed.bind(task, src_size), CONNECT_ONE_SHOT)
@@ -60,4 +60,4 @@ func _on_inference_completed(task: InferenceTask, src_size: Vector2i) -> void:
 	texture_rect.texture = result_texture
 	
 	# 4. Ready for the next frame
-	is_processing = false
+	is_processing_model = false

@@ -96,16 +96,14 @@ namespace ml {
             // Load and deserialize the protobuf file
             onnx::ModelProto model;
             std::ifstream file(absolute_path, std::ios::binary);
-            if (!file.is_open()) {
-                ERR_PRINT("ONNXParser: could not open file: " +
-                          godot::String(absolute_path.c_str()));
-                return false;
-            }
-            if (!model.ParseFromIstream(&file)) {
-                ERR_PRINT("ONNXParser: failed to parse ONNX file: " +
-                          godot::String(absolute_path.c_str()));
-                return false;
-            }
+
+            ERR_FAIL_COND_V_MSG(!file.is_open(), false,
+                                "ONNXParser: could not open file: " +
+                                    godot::String(absolute_path.c_str()));
+
+            ERR_FAIL_COND_V_MSG(!model.ParseFromIstream(&file), false,
+                                "ONNXParser: failed to parse ONNX file: " +
+                                    godot::String(absolute_path.c_str()));
 
             const onnx::GraphProto& proto = model.graph();
             _parse_inputs(proto, graph);
