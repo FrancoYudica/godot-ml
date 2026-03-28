@@ -13,7 +13,7 @@ func _ready() -> void:
 	engine.init()
 	
 	# Pre-register the model once
-	model_id = engine.register_model("ml/color_mlp.onnx")
+	model_id = engine.register_model("ml/invert_mlp.onnx")
 	
 	# Initialize the result texture once to avoid allocation stutters
 	result_texture = ImageTexture.new()
