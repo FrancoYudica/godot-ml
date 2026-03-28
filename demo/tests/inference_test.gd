@@ -21,7 +21,10 @@ func _ready() -> void:
 	
 	# Setup and Run
 	var tests = _setup_tests()
-	_run_suite(tests)
+	for i in range(1):
+		_run_suite(tests)
+	
+	engine.destroy()
 
 func _setup_tests() -> Array[Test]:
 	var list: Array[Test] = []
@@ -57,7 +60,7 @@ func _run_suite(tests: Array[Test]):
 		task.completed.connect(_on_test_completed.bind(test, task))
 
 func _on_test_completed(test: Test, task: InferenceTask):
-	var result = task.get_output_data("output") 
+	var result = engine.pop_task_output(task, "output")
 	assert_almost_equals(test.name, test.expected_output, result)
 
 

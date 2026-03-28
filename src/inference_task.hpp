@@ -11,17 +11,17 @@ namespace godot {
         static void _bind_methods();
 
     public:
+        uint32_t id = 0;
         bool is_done = false;
+        bool freed = false;
         PackedFloat32Array input;
-        Ref<ml::TensorResourceManager> tm;
         uint32_t graph_id;
 
     public:
         void init(uint32_t graph_id,
                   const PackedFloat32Array& input,
-                  RenderingDevice* rd);
+                  uint32_t id);
         void emit_completed();
-        PackedFloat32Array get_output_data(const String& output_node);
     };
 
 }  // namespace godot

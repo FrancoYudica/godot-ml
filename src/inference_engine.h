@@ -2,6 +2,8 @@
 #define ML_INFERENCE_ENGINE_H
 #include <godot_cpp/classes/node.hpp>
 #include <godot_cpp/classes/ref.hpp>
+#include <queue>
+#include <functional>
 #include <godot_cpp/classes/rendering_device.hpp>
 #include <godot_cpp/classes/rd_uniform.hpp>
 #include "ml_inference/ml_types.hpp"
@@ -22,6 +24,9 @@ namespace godot {
                                      const PackedFloat32Array& input);
         void print_model(uint32_t model_rid);
 
+        PackedFloat32Array pop_task_output(Ref<InferenceTask> task,
+                                           const String& output_name);
+
     protected:
         static void _bind_methods();
 
@@ -31,7 +36,7 @@ namespace godot {
         void _process_task(Ref<InferenceTask> task);
         void _run_node(const ml::GraphNode& node,
                        int64_t compute_list,
-                       Ref<ml::TensorResourceManager> tm);
+                       uint32_t task_id);
 
         void _dispatch_gemm(int64_t compute_list,
                             RID input_sb,
@@ -55,17 +60,25 @@ namespace godot {
         RID _get_shader(ml::NodeOperator op);
         RID _get_pipeline(ml::NodeOperator op);
 
+        void _free_all_resources();
+
+        void _process_deletion_queue();
+
     private:
         RenderingDevice* _rd;
+        Ref<ml::TensorResourceManager> _tm;
         std::unordered_map<ml::NodeOperator, RID> _operator_shader;
         std::unordered_map<ml::NodeOperator, RID> _operator_pipeline;
         std::unordered_map<uint32_t, ml::Graph> _graphs;
-        std::vector<RID> _transient_uniform_sets;
         std::vector<Ref<InferenceTask>> _pending_tasks;
         std::vector<Ref<InferenceTask>> _executing_tasks;
         bool _initialized = false;
+        bool _destroying = false;
+
+        std::queue<std::function<void()>> _deletion_queue;
 
         uint32_t _graph_next_rid = 1;
+        uint32_t _next_task_rid = 1;
     };
 }  // namespace godot
 

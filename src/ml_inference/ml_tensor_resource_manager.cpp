@@ -17,56 +17,109 @@ namespace ml {
 
     RID TensorResourceManager::get_or_create(const std::string& name,
                                              const std::vector<int64_t>& shape,
-                                             const std::vector<float>& data) {
+                                             const std::vector<float>& data,
+                                             uint32_t owner) {
         PackedByteArray bytes;
         bytes.resize(data.size() * sizeof(float));
         memcpy(bytes.ptrw(), data.data(), data.size() * sizeof(float));
-        return get_or_create(name, shape, bytes);
+        return get_or_create(name, shape, bytes, owner);
     }
 
     RID TensorResourceManager::get_or_create(const std::string& name,
                                              const std::vector<int64_t>& shape,
-                                             const PackedByteArray& data) {
+                                             const PackedByteArray& data,
+                                             uint32_t owner) {
+        const std::string& key = _make_key(name, owner);
+
+        // The resource exists and is owned by the specified owner
+        if (_exists(key, owner)) {
+            _update_gpu_buffer(key, data, shape);
+            return _tensors_data[key].storage_buffer;
+        }
+
+        // The specified owner doesn't own the resource, but it's shared
+        if (_exists(name, 0)) {
+            // If it's a shared resource, then it can't be changed by
+            // the specified owner
+            if (data.size() > 0) {
+                ERR_PRINT(
+                    "Attempting to update a shared tensor with new data.");
+                return RID();
+            }
+
+            // Just gets, it's fine
+            return _tensors_data[name].storage_buffer;
+        }
+
         // If it doesn't exist, initialize the metadata
-        if (_tensors_data.find(name) == _tensors_data.end()) {
+        if (_tensors_data.find(key) == _tensors_data.end()) {
             _TensorBuffer new_tensor;
             new_tensor.shape = shape;  // This makes a DEEP COPY of the vector
             new_tensor.buffer_size = 0;
             new_tensor.storage_buffer = RID();
-            _tensors_data[name] = new_tensor;
+            new_tensor.owner = owner;
+            _tensors_data[key] = new_tensor;
         }
 
         // Now that we definitely have an entry, ensure the GPU buffer matches
-        _update_gpu_buffer(name, data, shape);
-
-        return _tensors_data[name].storage_buffer;
+        _update_gpu_buffer(key, data, shape);
+        return _tensors_data[key].storage_buffer;
     }
 
-    PackedByteArray TensorResourceManager::get_buffer(const std::string& name) {
-        if (_tensors_data.find(name) == _tensors_data.end()) {
-            UtilityFunctions::print("Tensor named \"" + String(name.c_str()) +
-                                    "\" not found.");
-            return PackedByteArray();
-        }
-
-        RID sb = _tensors_data[name].storage_buffer;
+    PackedByteArray TensorResourceManager::get_buffer(const std::string& name,
+                                                      uint32_t owner) {
+        RID sb = get_buffer_rid(name, owner);
+        if (sb == RID()) return PackedByteArray();
         return _rd->buffer_get_data(sb);
     }
 
+    RID TensorResourceManager::get_buffer_rid(const std::string& name,
+                                              uint32_t owner) {
+        const std::string& key = _make_key(name, owner);
+
+        if (_tensors_data.find(key) !=
+            _tensors_data.end()) {  // Use the key directly here
+            return _tensors_data[key].storage_buffer;
+        }
+
+        if (_tensors_data.find(name) != _tensors_data.end()) {  // owner 0
+            return _tensors_data[name].storage_buffer;
+        }
+        ERR_PRINT("Tensor named \"" + String(name.c_str()) + "\" not found.");
+        return RID();
+    }
+
     const std::vector<int64_t> TensorResourceManager::get_tensor_shape(
-        const std::string& name) {
-        if (_tensors_data.find(name) != _tensors_data.end()) {
+        const std::string& name, uint32_t owner) {
+        const std::string& key = _make_key(name, owner);
+
+        if (_exists(name, owner)) {
+            return _tensors_data[key].shape;
+        }
+
+        if (_exists(name, 0)) {
             return _tensors_data[name].shape;
         }
 
         return std::vector<int64_t>();
     }
 
+    void TensorResourceManager::free_owned_by(uint32_t owner) {
+        for (auto it = _tensors_data.begin(); it != _tensors_data.end(); ++it) {
+            if (it->second.owner == owner) {
+                if (it->second.storage_buffer.is_valid()) {
+                    _rd->free_rid(it->second.storage_buffer);
+                }
+                _tensors_data.erase(it);
+            }
+        }
+    }
+
     void TensorResourceManager::_update_gpu_buffer(
-        const std::string& name,
+        const std::string& key,
         const PackedByteArray& data,
         const std::vector<int64_t>& shape) {
-        _TensorBuffer& tensor = _tensors_data[name];
+        _TensorBuffer& tensor = _tensors_data[key];
 
         // Calculate required size based on shape if data is empty
         uint32_t required_size = data.size();
@@ -122,6 +175,21 @@ namespace ml {
             ERR_PRINT("Tensor named \"" + String(name.c_str()) +
                       "\" already exists.");
         }
+    }
+
+    std::string TensorResourceManager::_make_key(const std::string& name,
+                                                 uint32_t owner) {
+        if (owner == 0) {
+            return name;
+        }
+
+        return name + "_" + std::to_string(owner);
+    }
+
+    bool TensorResourceManager::_exists(const std::string& name,
+                                        uint32_t owner) {
+        return _tensors_data.find(_make_key(name, owner)) !=
+               _tensors_data.end();
     }
 
 }  // namespace ml

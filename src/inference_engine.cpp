@@ -37,6 +37,9 @@ namespace godot {
         ClassDB::bind_method(D_METHOD("unload_model", "model_rid"),
                              &MLInferenceEngine::unload_model);
 
+        ClassDB::bind_method(D_METHOD("pop_task_output", "task", "output_name"),
+                             &MLInferenceEngine::pop_task_output);
+
         ClassDB::bind_method(D_METHOD("_process_pending_tasks"),
                              &MLInferenceEngine::_process_pending_tasks);
     }
@@ -67,6 +70,9 @@ namespace godot {
 
         RenderingServer::get_singleton()->connect(
             "frame_pre_draw", Callable(this, "_process_pending_tasks"));
+
+        _tm.instantiate();
+        _tm->init(_rd);
     }
 
     uint32_t MLInferenceEngine::register_model(String model_path) {
@@ -86,6 +92,12 @@ namespace godot {
 
         uint32_t graph_rid = _graph_next_rid++;
         _graphs[graph_rid] = graph;
+
+        // Makes sure that the graph initializers are loaded to the task tm
+        for (const auto& [name, tensor] : graph.initializers) {
+            _tm->get_or_create(name, tensor.shape, tensor.data, 0);
+        }
+
         return graph_rid;
     }
     void MLInferenceEngine::unload_model(uint32_t model_rid) {
@@ -99,33 +111,7 @@ namespace godot {
     }
 
     void MLInferenceEngine::destroy() {
-        // TODO: Destroy after making sure that there aren't any tasks running
-        for (auto& it : _operator_pipeline) {
-            if (it.second.is_valid()) {
-                _rd->free_rid(it.second);
-            }
-        }
-
-        _operator_pipeline.clear();
-        for (auto& it : _operator_shader) {
-            if (it.second.is_valid()) {
-                _rd->free_rid(it.second);
-            }
-        }
-        _operator_shader.clear();
-
-        for (auto& task : _pending_tasks) {
-            if (task->tm.is_valid()) {
-                task->tm->clear();
-            }
-        }
-
-        for (auto& it : _transient_uniform_sets) {
-            if (it.is_valid() && _rd->uniform_set_is_valid(it)) {
-                _rd->free_rid(it);
-            }
-        }
-        _transient_uniform_sets.clear();
+        _destroying = true;
     }
 
     Ref<InferenceTask> MLInferenceEngine::run_async(
@@ -138,7 +124,7 @@ namespace godot {
 
         Ref<InferenceTask> task;
         task.instantiate();
-        task->init(model_rid, input, _rd);
+        task->init(model_rid, input, _next_task_rid++);
         _pending_tasks.push_back(task);
         return task;
     }
@@ -150,6 +136,39 @@ namespace godot {
         } else {
             UtilityFunctions::print("InferenceEngine: model not found.");
         }
+    }
+
+    PackedFloat32Array MLInferenceEngine::pop_task_output(
+        Ref<InferenceTask> task, const String& output_name) {
+        if (!task->is_done) {
+            UtilityFunctions::print(
+                "InferenceTask: Task not yet completed by GPU.");
+            return PackedFloat32Array();
+        }
+
+        if (task->freed) {
+            ERR_PRINT(
+                "InferenceEngine: Task already resources freed. Unable to "
+                "retrieve output");
+            return PackedFloat32Array();
+        }
+
+        RID buffer_rid =
+            _tm->get_buffer_rid(output_name.utf8().ptr(), task->id);
+
+        if (buffer_rid == RID()) {
+            UtilityFunctions::print("InferenceEngine: Buffer not found.");
+            return PackedFloat32Array();
+        }
+        PackedByteArray byte_array = _rd->buffer_get_data(buffer_rid);
+        PackedFloat32Array float_array;
+        float_array.resize(byte_array.size() / sizeof(float));
+        memcpy(float_array.ptrw(), byte_array.ptrw(), byte_array.size());
+
+        // Frees all the resources
+        _tm->free_owned_by(task->id);
+        task->freed = true;
+        return float_array;
     }
 
     bool MLInferenceEngine::_setup_shaders() {
@@ -200,6 +219,19 @@ namespace godot {
     }
 
     void MLInferenceEngine::_process_pending_tasks() {
+        UtilityFunctions::print("Processing pending tasks");
+
+        if (_destroying && _pending_tasks.empty() && _executing_tasks.empty()) {
+            _free_all_resources();
+            RenderingServer::get_singleton()->disconnect(
+                "frame_pre_draw", Callable(this, "_process_pending_tasks"));
+
+            _destroying = false;
+            return;
+        }
+
+        _process_deletion_queue();
+
         // Tasks that were executing now are finished
         for (const auto& task : _executing_tasks) {
             task->is_done = true;
@@ -225,11 +257,6 @@ namespace godot {
         const ml::Graph& graph = it->second;
         const PackedFloat32Array& input = task->input;
 
-        // Makes sure that the graph initializers are loaded to the task tm
-        for (const auto& [name, tensor] : graph.initializers) {
-            task->tm->get_or_create(name, tensor.shape, tensor.data);
-        }
-
         if (graph.input_shape.size() < 2) {
             ERR_PRINT("InferenceEngine: Invalid graph input shape for model " +
                       String::num(task->graph_id) + ". Graph dims " +
@@ -249,14 +276,16 @@ namespace godot {
         // If we have 300 float, that means that we have 100 pixels.
         int64_t first_axis = input.size() / graph.input_shape[1];
         std::vector<int64_t> dim = {first_axis, graph.input_shape[1]};
-        task->tm->get_or_create(graph.input_name, dim, input.to_byte_array());
+
+        _tm->get_or_create(graph.input_name, dim, input.to_byte_array(),
+                           task->id);
 
         int compute_list = _rd->compute_list_begin();
 
         for (size_t i = 0; i < graph.nodes.size(); ++i) {
             const ml::GraphNode& node = graph.nodes[i];
 
-            _run_node(node, compute_list, task->tm);
+            _run_node(node, compute_list, task->id);
             // Add a barrier unless it's the very last node
             if (i < graph.nodes.size() - 1) {
                 _rd->compute_list_add_barrier(compute_list);
@@ -267,7 +296,7 @@ namespace godot {
 
     void MLInferenceEngine::_run_node(const ml::GraphNode& node,
                                       int64_t compute_list,
-                                      Ref<ml::TensorResourceManager> tm) {
+                                      uint32_t task_id) {
         UtilityFunctions::print("Running node: " +
                                 ml::Utils::node_operator_to_string(node.op));
 
@@ -280,15 +309,14 @@ namespace godot {
                 UtilityFunctions::print(" - Bias: " +
                                         String(node.inputs[2].c_str()));
 
-                RID input_sb = tm->get_or_create(node.inputs[0]);
-                RID weight_sb = tm->get_or_create(node.inputs[1]);
-                RID bias_sb = tm->get_or_create(node.inputs[2]);
-
+                RID input_sb = _tm->get_buffer_rid(node.inputs[0], task_id);
+                RID weight_sb = _tm->get_buffer_rid(node.inputs[1], task_id);
+                RID bias_sb = _tm->get_buffer_rid(node.inputs[2], task_id);
                 // Derive full shape from stored tensors
                 // input: (M, K)
                 // weights: (N, K) with transB = true
-                auto& in_shape = tm->get_tensor_shape(node.inputs[0]);
-                auto& w_shape = tm->get_tensor_shape(node.inputs[1]);
+                auto& in_shape = _tm->get_tensor_shape(node.inputs[0], task_id);
+                auto& w_shape = _tm->get_tensor_shape(node.inputs[1], task_id);
 
                 // pixels
                 uint32_t M = static_cast<uint32_t>(in_shape[0]);
@@ -299,7 +327,8 @@ namespace godot {
                 // input features
                 uint32_t K = static_cast<uint32_t>(w_shape[1]);
 
-                RID out_buf = tm->get_or_create(node.outputs[0], {M, N});
+                RID out_buf = _tm->get_or_create(node.outputs[0], {M, N},
+                                                 PackedByteArray(), task_id);
                 _dispatch_gemm(compute_list, input_sb, weight_sb, bias_sb,
                                out_buf, M, N, K, node.alpha, node.beta);
             } break;
@@ -309,13 +338,14 @@ namespace godot {
                 UtilityFunctions::print(" - Input: " +
                                         String(node.inputs[0].c_str()));
 
-                RID input_sb = tm->get_or_create(node.inputs[0]);
+                RID input_sb = _tm->get_buffer_rid(node.inputs[0], task_id);
 
-                auto& in_shape = tm->get_tensor_shape(node.inputs[0]);
+                auto& in_shape = _tm->get_tensor_shape(node.inputs[0], task_id);
                 uint32_t M = static_cast<uint32_t>(in_shape[0]);
                 uint32_t K = static_cast<uint32_t>(in_shape[1]);
 
-                RID out_buf = tm->get_or_create(node.outputs[0], {M, K});
+                RID out_buf = _tm->get_or_create(node.outputs[0], {M, K},
+                                                 PackedByteArray(), task_id);
                 _dispatch_elementwise(compute_list, _get_shader(node.op),
                                       _get_pipeline(node.op), input_sb, out_buf,
                                       M, K);
@@ -356,7 +386,12 @@ namespace godot {
         RID uniform_set = _rd->uniform_set_create(
             uniforms, _get_shader(ml::NodeOperator::Gemm), 0);
 
-        _transient_uniform_sets.push_back(uniform_set);
+        _deletion_queue.push([this, uniform_set]() {
+            if (uniform_set.is_valid()) {
+                _rd->free_rid(uniform_set);
+            }
+        });
+
         // Push constant
         GemmPushConstants pc = {M, N, K, alpha, beta, {0, 0, 0}};
         PackedByteArray packed_pc;
@@ -395,7 +430,12 @@ namespace godot {
         uniforms.push_back(make_uniform(output, 1));
 
         RID uniform_set = _rd->uniform_set_create(uniforms, shader, 0);
-        _transient_uniform_sets.push_back(uniform_set);
+
+        _deletion_queue.push([this, uniform_set]() {
+            if (uniform_set.is_valid()) {
+                _rd->free_rid(uniform_set);
+            }
+        });
 
         ElementwisePushConstants pc{M, K};
         PackedByteArray pc_bytes;
@@ -429,4 +469,29 @@ namespace godot {
         return RID();
     }
 
+    void MLInferenceEngine::_free_all_resources() {
+        for (auto& it : _operator_pipeline) {
+            if (it.second.is_valid()) {
+                _rd->free_rid(it.second);
+            }
+        }
+
+        _operator_pipeline.clear();
+        for (auto& it : _operator_shader) {
+            if (it.second.is_valid()) {
+                _rd->free_rid(it.second);
+            }
+        }
+        _operator_shader.clear();
+
+        _tm->clear();
+
+        _process_deletion_queue();
+    }
+    void MLInferenceEngine::_process_deletion_queue() {
+        while (!_deletion_queue.empty()) {
+            _deletion_queue.front()();
+            _deletion_queue.pop();
+        }
+    }
 }  // namespace godot
