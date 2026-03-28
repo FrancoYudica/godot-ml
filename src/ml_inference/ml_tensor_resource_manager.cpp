@@ -48,6 +48,17 @@ namespace ml {
         return _tensors_data[name].storage_buffer;
     }
 
+    PackedByteArray TensorResourceManager::get_buffer(const std::string& name) {
+        if (_tensors_data.find(name) == _tensors_data.end()) {
+            UtilityFunctions::print("Tensor named \"" + String(name.c_str()) +
+                                    "\" not found.");
+            return PackedByteArray();
+        }
+
+        RID sb = _tensors_data[name].storage_buffer;
+        return _rd->buffer_get_data(sb);
+    }
+
     const std::vector<int64_t> TensorResourceManager::get_tensor_shape(
         const std::string& name) {
         if (_tensors_data.find(name) != _tensors_data.end()) {

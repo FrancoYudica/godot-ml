@@ -12,6 +12,7 @@ void initialize_module(ModuleInitializationLevel p_level) {
     }
 
     GDREGISTER_RUNTIME_CLASS(MLInferenceEngine);
+    GDREGISTER_RUNTIME_CLASS(InferenceTask);
 }
 
 void uninitialize_module(ModuleInitializationLevel p_level) {

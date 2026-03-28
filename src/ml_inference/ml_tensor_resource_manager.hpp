@@ -31,6 +31,8 @@ namespace ml {
                           const std::vector<int64_t>& shape = {},
                           const PackedByteArray& data = {});
 
+        PackedByteArray get_buffer(const std::string& name);
+
         const std::vector<int64_t> get_tensor_shape(const std::string& name);
 
     private:

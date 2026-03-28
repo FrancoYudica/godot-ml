@@ -1,78 +1,66 @@
 extends Node
 
 class Test:
+	var name: String
 	var onnx_path: String
 	var input: PackedFloat32Array
 	var expected_output: PackedFloat32Array
 	
-	func _init(path, test_input, test_output) -> void:
+	func _init(_name, path, test_input, test_output) -> void:
+		self.name = _name
 		self.onnx_path = path
-		self.input = test_input
-		self.expected_output = test_output
+		self.input = PackedFloat32Array(test_input)
+		self.expected_output = PackedFloat32Array(test_output)
+
+var engine = MLInferenceEngine.new()
+var model_cache: Dictionary = {} # Path -> RID
 
 func _ready() -> void:
+	# Initialize Engine
+	engine.init()
+	
+	# Setup and Run
 	var tests = _setup_tests()
-	_run_tests(tests)
+	_run_suite(tests)
 
-func _setup_tests() -> Dictionary:
-	var tests: Dictionary = {}
+func _setup_tests() -> Array[Test]:
+	var list: Array[Test] = []
 	
-	# Weights is identiy. Bias is zeros
-	tests["gemm_zeros_test"] = Test.new(
-		"ml/tests/test_gemm.onnx",
-		[0.0, 0.0, 0.0],
-		[0.0, 0.0, 0.0]
-	)
-	
-	# Weights is identiy. Bias is zeros
-	tests["gemm_identity_test"] = Test.new(
-		"ml/tests/test_gemm.onnx",
-		[1.0, 2.0, 3.0],
-		[1.0, 2.0, 3.0]
-	)
-	
-	# Bias is ones. Adds ones to input
-	tests["gemm_bias_ones"] = Test.new(
-		"ml/tests/test_gemm_bias_ones.onnx",
-		[0.0, 0.0, 0.0],
-		[1.0, 1.0, 1.0]
-	)
-
-	# Bias is ones. Adds ones to input
-	tests["relu"] = Test.new(
-		"ml/tests/test_relu.onnx",
-		[-1.0, 0.0, 1.0],
-		[ 0.0, 0.0, 1.0]
-	)
-
-	# Bias is ones. Adds ones to input
-	var sigmoid_input = [-1.0, 0.0, 1.0]
-	var sigmoid = func(x): return 1.0 / (1.0 + exp(-x))
-	tests["sigmoid"] = Test.new(
-		"ml/tests/test_sigmoid.onnx",
-		sigmoid_input,
-		sigmoid_input.map(sigmoid)
-	)
-	
-	return tests
-	
-func _run_tests(tests: Dictionary):
-	var engine = MLInferenceEngine.new()
-	
-	for test_name in tests:
+	list.append(Test.new("Gemm Identity", "ml/tests/test_gemm.onnx", 
+		[1.0, 2.0, 3.0], [1.0, 2.0, 3.0]))
 		
-		var test: Test = tests[test_name]
-		
-		if not engine.load(test.onnx_path):
-			push_error("Test %s failed to load" % [test_name])
+	list.append(Test.new("ReLU Basic", "ml/tests/test_relu.onnx", 
+		[-1.0, 0.0, 1.0], [0.0, 0.0, 1.0]))
+	
+	var sig_in = [-1.0, 0.0, 1.0]
+	var sig_out = sig_in.map(func(x): return 1.0 / (1.0 + exp(-x)))
+	list.append(Test.new("Sigmoid", "ml/tests/test_sigmoid.onnx", sig_in, sig_out))
+	
+	return list
+
+func _run_suite(tests: Array[Test]):
+	for test in tests:
+		# Avoid re-registering if we use the same model twice
+		var model_id = model_cache.get(test.onnx_path, 0)
+		if model_id == 0:
+			model_id = engine.register_model(test.onnx_path)
+			model_cache[test.onnx_path] = model_id
 			
-		engine.run(test.input)
-		var output = engine.get_output_data("output")
-		assert_almost_equals(test_name, test.expected_output, output)
+		if model_id == 0:
+			push_error("FAILED: Could not register model for %s" % test.name)
+			continue
+			
+		# Run Inference
+		var task = engine.run_async(model_id, test.input)
 		
-		engine.unload()
-		await get_tree().create_timer(0.1).timeout
-	
+		# Connect with binds so the callback knows WHICH test just finished
+		task.completed.connect(_on_test_completed.bind(test, task))
+
+func _on_test_completed(test: Test, task: InferenceTask):
+	var result = task.get_output_data("output") 
+	assert_almost_equals(test.name, test.expected_output, result)
+
+
 func assert_almost_equals(test_name, a: PackedFloat32Array, b: PackedFloat32Array, epsilon = 0.0001):
 	if a.size() != b.size():
 		push_error("Size mismatch")

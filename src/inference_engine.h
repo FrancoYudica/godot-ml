@@ -7,25 +7,31 @@
 #include "ml_inference/ml_types.hpp"
 #include "ml_inference/ml_tensor_resource_manager.hpp"
 #include "ml_inference/ml_parser.hpp"
+#include "inference_task.hpp"
+
 namespace godot {
     class MLInferenceEngine : public RefCounted {
         GDCLASS(MLInferenceEngine, RefCounted)
 
     public:
-        bool load(String model_path);
-        void unload();
-        bool run(const PackedFloat32Array& input);
-        void print_model();
-
-        PackedFloat32Array get_output_data(const String& tensor_name);
+        void init();
+        void destroy();
+        uint32_t register_model(String model_path);
+        void unload_model(uint32_t model_rid);
+        Ref<InferenceTask> run_async(uint32_t model_rid,
+                                     const PackedFloat32Array& input);
+        void print_model(uint32_t model_rid);
 
     protected:
         static void _bind_methods();
 
     private:
         bool _setup_shaders();
-
-        void _run_node(const ml::GraphNode& node, int64_t compute_list);
+        void _process_pending_tasks();
+        void _process_task(Ref<InferenceTask> task);
+        void _run_node(const ml::GraphNode& node,
+                       int64_t compute_list,
+                       Ref<ml::TensorResourceManager> tm);
 
         void _dispatch_gemm(int64_t compute_list,
                             RID input_sb,
@@ -50,13 +56,16 @@ namespace godot {
         RID _get_pipeline(ml::NodeOperator op);
 
     private:
-        Ref<ml::TensorResourceManager> _tm;
-        ml::Graph _graph;
         RenderingDevice* _rd;
         std::unordered_map<ml::NodeOperator, RID> _operator_shader;
         std::unordered_map<ml::NodeOperator, RID> _operator_pipeline;
+        std::unordered_map<uint32_t, ml::Graph> _graphs;
         std::vector<RID> _transient_uniform_sets;
-        bool _load_success;
+        std::vector<Ref<InferenceTask>> _pending_tasks;
+        std::vector<Ref<InferenceTask>> _executing_tasks;
+        bool _initialized = false;
+
+        uint32_t _graph_next_rid = 1;
     };
 }  // namespace godot
 

@@ -1,3 +1,4 @@
+#include <unordered_set>
 #include "inference_engine.h"
 #include "ml_inference/ml_parser.hpp"
 #include "ml_inference/ml_utils.hpp"
@@ -21,53 +22,84 @@ struct ElementwisePushConstants {
 namespace godot {
 
     void MLInferenceEngine::_bind_methods() {
-        ClassDB::bind_method(D_METHOD("load", "model_path"),
-                             &MLInferenceEngine::load);
+        ClassDB::bind_method(D_METHOD("init"), &MLInferenceEngine::init);
+        ClassDB::bind_method(D_METHOD("destroy"), &MLInferenceEngine::destroy);
 
-        ClassDB::bind_method(D_METHOD("run", "input"), &MLInferenceEngine::run);
+        ClassDB::bind_method(D_METHOD("register_model", "model_path"),
+                             &MLInferenceEngine::register_model);
 
-        ClassDB::bind_method(D_METHOD("get_output_data", "tensor"),
-                             &MLInferenceEngine::get_output_data);
+        ClassDB::bind_method(D_METHOD("run_async", "model_rid", "input"),
+                             &MLInferenceEngine::run_async);
 
-        ClassDB::bind_method(D_METHOD("print_model"),
+        ClassDB::bind_method(D_METHOD("print_model", "model_rid"),
                              &MLInferenceEngine::print_model);
 
-        ClassDB::bind_method(D_METHOD("unload"), &MLInferenceEngine::unload);
+        ClassDB::bind_method(D_METHOD("unload_model", "model_rid"),
+                             &MLInferenceEngine::unload_model);
+
+        ClassDB::bind_method(D_METHOD("_process_pending_tasks"),
+                             &MLInferenceEngine::_process_pending_tasks);
     }
 
-    bool MLInferenceEngine::load(String model_path) {
-        _load_success = false;
-
-        print_line("Loading ML inference engine with model: " + model_path);
-
-        bool success = ml::Parser::parse(model_path.utf8().ptr(), _graph);
-
-        if (!success) return false;
-
-        UtilityFunctions::print("InferenceEngine: model parsed successfully.");
+    void MLInferenceEngine::init() {
+        if (_initialized) {
+            UtilityFunctions::print("InferenceEngine: already initialized.");
+            return;
+        }
 
         _rd = RenderingServer::get_singleton()->get_rendering_device();
 
-        _tm.instantiate();
-        _tm->init(_rd);
-        for (const auto& [name, tensor] : _graph.initializers) {
-            _tm->get_or_create(name, tensor.shape, tensor.data);
+        if (!_rd) {
+            ERR_PRINT(
+                "InferenceEngine: Could not get RenderingDevice. Are you "
+                "using the Compatibility renderer?");
+            return;
         }
 
-        UtilityFunctions::print("InferenceEngine: initializers uploaded.");
-
         if (!_setup_shaders()) {
-            return false;
+            UtilityFunctions::print(
+                "InferenceEngine: failed to setup shaders.");
+            return;
         }
 
         UtilityFunctions::print("InferenceEngine: shaders setup successfully.");
+        _initialized = true;
 
-        _load_success = true;
-        return true;
+        RenderingServer::get_singleton()->connect(
+            "frame_pre_draw", Callable(this, "_process_pending_tasks"));
     }
-    void MLInferenceEngine::unload() {
-        _load_success = false;
 
+    uint32_t MLInferenceEngine::register_model(String model_path) {
+        if (!_initialized) {
+            UtilityFunctions::print("InferenceEngine: not initialized.");
+            return 0;
+        }
+
+        print_line("Loading ML inference engine with model: " + model_path);
+
+        ml::Graph graph;
+
+        bool success = ml::Parser::parse(model_path.utf8().ptr(), graph);
+
+        if (!success) return 0;
+        UtilityFunctions::print("InferenceEngine: model parsed successfully.");
+
+        uint32_t graph_rid = _graph_next_rid++;
+        _graphs[graph_rid] = graph;
+        return graph_rid;
+    }
+    void MLInferenceEngine::unload_model(uint32_t model_rid) {
+        if (_graphs.find(model_rid) == _graphs.end()) {
+            UtilityFunctions::print("InferenceEngine: model " +
+                                    String::num(model_rid) + " not found.");
+            return;
+        }
+
+        _graphs.erase(model_rid);
+    }
+
+    void MLInferenceEngine::destroy() {
+        // TODO: Destroy after making sure that there aren't any tasks running
         for (auto& it : _operator_pipeline) {
             if (it.second.is_valid()) {
                 _rd->free_rid(it.second);
@@ -82,8 +114,10 @@ namespace godot {
         }
         _operator_shader.clear();
 
-        if (_tm.is_valid()) {
-            _tm->clear();
+        for (auto& task : _pending_tasks) {
+            if (task->tm.is_valid()) {
+                task->tm->clear();
+            }
         }
 
         for (auto& it : _transient_uniform_sets) {
@@ -92,63 +126,30 @@ namespace godot {
             }
         }
         _transient_uniform_sets.clear();
-
-        _graph.input_name = "";
-        // _graph.input_shape.clear(); WHY IS THIS BREAKING????
-        _graph.initializers.clear();
-        _graph.nodes.clear();
     }
 
-    bool MLInferenceEngine::run(const PackedFloat32Array& input) {
-        if (!_load_success) {
-            UtilityFunctions::print("InferenceEngine: model not loaded.");
-            return false;
+    Ref<InferenceTask> MLInferenceEngine::run_async(
+        uint32_t model_rid, const PackedFloat32Array& input) {
+        auto it = _graphs.find(model_rid);
+        if (it == _graphs.end()) {
+            UtilityFunctions::print("InferenceEngine: model not found.");
+            return nullptr;
         }
 
-        // Upload input buffer
-        // If we have 300 float, that means that we have 100 pixels.
-        int64_t first_axis = input.size() / _graph.input_shape[1];
-
-        std::vector<int64_t> dim = {first_axis, _graph.input_shape[1]};
-        _tm->get_or_create(_graph.input_name, dim, input.to_byte_array());
-
-        int compute_list = _rd->compute_list_begin();
-
-        for (size_t i = 0; i < _graph.nodes.size(); ++i) {
-            const ml::GraphNode& node = _graph.nodes[i];
-
-            _run_node(node, compute_list);
-            // Add a barrier unless it's the very last node
-            if (i < _graph.nodes.size() - 1) {
-                _rd->compute_list_add_barrier(compute_list);
-            }
-        }
-        _rd->compute_list_end();
-        return true;
+        Ref<InferenceTask> task;
+        task.instantiate();
+        task->init(model_rid, input, _rd);
+        _pending_tasks.push_back(task);
+        return task;
     }
 
-    void MLInferenceEngine::print_model() {
-        if (_load_success) {
-            ml::Utils::print(_graph);
+    void MLInferenceEngine::print_model(uint32_t model_rid) {
+        auto it = _graphs.find(model_rid);
+        if (it != _graphs.end()) {
+            ml::Utils::print(it->second);
         } else {
-            UtilityFunctions::print("InferenceEngine: model not loaded.");
+            UtilityFunctions::print("InferenceEngine: model not found.");
         }
-    }
-
-    PackedFloat32Array MLInferenceEngine::get_output_data(
-        const String& tensor) {
-        RID sb = _tm->get_or_create(tensor.utf8().ptr());
-
-        PackedByteArray byte_array = _rd->buffer_get_data(sb);
-
-        // Transform byte array to float array
-        PackedFloat32Array float_array;
-        for (size_t i = 0; i < byte_array.size(); i += sizeof(float)) {
-            float value;
-            memcpy(&value, byte_array.ptr() + i, sizeof(float));
-            float_array.append(value);
-        }
-        return float_array;
     }
 
     bool MLInferenceEngine::_setup_shaders() {
@@ -177,7 +178,6 @@ namespace godot {
         for (const auto& [op, path] : operator_to_path) {
             const String& shader_path =
                 ml::Utils::get_project_relative_path(path);
-
             RID rid = load_shader(shader_path);
             if (!rid.is_valid()) {
                 return false;
@@ -187,7 +187,6 @@ namespace godot {
 
         // All shaders loaded successfully
         // time to create the pipelines
-
         for (const auto& [op, shader_rid] : _operator_shader) {
             // Create pipeline for each operator
             RID rid = _rd->compute_pipeline_create(shader_rid);
@@ -200,8 +199,75 @@ namespace godot {
         return true;
     }
 
+    void MLInferenceEngine::_process_pending_tasks() {
+        // Tasks that were executing now are finished
+        for (const auto& task : _executing_tasks) {
+            task->is_done = true;
+            task->emit_completed();
+        }
+
+        _executing_tasks.clear();
+
+        for (const auto& task : _pending_tasks) {
+            _process_task(task);
+            _executing_tasks.push_back(task);
+        }
+
+        _pending_tasks.clear();
+    }
+
+    void MLInferenceEngine::_process_task(Ref<InferenceTask> task) {
+        auto it = _graphs.find(task->graph_id);
+        if (it == _graphs.end()) {
+            UtilityFunctions::print("InferenceEngine: graph not found.");
+            return;
+        }
+        const ml::Graph& graph = it->second;
+        const PackedFloat32Array& input = task->input;
+
+        // Makes sure that the graph initializers are loaded to the task tm
+        for (const auto& [name, tensor] : graph.initializers) {
+            task->tm->get_or_create(name, tensor.shape, tensor.data);
+        }
+
+        if (graph.input_shape.size() < 2) {
+            ERR_PRINT("InferenceEngine: Invalid graph input shape for model " +
+                      String::num(task->graph_id) + ". Graph dims " +
+                      String::num(graph.input_shape.size()) +
+                      ". Expected at least 2 dimensions.");
+            return;
+        }
+
+        if (graph.input_shape[1] == 0) {
+            ERR_PRINT(
+                "InferenceEngine: Unable to support zero-sized input "
+                "dimension.");
+            return;
+        }
+
+        // Upload input buffer
+        // If we have 300 float, that means that we have 100 pixels.
+        int64_t first_axis = input.size() / graph.input_shape[1];
+        std::vector<int64_t> dim = {first_axis, graph.input_shape[1]};
+        task->tm->get_or_create(graph.input_name, dim, input.to_byte_array());
+
+        int compute_list = _rd->compute_list_begin();
+
+        for (size_t i = 0; i < graph.nodes.size(); ++i) {
+            const ml::GraphNode& node = graph.nodes[i];
+
+            _run_node(node, compute_list, task->tm);
+            // Add a barrier unless it's the very last node
+            if (i < graph.nodes.size() - 1) {
+                _rd->compute_list_add_barrier(compute_list);
+            }
+        }
+        _rd->compute_list_end();
+    }
+
     void MLInferenceEngine::_run_node(const ml::GraphNode& node,
-                                      int64_t compute_list) {
+                                      int64_t compute_list,
+                                      Ref<ml::TensorResourceManager> tm) {
         UtilityFunctions::print("Running node: " +
                                 ml::Utils::node_operator_to_string(node.op));
 
@@ -214,15 +280,15 @@ namespace godot {
                 UtilityFunctions::print(" - Bias: " +
                                         String(node.inputs[2].c_str()));
 
-                RID input_sb = _tm->get_or_create(node.inputs[0]);
-                RID weight_sb = _tm->get_or_create(node.inputs[1]);
-                RID bias_sb = _tm->get_or_create(node.inputs[2]);
+                RID input_sb = tm->get_or_create(node.inputs[0]);
+                RID weight_sb = tm->get_or_create(node.inputs[1]);
+                RID bias_sb = tm->get_or_create(node.inputs[2]);
 
                 // Derive full shape from stored tensors
                 // input: (M, K)
                 // weights: (N, K) with transB = true
-                auto& in_shape = _tm->get_tensor_shape(node.inputs[0]);
-                auto& w_shape = _tm->get_tensor_shape(node.inputs[1]);
+                auto& in_shape = tm->get_tensor_shape(node.inputs[0]);
+                auto& w_shape = tm->get_tensor_shape(node.inputs[1]);
 
                 // pixels
                 uint32_t M = static_cast<uint32_t>(in_shape[0]);
@@ -233,7 +299,7 @@ namespace godot {
                 // input features
                 uint32_t K = static_cast<uint32_t>(w_shape[1]);
 
-                RID out_buf = _tm->get_or_create(node.outputs[0], {M, N});
+                RID out_buf = tm->get_or_create(node.outputs[0], {M, N});
                 _dispatch_gemm(compute_list, input_sb, weight_sb, bias_sb,
                                out_buf, M, N, K, node.alpha, node.beta);
             } break;
@@ -243,13 +309,13 @@ namespace godot {
                 UtilityFunctions::print(" - Input: " +
                                         String(node.inputs[0].c_str()));
 
-                RID input_sb = _tm->get_or_create(node.inputs[0]);
+                RID input_sb = tm->get_or_create(node.inputs[0]);
 
-                auto& in_shape = _tm->get_tensor_shape(node.inputs[0]);
+                auto& in_shape = tm->get_tensor_shape(node.inputs[0]);
                 uint32_t M = static_cast<uint32_t>(in_shape[0]);
                 uint32_t K = static_cast<uint32_t>(in_shape[1]);
 
-                RID out_buf = _tm->get_or_create(node.outputs[0], {M, K});
+                RID out_buf = tm->get_or_create(node.outputs[0], {M, K});
                 _dispatch_elementwise(compute_list, _get_shader(node.op),
                                       _get_pipeline(node.op), input_sb, out_buf,
                                       M, K);

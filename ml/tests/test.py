@@ -22,15 +22,15 @@ def create_gemm_model():
 
 def create_relu_model():
     # We use 'N' and 'K' to show it can handle any 2D shape
-    input_info = helper.make_tensor_value_info('input', TensorProto.FLOAT, ['N', 'K'])
-    output_info = helper.make_tensor_value_info('output', TensorProto.FLOAT, ['N', 'K'])
+    input_info = helper.make_tensor_value_info('input', TensorProto.FLOAT, ['N', 3])
+    output_info = helper.make_tensor_value_info('output', TensorProto.FLOAT, ['N', 3])
     node = helper.make_node('Relu', ['input'], ['output'])
     graph = helper.make_graph([node], 'ReluModel', [input_info], [output_info], [])
     onnx.save(helper.make_model(graph), 'test_relu.onnx')
 
 def create_sigmoid_model():
-    input_info = helper.make_tensor_value_info('input', TensorProto.FLOAT, ['N', 'K'])
-    output_info = helper.make_tensor_value_info('output', TensorProto.FLOAT, ['N', 'K'])
+    input_info = helper.make_tensor_value_info('input', TensorProto.FLOAT, ['N', 3])
+    output_info = helper.make_tensor_value_info('output', TensorProto.FLOAT, ['N', 3])
     node = helper.make_node('Sigmoid', ['input'], ['output'])
     graph = helper.make_graph([node], 'SigmoidModel', [input_info], [output_info], [])
     onnx.save(helper.make_model(graph), 'test_sigmoid.onnx')

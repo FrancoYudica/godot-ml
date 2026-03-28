@@ -26,6 +26,13 @@ namespace ml {
             return godot::String("Unknown");
         }
 
+        const std::vector<ml::NodeOperator>& get_node_operators() {
+            static std::vector<ml::NodeOperator> operators = {
+                NodeOperator::Gemm, NodeOperator::ReLU, NodeOperator::Sigmoid};
+
+            return operators;
+        }
+
         void print(const Graph& graph) {
             auto to_gstring = [](const std::string& s) {
                 return String(s.c_str());
