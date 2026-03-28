@@ -18,15 +18,9 @@ namespace ml {
     RID TensorResourceManager::get_or_create(const std::string& name,
                                              const std::vector<int64_t>& shape,
                                              const std::vector<float>& data) {
-        // Copies the floats to a PackedFloat32Array
-        PackedFloat32Array packed_floats;
-        packed_floats.resize(data.size());
-        for (size_t i = 0; i < data.size(); ++i) {
-            packed_floats[i] = data[i];
-        }
-
-        PackedByteArray bytes = packed_floats.to_byte_array();
-
+        PackedByteArray bytes;
+        bytes.resize(data.size() * sizeof(float));
+        memcpy(bytes.ptrw(), data.data(), data.size() * sizeof(float));
         return get_or_create(name, shape, bytes);
     }
 

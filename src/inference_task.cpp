@@ -33,13 +33,10 @@ namespace godot {
 
         PackedByteArray byte_array = tm->get_buffer(output_node.utf8().ptr());
 
-        // Transform byte array to float array
         PackedFloat32Array float_array;
-        for (size_t i = 0; i < byte_array.size(); i += sizeof(float)) {
-            float value;
-            memcpy(&value, byte_array.ptr() + i, sizeof(float));
-            float_array.append(value);
-        }
+        float_array.resize(byte_array.size() / sizeof(float));
+        memcpy(float_array.ptrw(), byte_array.ptrw(), byte_array.size());
+
         return float_array;
     }
 

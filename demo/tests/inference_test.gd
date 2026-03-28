@@ -53,7 +53,7 @@ func _run_suite(tests: Array[Test]):
 		# Run Inference
 		var task = engine.run_async(model_id, test.input)
 		
-		# Connect with binds so the callback knows WHICH test just finished
+		# Connect with binds so the callback knows wich test just finished
 		task.completed.connect(_on_test_completed.bind(test, task))
 
 func _on_test_completed(test: Test, task: InferenceTask):
