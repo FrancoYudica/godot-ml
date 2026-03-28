@@ -12,6 +12,12 @@
 #include "inference_task.hpp"
 
 namespace godot {
+
+    struct GraphContext {
+        ml::Graph graph;
+        Ref<ml::TensorResourceManager> weights_tm;
+    };
+
     class MLInferenceEngine : public RefCounted {
         GDCLASS(MLInferenceEngine, RefCounted)
 
@@ -36,7 +42,8 @@ namespace godot {
         void _process_task(Ref<InferenceTask> task);
         void _run_node(const ml::GraphNode& node,
                        int64_t compute_list,
-                       uint32_t task_id);
+                       Ref<ml::TensorResourceManager> weights_tm,
+                       Ref<ml::TensorResourceManager> activations_tm);
 
         void _dispatch_gemm(int64_t compute_list,
                             RID input_sb,
@@ -66,10 +73,9 @@ namespace godot {
 
     private:
         RenderingDevice* _rd;
-        Ref<ml::TensorResourceManager> _tm;
         std::unordered_map<ml::NodeOperator, RID> _operator_shader;
         std::unordered_map<ml::NodeOperator, RID> _operator_pipeline;
-        std::unordered_map<uint32_t, ml::Graph> _graphs;
+        std::unordered_map<uint32_t, GraphContext> _graphs;
         std::vector<Ref<InferenceTask>> _pending_tasks;
         std::vector<Ref<InferenceTask>> _executing_tasks;
         bool _initialized = false;
@@ -77,8 +83,7 @@ namespace godot {
 
         std::queue<std::function<void()>> _deletion_queue;
 
-        uint32_t _graph_next_rid = 1;
-        uint32_t _next_task_rid = 1;
+        uint32_t _next_graph_id = 1;
     };
 }  // namespace godot
 

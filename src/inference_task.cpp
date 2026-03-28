@@ -9,10 +9,11 @@ namespace godot {
 
     void InferenceTask::init(uint32_t graph_id,
                              const PackedFloat32Array& input,
-                             uint32_t id) {
+                             RenderingDevice* rd) {
         this->graph_id = graph_id;
         this->input = input;
-        this->id = id;
+        this->activations_tm.instantiate();
+        this->activations_tm->init(rd);
     }
 
     void InferenceTask::emit_completed() {

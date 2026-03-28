@@ -70,9 +70,6 @@ namespace godot {
 
         RenderingServer::get_singleton()->connect(
             "frame_pre_draw", Callable(this, "_process_pending_tasks"));
-
-        _tm.instantiate();
-        _tm->init(_rd);
     }
 
     uint32_t MLInferenceEngine::register_model(String model_path) {
@@ -83,19 +80,24 @@ namespace godot {
 
         print_line("Loading ML inference engine with model: " + model_path);
 
-        ml::Graph graph;
+        GraphContext graph_context;
 
-        bool success = ml::Parser::parse(model_path.utf8().ptr(), graph);
+        bool success =
+            ml::Parser::parse(model_path.utf8().ptr(), graph_context.graph);
 
         if (!success) return 0;
         UtilityFunctions::print("InferenceEngine: model parsed successfully.");
 
-        uint32_t graph_rid = _graph_next_rid++;
-        _graphs[graph_rid] = graph;
+        graph_context.weights_tm.instantiate();
+        graph_context.weights_tm->init(_rd);
+
+        uint32_t graph_rid = _next_graph_id++;
+        _graphs[graph_rid] = graph_context;
 
         // Makes sure that the graph initializers are loaded to the task tm
-        for (const auto& [name, tensor] : graph.initializers) {
-            _tm->get_or_create(name, tensor.shape, tensor.data, 0);
+        for (const auto& [name, tensor] : graph_context.graph.initializers) {
+            graph_context.weights_tm->get_or_create(name, tensor.shape,
+                                                    tensor.data);
         }
 
         return graph_rid;
@@ -124,7 +126,7 @@ namespace godot {
 
         Ref<InferenceTask> task;
         task.instantiate();
-        task->init(model_rid, input, _next_task_rid++);
+        task->init(model_rid, input, _rd);
         _pending_tasks.push_back(task);
         return task;
     }
@@ -132,7 +134,7 @@ namespace godot {
     void MLInferenceEngine::print_model(uint32_t model_rid) {
         auto it = _graphs.find(model_rid);
         if (it != _graphs.end()) {
-            ml::Utils::print(it->second);
+            ml::Utils::print(it->second.graph);
         } else {
             UtilityFunctions::print("InferenceEngine: model not found.");
         }
@@ -153,20 +155,20 @@ namespace godot {
             return PackedFloat32Array();
         }
 
-        RID buffer_rid =
-            _tm->get_buffer_rid(output_name.utf8().ptr(), task->id);
+        RID sb = task->activations_tm->get_buffer_rid(output_name.utf8().ptr());
 
-        if (buffer_rid == RID()) {
+        if (!sb.is_valid()) {
             UtilityFunctions::print("InferenceEngine: Buffer not found.");
             return PackedFloat32Array();
         }
-        PackedByteArray byte_array = _rd->buffer_get_data(buffer_rid);
+
+        PackedByteArray byte_array = _rd->buffer_get_data(sb);
         PackedFloat32Array float_array;
         float_array.resize(byte_array.size() / sizeof(float));
         memcpy(float_array.ptrw(), byte_array.ptrw(), byte_array.size());
 
         // Frees all the resources
-        _tm->free_owned_by(task->id);
+        task->activations_tm->clear();
         task->freed = true;
         return float_array;
     }
@@ -219,8 +221,6 @@ namespace godot {
     }
 
     void MLInferenceEngine::_process_pending_tasks() {
-        UtilityFunctions::print("Processing pending tasks");
-
         if (_destroying && _pending_tasks.empty() && _executing_tasks.empty()) {
             _free_all_resources();
             RenderingServer::get_singleton()->disconnect(
@@ -254,7 +254,9 @@ namespace godot {
             UtilityFunctions::print("InferenceEngine: graph not found.");
             return;
         }
-        const ml::Graph& graph = it->second;
+        const ml::Graph& graph = it->second.graph;
+        Ref<ml::TensorResourceManager> weights_tm = it->second.weights_tm;
+
         const PackedFloat32Array& input = task->input;
 
         if (graph.input_shape.size() < 2) {
@@ -277,15 +279,15 @@ namespace godot {
         int64_t first_axis = input.size() / graph.input_shape[1];
         std::vector<int64_t> dim = {first_axis, graph.input_shape[1]};
 
-        _tm->get_or_create(graph.input_name, dim, input.to_byte_array(),
-                           task->id);
+        task->activations_tm->get_or_create(graph.input_name, dim,
+                                            input.to_byte_array());
 
         int compute_list = _rd->compute_list_begin();
 
         for (size_t i = 0; i < graph.nodes.size(); ++i) {
             const ml::GraphNode& node = graph.nodes[i];
 
-            _run_node(node, compute_list, task->id);
+            _run_node(node, compute_list, weights_tm, task->activations_tm);
             // Add a barrier unless it's the very last node
             if (i < graph.nodes.size() - 1) {
                 _rd->compute_list_add_barrier(compute_list);
@@ -294,29 +296,33 @@ namespace godot {
         _rd->compute_list_end();
     }
 
-    void MLInferenceEngine::_run_node(const ml::GraphNode& node,
-                                      int64_t compute_list,
-                                      uint32_t task_id) {
-        UtilityFunctions::print("Running node: " +
-                                ml::Utils::node_operator_to_string(node.op));
+    void MLInferenceEngine::_run_node(
+        const ml::GraphNode& node,
+        int64_t compute_list,
+        Ref<ml::TensorResourceManager> weights_tm,
+        Ref<ml::TensorResourceManager> activations_tm) {
+        auto resolve = [&](const std::string& name) {
+            RID rid = weights_tm->get_buffer_rid(name);
+            if (rid.is_valid()) return rid;
+            return activations_tm->get_or_create(name);
+        };
+
+        auto resolve_shape = [&](const std::string& name) {
+            std::vector<int64_t> shape = weights_tm->get_tensor_shape(name);
+            if (!shape.empty()) return shape;
+            return activations_tm->get_tensor_shape(name);
+        };
 
         switch (node.op) {
             case ml::NodeOperator::Gemm: {
-                UtilityFunctions::print(" - Input: " +
-                                        String(node.inputs[0].c_str()));
-                UtilityFunctions::print(" - Weights: " +
-                                        String(node.inputs[1].c_str()));
-                UtilityFunctions::print(" - Bias: " +
-                                        String(node.inputs[2].c_str()));
-
-                RID input_sb = _tm->get_buffer_rid(node.inputs[0], task_id);
-                RID weight_sb = _tm->get_buffer_rid(node.inputs[1], task_id);
-                RID bias_sb = _tm->get_buffer_rid(node.inputs[2], task_id);
+                RID input_sb = resolve(node.inputs[0]);
+                RID weight_sb = resolve(node.inputs[1]);
+                RID bias_sb = resolve(node.inputs[2]);
                 // Derive full shape from stored tensors
                 // input: (M, K)
                 // weights: (N, K) with transB = true
-                auto& in_shape = _tm->get_tensor_shape(node.inputs[0], task_id);
-                auto& w_shape = _tm->get_tensor_shape(node.inputs[1], task_id);
+                auto in_shape = resolve_shape(node.inputs[0]);
+                auto w_shape = resolve_shape(node.inputs[1]);
 
                 // pixels
                 uint32_t M = static_cast<uint32_t>(in_shape[0]);
@@ -327,28 +333,25 @@ namespace godot {
                 // input features
                 uint32_t K = static_cast<uint32_t>(w_shape[1]);
 
-                RID out_buf = _tm->get_or_create(node.outputs[0], {M, N},
-                                                 PackedByteArray(), task_id);
-                _dispatch_gemm(compute_list, input_sb, weight_sb, bias_sb,
-                               out_buf, M, N, K, node.alpha, node.beta);
+                RID out =
+                    activations_tm->get_or_create(node.outputs[0], {M, N});
+                _dispatch_gemm(compute_list, input_sb, weight_sb, bias_sb, out,
+                               M, N, K, node.alpha, node.beta);
             } break;
 
             case ml::NodeOperator::ReLU:
             case ml::NodeOperator::Sigmoid: {
-                UtilityFunctions::print(" - Input: " +
-                                        String(node.inputs[0].c_str()));
+                RID input_sb = resolve(node.inputs[0]);
+                auto in_shape = resolve_shape(node.inputs[0]);
 
-                RID input_sb = _tm->get_buffer_rid(node.inputs[0], task_id);
-
-                auto& in_shape = _tm->get_tensor_shape(node.inputs[0], task_id);
                 uint32_t M = static_cast<uint32_t>(in_shape[0]);
                 uint32_t K = static_cast<uint32_t>(in_shape[1]);
 
-                RID out_buf = _tm->get_or_create(node.outputs[0], {M, K},
-                                                 PackedByteArray(), task_id);
+                RID out =
+                    activations_tm->get_or_create(node.outputs[0], {M, K});
                 _dispatch_elementwise(compute_list, _get_shader(node.op),
-                                      _get_pipeline(node.op), input_sb, out_buf,
-                                      M, K);
+                                      _get_pipeline(node.op), input_sb, out, M,
+                                      K);
             } break;
 
             default:
@@ -484,7 +487,9 @@ namespace godot {
         }
         _operator_shader.clear();
 
-        _tm->clear();
+        for (auto& [_, graph_context] : _graphs) {
+            graph_context.weights_tm->clear();
+        }
 
         _process_deletion_queue();
     }

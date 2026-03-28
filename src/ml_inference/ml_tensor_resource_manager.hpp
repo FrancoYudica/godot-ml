@@ -12,12 +12,6 @@ namespace ml {
     struct _TensorBuffer {
         std::vector<int64_t> shape;
         uint32_t buffer_size = 0;
-
-        /**
-         * Owner set to 0 means that it's shared, usually for weights
-         * defined by the model. For non 0, it's owned by a specific task
-         */
-        uint32_t owner = 0;
         RID storage_buffer = RID();
     };
 
@@ -31,20 +25,17 @@ namespace ml {
          */
         RID get_or_create(const std::string& name,
                           const std::vector<int64_t>& shape,
-                          const std::vector<float>& data,
-                          uint32_t owner);
+                          const std::vector<float>& data);
 
         RID get_or_create(const std::string& name,
                           const std::vector<int64_t>& shape = {},
-                          const PackedByteArray& data = {},
-                          uint32_t owner = 0);
+                          const PackedByteArray& data = {});
 
-        PackedByteArray get_buffer(const std::string& name, uint32_t owner);
-        RID get_buffer_rid(const std::string& name, uint32_t owner);
+        RID get_buffer_rid(const std::string& name);
 
-        const std::vector<int64_t> get_tensor_shape(const std::string& name,
-                                                    uint32_t owner);
-        void free_owned_by(uint32_t owner);
+        PackedByteArray get_buffer(const std::string& name);
+
+        const std::vector<int64_t> get_tensor_shape(const std::string& name);
 
     private:
         void _update_gpu_buffer(const std::string& name,
@@ -53,10 +44,6 @@ namespace ml {
 
         void _create_tensor_storage(const std::string& name,
                                     const std::vector<int64_t>& shape);
-
-        std::string _make_key(const std::string& name, uint32_t owner);
-
-        bool _exists(const std::string& name, uint32_t owner);
 
     private:
         RenderingDevice* _rd;

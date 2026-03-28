@@ -1,5 +1,7 @@
 extends Node
 
+@export var run: bool = true
+
 class Test:
 	var name: String
 	var onnx_path: String
@@ -16,6 +18,9 @@ var engine = MLInferenceEngine.new()
 var model_cache: Dictionary = {} # Path -> RID
 
 func _ready() -> void:
+	if not run:
+		return
+		
 	# Initialize Engine
 	engine.init()
 	
