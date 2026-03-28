@@ -45,8 +45,9 @@ for i in range(1, len(generated_cc)):
 # ── Sources → compile to build/ ───────────────────────────────────────────────
 
 ml_sources = glob.glob("*.cpp")
+ml_operator_sources = glob.glob("operators/*.cpp")
 
-all_sources = ml_sources + generated_cc
+all_sources = ml_sources + ml_operator_sources + generated_cc
 
 env_ml.Append(LIBS=[
     "protobuf",

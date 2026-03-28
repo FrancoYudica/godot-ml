@@ -1,6 +1,10 @@
 #include "ml_utils.hpp"
 #include <godot_cpp/variant/string.hpp>
 #include <godot_cpp/variant/utility_functions.hpp>
+#include <godot_cpp/classes/ref.hpp>
+#include <godot_cpp/classes/rd_shader_file.hpp>
+#include <godot_cpp/classes/rd_shader_spirv.hpp>
+#include <godot_cpp/classes/resource_loader.hpp>
 
 using namespace godot;
 
@@ -31,6 +35,22 @@ namespace ml {
                 NodeOperator::Gemm, NodeOperator::ReLU, NodeOperator::Sigmoid};
 
             return operators;
+        }
+
+        RID load_shader(RenderingDevice* rd, const godot::String& path) {
+            Ref<RDShaderFile> shader_file =
+                ResourceLoader::get_singleton()->load(path);
+
+            if (shader_file.is_null()) {
+                ERR_PRINT("Failed to load path tracer shader file. " + path);
+                return RID();
+            }
+            Ref<RDShaderSPIRV> spirv = shader_file->get_spirv();
+            if (spirv.is_null()) {
+                ERR_PRINT("Shader  not contain SPIR-V : " + path);
+                return RID();
+            }
+            return rd->shader_create_from_spirv(spirv);
         }
 
         void print(const Graph& graph) {

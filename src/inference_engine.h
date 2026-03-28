@@ -10,6 +10,7 @@
 #include "ml_inference/ml_tensor_resource_manager.hpp"
 #include "ml_inference/ml_parser.hpp"
 #include "inference_task.hpp"
+#include "ml_inference/ml_operator_registry.hpp"
 
 namespace godot {
 
@@ -37,7 +38,6 @@ namespace godot {
         static void _bind_methods();
 
     private:
-        bool _setup_shaders();
         void _process_pending_tasks();
         void _process_task(Ref<InferenceTask> task);
         void _run_node(const ml::GraphNode& node,
@@ -45,36 +45,13 @@ namespace godot {
                        Ref<ml::TensorResourceManager> weights_tm,
                        Ref<ml::TensorResourceManager> activations_tm);
 
-        void _dispatch_gemm(int64_t compute_list,
-                            RID input_sb,
-                            RID weight_sb,
-                            RID bias_sb,
-                            RID output_sb,
-                            uint32_t M,
-                            uint32_t N,
-                            uint32_t K,
-                            float alpha,
-                            float beta);
-
-        void _dispatch_elementwise(int64_t compute_list,
-                                   RID shader,
-                                   RID pipeline,
-                                   RID input,
-                                   RID output,
-                                   uint32_t M,
-                                   uint32_t K);
-
-        RID _get_shader(ml::NodeOperator op);
-        RID _get_pipeline(ml::NodeOperator op);
-
         void _free_all_resources();
-
         void _process_deletion_queue();
+        bool _has_graph(uint32_t graph_rid);
 
     private:
         RenderingDevice* _rd;
-        std::unordered_map<ml::NodeOperator, RID> _operator_shader;
-        std::unordered_map<ml::NodeOperator, RID> _operator_pipeline;
+        ml::OperatorRegistry _operator_registry;
         std::unordered_map<uint32_t, GraphContext> _graphs;
         std::vector<Ref<InferenceTask>> _pending_tasks;
         std::vector<Ref<InferenceTask>> _executing_tasks;
