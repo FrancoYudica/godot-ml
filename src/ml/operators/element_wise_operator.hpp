@@ -1,4 +1,3 @@
-// operatorsop_elementwise.hpp
 #pragma once
 #include "operator.hpp"
 
