@@ -25,13 +25,30 @@ namespace godot {
             return _freed;
         }
 
+        void add_input_handler(const std::string& tensor_name,
+                               std::unique_ptr<ml::IInputHandler> handler);
+
+        void add_output_handler(const std::string& output_name,
+                                std::unique_ptr<ml::IOutputHandler> handler);
+
     public:
         Ref<ml::TensorResourceManager> activations_tm;
         uint32_t graph_id;
 
+        /**
+         * Maps the tensor name to the input handler. This is done
+         * to easily make sure that the user isn't defining more than one
+         * input handler per tensor.
+         */
         std::unordered_map<std::string, std::unique_ptr<ml::IInputHandler>>
             input_handlers;
 
+        /**
+         * Maps the output name to the output handler. Note that the output name
+         * is user defined, since a single tensor could have many outputs. For
+         * example, the case where the user wants to get the result as a texture
+         * but also into a float array.
+         */
         std::unordered_map<std::string, std::unique_ptr<ml::IOutputHandler>>
             output_handlers;
 

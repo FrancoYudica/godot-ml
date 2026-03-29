@@ -3,10 +3,9 @@
 #include "../ml_io_descriptor.hpp"
 
 namespace ml {
-    class FloatArrayInputHandler : public IInputHandler {
+    class TextureInputHandler : public IInputHandler {
     public:
-        FloatArrayInputHandler(InputDesc::FloatArray desc)
-            : _desc(std::move(desc)) {
+        TextureInputHandler(InputDesc::Texture desc) : _desc(std::move(desc)) {
         }
 
         std::vector<int64_t> upload(
@@ -14,7 +13,7 @@ namespace ml {
             Ref<TensorResourceManager> activations_tm) override;
 
     private:
-        InputDesc::FloatArray _desc;
+        InputDesc::Texture _desc;
     };
 
 }  // namespace ml

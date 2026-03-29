@@ -1,5 +1,5 @@
 #include "inference_task.hpp"
-
+#include <godot_cpp/core/error_macros.hpp>
 namespace godot {
     void godot::InferenceTask::_bind_methods() {
         ADD_SIGNAL(
@@ -33,5 +33,26 @@ namespace godot {
         output_handlers.clear();
 
         _freed = true;
+    }
+    void InferenceTask::add_input_handler(
+        const std::string& tensor_name,
+        std::unique_ptr<ml::IInputHandler> handler) {
+        ERR_FAIL_COND_MSG(
+            input_handlers.find(tensor_name) != input_handlers.end(),
+            "InferenceEngine: Input handler for tensor \"" +
+                String(tensor_name.c_str()) + "\" already exists.");
+
+        input_handlers[tensor_name] = std::move(handler);
+    }
+
+    void InferenceTask::add_output_handler(
+        const std::string& output_name,
+        std::unique_ptr<ml::IOutputHandler> handler) {
+        ERR_FAIL_COND_MSG(
+            output_handlers.find(output_name) != output_handlers.end(),
+            "InferenceEngine: Output handler for output \"" +
+                String(output_name.c_str()) + "\" already exists.");
+
+        output_handlers[output_name] = std::move(handler);
     }
 }  // namespace godot

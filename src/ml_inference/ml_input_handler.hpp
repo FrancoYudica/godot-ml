@@ -15,7 +15,6 @@ namespace ml {
          * Returns the shape of the uploaded tensor.
          */
         virtual std::vector<int64_t> upload(
-            const std::string& tensor_name,
             godot::RenderingDevice* rd,
             Ref<TensorResourceManager> activations_tm) = 0;
 

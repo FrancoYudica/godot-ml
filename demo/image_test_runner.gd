@@ -29,20 +29,25 @@ func _process(_delta: float) -> void:
 func _dispatch_inference() -> void:
 	var t = Time.get_ticks_usec()
 
-	var tex = viewport.get_texture()
-	var img = tex.get_image() # This is the CPU bottleneck
-	
-	# Optimization: If the viewport is already RGBF, this is much faster
-	if img.get_format() != Image.Format.FORMAT_RGBF:
-		img.convert(Image.Format.FORMAT_RGBF)
-	
-	var src_size = img.get_size()
-	var input_data = img.get_data().to_float32_array()
-	
-	is_processing_model = true
-	
 	var task = engine.run_async(model_id)
-	task.completed.connect(_on_inference_completed.bind(task, src_size), CONNECT_ONE_SHOT)
+
+
+	var tex = viewport.get_texture()
+	
+	#var img = tex.get_image() # This is the CPU bottleneck
+	## Optimization: If the viewport is already RGBF, this is much faster
+	#if img.get_format() != Image.Format.FORMAT_RGBF:
+		#img.convert(Image.Format.FORMAT_RGBF)
+	#var src_size = img.get_size()
+	#var input_data = img.get_data().to_float32_array()
+	#is_processing_model = true
+	#var pixels = input_data.size() / 3.0
+	#engine.add_float_array_input(task, "pixels", input_data, [int(pixels), 3])
+	
+	engine.add_texture_input(task, "pixels", tex)
+	
+	engine.add_float_array_output(task, "result", "result_float_array")
+	task.completed.connect(_on_inference_completed.bind(task, tex.get_size()), CONNECT_ONE_SHOT)
 	var elapsed = Time.get_ticks_usec() - t
 	print("Dispatch took: %s ms" % [elapsed / 1000.0])
 	
@@ -50,7 +55,7 @@ func _on_inference_completed(task: InferenceTask, src_size: Vector2i) -> void:
 	
 	var t = Time.get_ticks_usec()
 	# 1. Grab the output from the engine
-	var result_buffer = engine.pop_task_output(task, "result")
+	var result_buffer = engine.get_task_output(task, "result_float_array")
 	
 	# 2. Reconstruct the image
 	var img = Image.create_from_data(

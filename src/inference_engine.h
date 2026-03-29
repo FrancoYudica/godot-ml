@@ -39,6 +39,10 @@ namespace godot {
                                    const PackedFloat32Array& data,
                                    const PackedFloat64Array& shape);
 
+        void add_texture_input(Ref<InferenceTask> task,
+                               const String& tensor_name,
+                               Ref<Texture2D> texture);
+
         void add_float_array_output(Ref<InferenceTask> task,
                                     const String& tensor_name,
                                     const String& output_name);

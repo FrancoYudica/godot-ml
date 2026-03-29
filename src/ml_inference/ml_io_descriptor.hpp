@@ -28,16 +28,19 @@ namespace ml {
     namespace InputDesc {
 
         struct Texture {
+            std::string tensor_name;
             godot::Ref<godot::Texture2D> texture;
             uint32_t channels = 3;  // how many channels to extract
         };
 
         struct FloatArray {
+            std::string tensor_name;
             godot::PackedFloat32Array data;
             std::vector<int64_t> shape;  // explicit shape, e.g. {4096, 3}
         };
 
         struct StorageBuffer {
+            std::string tensor_name;
             godot::RID buffer;
             std::vector<int64_t> shape;
         };

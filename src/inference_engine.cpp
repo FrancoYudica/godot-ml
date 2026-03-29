@@ -3,6 +3,7 @@
 #include "ml_inference/ml_parser.hpp"
 #include "ml_inference/ml_utils.hpp"
 #include "ml_inference/input_handlers/ml_float_array_input_handler.hpp"
+#include "ml_inference/input_handlers/ml_texture_input_handler.hpp"
 #include "ml_inference/output_handlers/ml_float_array_output_handler.hpp"
 #include <godot_cpp/classes/rendering_server.hpp>
 #include <godot_cpp/classes/rd_shader_file.hpp>
@@ -36,6 +37,10 @@ namespace godot {
         ClassDB::bind_method(D_METHOD("add_float_array_input", "task",
                                       "tensor_name", "data", "shape"),
                              &MLInferenceEngine::add_float_array_input);
+
+        ClassDB::bind_method(
+            D_METHOD("add_texture_input", "task", "tensor_name", "texture"),
+            &MLInferenceEngine::add_texture_input);
 
         ClassDB::bind_method(D_METHOD("add_float_array_output", "task",
                                       "tensor_name", "output_name"),
@@ -168,32 +173,29 @@ namespace godot {
         const String& tensor_name,
         const PackedFloat32Array& data,
         const PackedFloat64Array& shape) {
-        std::string input_name = tensor_name.utf8().get_data();
-
-        ERR_FAIL_COND_MSG(
-            task->input_handlers.find(input_name) != task->input_handlers.end(),
-            "InferenceEngine: Input handler for tensor " + tensor_name +
-                " already exists.");
-
         std::vector<int64_t> s(shape.ptr(), shape.ptr() + shape.size());
 
-        task->input_handlers[input_name] =
+        task->add_input_handler(
+            tensor_name.utf8().get_data(),
             std::make_unique<ml::FloatArrayInputHandler>(
-                ml::InputDesc::FloatArray{data, s});
+                ml::InputDesc::FloatArray{tensor_name.utf8().get_data(), data,
+                                          s}));
+    }
+    void MLInferenceEngine::add_texture_input(Ref<InferenceTask> task,
+                                              const String& tensor_name,
+                                              Ref<Texture2D> texture) {
+        task->add_input_handler(
+            tensor_name.utf8().get_data(),
+            std::make_unique<ml::TextureInputHandler>(ml::InputDesc::Texture{
+                tensor_name.utf8().get_data(), texture}));
     }
     void MLInferenceEngine::add_float_array_output(Ref<InferenceTask> task,
                                                    const String& tensor_name,
                                                    const String& output_name) {
-        std::string output_name_str = output_name.utf8().get_data();
-
-        ERR_FAIL_COND_MSG(task->input_handlers.find(output_name_str) !=
-                              task->input_handlers.end(),
-                          "InferenceEngine: Output handler for tensor " +
-                              tensor_name + " already exists.");
-
-        task->output_handlers[output_name_str] =
+        task->add_output_handler(
+            output_name.utf8().get_data(),
             std::make_unique<ml::FloatArrayOutputHandler>(
-                ml::OutputDesc::FloatArray{tensor_name.utf8().get_data()});
+                ml::OutputDesc::FloatArray{tensor_name.utf8().get_data()}));
     }
     void MLInferenceEngine::_process_pending_tasks() {
         if (_destroying && _pending_tasks.empty() && _executing_tasks.empty()) {
@@ -233,7 +235,7 @@ namespace godot {
 
         // Loads inputs
         for (auto& [tensor_name, input_handler] : task->input_handlers) {
-            input_handler->upload(tensor_name, _rd, task->activations_tm);
+            input_handler->upload(_rd, task->activations_tm);
         }
 
         int compute_list = _rd->compute_list_begin();
