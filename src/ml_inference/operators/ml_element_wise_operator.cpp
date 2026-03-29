@@ -49,6 +49,8 @@ namespace ml {
         uniforms.push_back(make_uniform(output, 1));
 
         RID uniform_set = ctx.rd->uniform_set_create(uniforms, _shader, 0);
+        deletion_stack.push(
+            [uniform_set, rd = ctx.rd]() { rd->free_rid(uniform_set); });
 
         PushConstants pc{M, K};
         PackedByteArray pc_bytes;

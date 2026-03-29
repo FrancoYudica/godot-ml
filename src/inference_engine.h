@@ -11,7 +11,7 @@
 #include "ml_inference/ml_parser.hpp"
 #include "inference_task.hpp"
 #include "ml_inference/ml_operator_registry.hpp"
-
+#include "ml_inference/ml_deletion_stack.hpp"
 namespace godot {
 
     struct GraphContext {
@@ -59,7 +59,6 @@ namespace godot {
                        Ref<ml::TensorResourceManager> activations_tm);
 
         void _free_all_resources();
-        void _process_deletion_queue();
         bool _has_graph(uint32_t graph_rid);
 
     private:
@@ -71,7 +70,7 @@ namespace godot {
         bool _initialized = false;
         bool _destroying = false;
 
-        std::queue<std::function<void()>> _deletion_queue;
+        ml::DeletionStack _frame_deletion_stack;
 
         uint32_t _next_graph_id = 1;
     };

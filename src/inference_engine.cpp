@@ -207,7 +207,7 @@ namespace godot {
             return;
         }
 
-        _process_deletion_queue();
+        _frame_deletion_stack.process();
 
         // Tasks that were executing now are finished
         for (const auto& task : _executing_tasks) {
@@ -276,6 +276,9 @@ namespace godot {
                                 .compute_list = compute_list};
 
         op->dispatch(node, ctx);
+
+        // Makes sure that after the frame it's deletion stack gets processed
+        _frame_deletion_stack.push([op]() { op->deletion_stack.process(); });
     }
 
     void MLInferenceEngine::_free_all_resources() {
@@ -283,14 +286,10 @@ namespace godot {
             graph_context.weights_tm->destroy();
         }
         _operator_registry.destroy(_rd);
-        _process_deletion_queue();
+
+        _frame_deletion_stack.process();
     }
-    void MLInferenceEngine::_process_deletion_queue() {
-        while (!_deletion_queue.empty()) {
-            _deletion_queue.front()();
-            _deletion_queue.pop();
-        }
-    }
+
     bool MLInferenceEngine::_has_graph(uint32_t graph_rid) {
         return _graphs.find(graph_rid) != _graphs.end();
     }

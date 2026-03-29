@@ -2,6 +2,7 @@
 #include <godot_cpp/classes/rendering_device.hpp>
 #include "ml_types.hpp"
 #include "ml_tensor_resource_manager.hpp"
+#include "ml_deletion_stack.hpp"
 
 namespace ml {
     struct OperatorContext {
@@ -18,6 +19,9 @@ namespace ml {
         virtual void dispatch(const ml::GraphNode& node,
                               const OperatorContext& ctx) = 0;
         virtual void destroy(godot::RenderingDevice* rd) = 0;
+
+    public:
+        DeletionStack deletion_stack;
     };
 
 }  // namespace ml

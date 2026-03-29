@@ -55,6 +55,8 @@ namespace ml {
         uniforms.push_back(make_uniform(out_buf, 3));
 
         RID uniform_set = ctx.rd->uniform_set_create(uniforms, _shader, 0);
+        deletion_stack.push(
+            [uniform_set, rd = ctx.rd]() { rd->free_rid(uniform_set); });
 
         // Push constants
         PushConstants pc{M, N, K, node.alpha, node.beta};
