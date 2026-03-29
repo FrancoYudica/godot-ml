@@ -5,15 +5,10 @@ namespace ml {
 
     class FloatArrayOutputHandler : public IOutputHandler {
     public:
-        FloatArrayOutputHandler(OutputDesc::FloatArray desc)
-            : _desc(std::move(desc)) {
-        }
-
-        void download(godot::RenderingDevice* rd,
-                      Ref<TensorResourceManager> activations_tm) override;
-
-    private:
-        OutputDesc::FloatArray _desc;
+        godot::Variant download(
+            const std::unique_ptr<OutputDesc::BaseData>& desc,
+            godot::RenderingDevice* rd,
+            Ref<TensorResourceManager> activations_tm) override;
     };
 
 }  // namespace ml

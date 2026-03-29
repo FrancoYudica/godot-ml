@@ -27,20 +27,27 @@ namespace ml {
 
     namespace InputDesc {
 
-        struct Texture {
+        class BaseData {
+        public:
+            virtual ~BaseData() = default;
+            InputType type;
             std::string tensor_name;
+        };
+
+        class Texture : public BaseData {
+        public:
             godot::Ref<godot::Texture2D> texture;
             uint32_t channels = 3;  // how many channels to extract
         };
 
-        struct FloatArray {
-            std::string tensor_name;
+        class FloatArray : public BaseData {
+        public:
             godot::PackedFloat32Array data;
             std::vector<int64_t> shape;  // explicit shape, e.g. {4096, 3}
         };
 
-        struct StorageBuffer {
-            std::string tensor_name;
+        class StorageBuffer : public BaseData {
+        public:
             godot::RID buffer;
             std::vector<int64_t> shape;
         };
@@ -48,23 +55,23 @@ namespace ml {
     }  // namespace InputDesc
 
     namespace OutputDesc {
-        struct FloatArray {
-            // which graph output to read back
+
+        class BaseData {
+        public:
+            virtual ~BaseData() = default;
+            OutputType type;
             std::string tensor_name;
         };
+        class FloatArray : public BaseData {};
 
-        struct Texture {
-            std::string tensor_name;
-
-            // write result directly into this texture
+        class Texture : public BaseData {
+        public:
             godot::RID target_texture;
             uint32_t width;
             uint32_t height;
         };
 
-        struct StorageBuffer {
-            std::string tensor_name;
-        };
+        class StorageBuffer : public BaseData {};
     }  // namespace OutputDesc
 
 }  // namespace ml

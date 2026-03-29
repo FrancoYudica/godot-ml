@@ -11,8 +11,11 @@
 #include "ml_inference/ml_parser.hpp"
 #include "ml_inference/ml_operator_registry.hpp"
 #include "ml_inference/ml_deletion_stack.hpp"
+#include "ml_inference/ml_input_handler_registry.hpp"
+#include "ml_inference/ml_output_handler_registry.hpp"
+#include "ml_inference/ml_deletion_stack.hpp"
 #include "inference_task.hpp"
-#include "inference_request.hpp"
+#include "inference_descriptor.hpp"
 namespace godot {
 
     struct GraphContext {
@@ -29,7 +32,7 @@ namespace godot {
         uint32_t register_model(String model_path);
         void unload_model(uint32_t model_rid);
         Ref<InferenceTask> queue_request(uint32_t model_rid,
-                                         Ref<InferenceRequest> request);
+                                         Ref<InferenceDescriptor> request);
         void print_model(uint32_t model_rid);
 
         void destroy_task(Ref<InferenceTask> task);
@@ -53,6 +56,8 @@ namespace godot {
     private:
         RenderingDevice* _rd;
         ml::OperatorRegistry _operator_registry;
+        ml::InputHandlerRegistry _input_registry;
+        ml::OutputHandlerRegistry _output_registry;
         std::unordered_map<uint32_t, GraphContext> _graphs;
         std::vector<Ref<InferenceTask>> _pending_tasks;
         std::vector<Ref<InferenceTask>> _executing_tasks;

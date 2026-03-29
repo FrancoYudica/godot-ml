@@ -27,11 +27,11 @@ func _process(_delta: float) -> void:
 func _dispatch_inference() -> void:
 	var t = Time.get_ticks_usec()
 
-	var request = InferenceRequest.new()
+	var descriptor = InferenceDescriptor.new()
 	var tex = viewport.get_texture()
-	request.add_texture_input("pixels", tex)
-	request.add_float_array_output("result", "result_float_array")
-	var task = engine.queue_request(model_id, request)
+	descriptor.add_texture_input("pixels", tex)
+	descriptor.add_float_array_output("result", "result_float_array")
+	var task = engine.queue_request(model_id, descriptor)
 	if task == null:
 		return
 		

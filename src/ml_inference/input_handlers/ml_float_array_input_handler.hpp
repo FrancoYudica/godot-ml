@@ -5,16 +5,10 @@
 namespace ml {
     class FloatArrayInputHandler : public IInputHandler {
     public:
-        FloatArrayInputHandler(InputDesc::FloatArray desc)
-            : _desc(std::move(desc)) {
-        }
-
         std::vector<int64_t> upload(
+            const std::unique_ptr<InputDesc::BaseData>& desc,
             godot::RenderingDevice* rd,
             Ref<TensorResourceManager> activations_tm) override;
-
-    private:
-        InputDesc::FloatArray _desc;
     };
 
 }  // namespace ml

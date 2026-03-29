@@ -5,15 +5,10 @@
 namespace ml {
     class TextureInputHandler : public IInputHandler {
     public:
-        TextureInputHandler(InputDesc::Texture desc) : _desc(std::move(desc)) {
-        }
-
         std::vector<int64_t> upload(
+            const std::unique_ptr<InputDesc::BaseData>& desc,
             godot::RenderingDevice* rd,
             Ref<TensorResourceManager> activations_tm) override;
-
-    private:
-        InputDesc::Texture _desc;
     };
 
 }  // namespace ml

@@ -44,12 +44,20 @@ namespace godot {
 
         _rd = RenderingServer::get_singleton()->get_rendering_device();
 
-        ERR_FAIL_COND_EDMSG(!_rd,
-                            "InferenceEngine: Could not get RenderingDevice.");
+        ERR_FAIL_COND_MSG(!_rd,
+                          "InferenceEngine: Could not get RenderingDevice.");
 
-        ERR_FAIL_COND_EDMSG(
+        ERR_FAIL_COND_MSG(
             !_operator_registry.init(_rd),
             "InferenceEngine: failed to initialize operator registry.");
+
+        ERR_FAIL_COND_MSG(
+            !_input_registry.init(_rd),
+            "InferenceEngine: failed to initialize input registry.");
+
+        ERR_FAIL_COND_MSG(
+            !_output_registry.init(_rd),
+            "InferenceEngine: failed to initialize output registry.");
 
         RenderingServer::get_singleton()->connect(
             "frame_pre_draw", Callable(this, "_process_pending_tasks"));
@@ -100,7 +108,7 @@ namespace godot {
     }
 
     Ref<InferenceTask> MLInferenceEngine::queue_request(
-        uint32_t model_rid, Ref<InferenceRequest> request) {
+        uint32_t model_rid, Ref<InferenceDescriptor> request) {
         auto it = _graphs.find(model_rid);
 
         ERR_FAIL_COND_V_MSG(
@@ -147,16 +155,13 @@ namespace godot {
                             "InferenceEngine: Task already resources freed. "
                             "Unable to retrieve output");
 
-        ERR_FAIL_COND_V_MSG(
-            task->output_handlers.find(output_name.utf8().get_data()) ==
-                task->output_handlers.end(),
-            PackedFloat32Array(),
-            "InferenceEngine: Output handler for tensor " + output_name +
-                " not found.");
+        ERR_FAIL_COND_V_MSG(task->outputs.find(output_name.utf8().get_data()) ==
+                                task->outputs.end(),
+                            PackedFloat32Array(),
+                            "InferenceEngine: Output result \"" + output_name +
+                                "\" not found.");
 
-        auto& output_handler =
-            task->output_handlers[output_name.utf8().get_data()];
-        godot::Variant output = output_handler->get();
+        godot::Variant output = task->outputs[output_name.utf8().get_data()];
         return output;
     }
 
@@ -197,8 +202,9 @@ namespace godot {
         Ref<ml::TensorResourceManager> weights_tm = it->second.weights_tm;
 
         // Loads inputs
-        for (auto& [tensor_name, input_handler] : task->input_handlers) {
-            input_handler->upload(_rd, task->activations_tm);
+        for (auto& [tensor_name, descriptor] : task->descriptor->inputs) {
+            auto& handler = _input_registry.get(descriptor->type);
+            handler->upload(descriptor, _rd, task->activations_tm);
         }
 
         int compute_list = _rd->compute_list_begin();
@@ -217,8 +223,11 @@ namespace godot {
         _rd->compute_list_end();
 
         // Downloads the outputs
-        for (auto& [tensor_name, output_handler] : task->output_handlers) {
-            output_handler->download(_rd, task->activations_tm);
+        for (auto& [output_name, descriptor] : task->descriptor->outputs) {
+            auto& handler = _output_registry.get(descriptor->type);
+            auto result =
+                handler->download(descriptor, _rd, task->activations_tm);
+            task->outputs[output_name] = result;
         }
     }
 
@@ -249,7 +258,8 @@ namespace godot {
             graph_context.weights_tm->destroy();
         }
         _operator_registry.destroy(_rd);
-
+        _input_registry.destroy(_rd);
+        _output_registry.destroy(_rd);
         _frame_deletion_stack.process();
     }
 
