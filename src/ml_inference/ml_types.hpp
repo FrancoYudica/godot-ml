@@ -55,7 +55,7 @@ namespace ml {
      * Parsed graph
      */
     struct Graph {
-        std::string input_name;
+        std::vector<std::string> input_names;
         std::vector<int64_t> input_shape;
 
         /**

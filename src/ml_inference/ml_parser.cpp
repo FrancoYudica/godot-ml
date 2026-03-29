@@ -27,11 +27,11 @@ namespace ml {
 
         for (const auto& input : proto.input()) {
             if (initializer_names.count(input.name())) continue;
-            graph.input_name = input.name();
+
+            graph.input_names.push_back(input.name());
             for (const auto& dim : input.type().tensor_type().shape().dim()) {
                 graph.input_shape.push_back(dim.dim_value());
             }
-            break;  // only one input for this model
         }
     }
 

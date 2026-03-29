@@ -1,4 +1,7 @@
 #include "inference_task.hpp"
+#include "ml_inference/input_handlers/ml_float_array_input_handler.hpp"
+#include "ml_inference/input_handlers/ml_texture_input_handler.hpp"
+#include "ml_inference/output_handlers/ml_float_array_output_handler.hpp"
 #include <godot_cpp/core/error_macros.hpp>
 namespace godot {
     void godot::InferenceTask::_bind_methods() {
@@ -7,10 +10,31 @@ namespace godot {
                        PropertyInfo(Variant::PACKED_FLOAT32_ARRAY, "result")));
     }
 
-    void InferenceTask::init(uint32_t graph_id, RenderingDevice* rd) {
+    void InferenceTask::init(uint32_t graph_id,
+                             RenderingDevice* rd,
+                             Ref<InferenceRequest> request) {
         this->graph_id = graph_id;
         this->activations_tm.instantiate();
         this->activations_tm->init(rd);
+
+        // Loads the input handlers from the inference request
+        for (const auto& data : request->float_array_inputs) {
+            add_input_handler(
+                data.tensor_name,
+                std::make_unique<ml::FloatArrayInputHandler>(data));
+        }
+
+        for (const auto& data : request->texture_inputs) {
+            add_input_handler(data.tensor_name,
+                              std::make_unique<ml::TextureInputHandler>(data));
+        }
+
+        // Loads the output handlers from the inference request
+        for (const auto& [output_name, data] : request->float_array_outputs) {
+            add_output_handler(
+                output_name,
+                std::make_unique<ml::FloatArrayOutputHandler>(data));
+        }
     }
 
     void InferenceTask::emit_completed() {

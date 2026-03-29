@@ -4,6 +4,7 @@
 #include "ml_inference/ml_types.hpp"
 #include "ml_inference/ml_output_handler.hpp"
 #include "ml_inference/ml_input_handler.hpp"
+#include "inference_request.hpp"
 
 namespace godot {
 
@@ -14,7 +15,9 @@ namespace godot {
         static void _bind_methods();
 
     public:
-        void init(uint32_t graph_id, RenderingDevice* rd);
+        void init(uint32_t graph_id,
+                  RenderingDevice* rd,
+                  Ref<InferenceRequest> request);
         void emit_completed();
         void destroy(RenderingDevice* rd);
         bool is_completed() const {

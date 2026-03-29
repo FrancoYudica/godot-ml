@@ -1,5 +1,6 @@
 #include "register_types.h"
 #include "inference_engine.h"
+#include "inference_request.hpp"
 #include <gdextension_interface.h>
 #include <godot_cpp/core/defs.hpp>
 #include <godot_cpp/godot.hpp>
@@ -13,6 +14,7 @@ void initialize_module(ModuleInitializationLevel p_level) {
 
     GDREGISTER_RUNTIME_CLASS(MLInferenceEngine);
     GDREGISTER_RUNTIME_CLASS(InferenceTask);
+    GDREGISTER_RUNTIME_CLASS(InferenceRequest);
 }
 
 void uninitialize_module(ModuleInitializationLevel p_level) {

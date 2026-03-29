@@ -1,17 +1,18 @@
 #ifndef ML_INFERENCE_ENGINE_H
 #define ML_INFERENCE_ENGINE_H
-#include <godot_cpp/classes/node.hpp>
-#include <godot_cpp/classes/ref.hpp>
 #include <queue>
 #include <functional>
+#include <godot_cpp/classes/node.hpp>
+#include <godot_cpp/classes/ref.hpp>
 #include <godot_cpp/classes/rendering_device.hpp>
 #include <godot_cpp/classes/rd_uniform.hpp>
 #include "ml_inference/ml_types.hpp"
 #include "ml_inference/ml_tensor_resource_manager.hpp"
 #include "ml_inference/ml_parser.hpp"
-#include "inference_task.hpp"
 #include "ml_inference/ml_operator_registry.hpp"
 #include "ml_inference/ml_deletion_stack.hpp"
+#include "inference_task.hpp"
+#include "inference_request.hpp"
 namespace godot {
 
     struct GraphContext {
@@ -27,25 +28,13 @@ namespace godot {
         void destroy();
         uint32_t register_model(String model_path);
         void unload_model(uint32_t model_rid);
-        Ref<InferenceTask> run_async(uint32_t model_rid);
+        Ref<InferenceTask> queue_request(uint32_t model_rid,
+                                         Ref<InferenceRequest> request);
         void print_model(uint32_t model_rid);
 
         void destroy_task(Ref<InferenceTask> task);
         godot::Variant get_task_output(Ref<InferenceTask> task,
                                        const String& output_name);
-
-        void add_float_array_input(Ref<InferenceTask> task,
-                                   const String& tensor_name,
-                                   const PackedFloat32Array& data,
-                                   const PackedFloat64Array& shape);
-
-        void add_texture_input(Ref<InferenceTask> task,
-                               const String& tensor_name,
-                               Ref<Texture2D> texture);
-
-        void add_float_array_output(Ref<InferenceTask> task,
-                                    const String& tensor_name,
-                                    const String& output_name);
 
     protected:
         static void _bind_methods();

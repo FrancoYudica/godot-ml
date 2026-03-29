@@ -59,9 +59,11 @@ func _run_suite(tests: Array[Test]):
 			continue
 			
 		# Run Inference
-		var task = engine.run_async(model_id)
-		engine.add_float_array_input(task, "input", test.input, [1, 3])
-		engine.add_float_array_output(task, "output", "output_float_array")
+		var request = InferenceRequest.new()
+		request.add_float_array_input("input", test.input, [1, 3])
+		request.add_float_array_output("output", "output_float_array")
+		var task = engine.queue_request(model_id, request)
+
 		# Connect with binds so the callback knows wich test just finished
 		task.completed.connect(_on_test_completed.bind(test, task))
 

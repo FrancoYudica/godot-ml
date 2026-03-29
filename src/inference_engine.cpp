@@ -2,9 +2,7 @@
 #include "inference_engine.h"
 #include "ml_inference/ml_parser.hpp"
 #include "ml_inference/ml_utils.hpp"
-#include "ml_inference/input_handlers/ml_float_array_input_handler.hpp"
-#include "ml_inference/input_handlers/ml_texture_input_handler.hpp"
-#include "ml_inference/output_handlers/ml_float_array_output_handler.hpp"
+
 #include <godot_cpp/classes/rendering_server.hpp>
 #include <godot_cpp/classes/rd_shader_file.hpp>
 #include <godot_cpp/classes/rd_shader_spirv.hpp>
@@ -19,8 +17,8 @@ namespace godot {
         ClassDB::bind_method(D_METHOD("register_model", "model_path"),
                              &MLInferenceEngine::register_model);
 
-        ClassDB::bind_method(D_METHOD("run_async", "model_rid"),
-                             &MLInferenceEngine::run_async);
+        ClassDB::bind_method(D_METHOD("queue_request", "model_rid", "request"),
+                             &MLInferenceEngine::queue_request);
 
         ClassDB::bind_method(D_METHOD("print_model", "model_rid"),
                              &MLInferenceEngine::print_model);
@@ -33,18 +31,6 @@ namespace godot {
 
         ClassDB::bind_method(D_METHOD("get_task_output", "task", "output_name"),
                              &MLInferenceEngine::get_task_output);
-
-        ClassDB::bind_method(D_METHOD("add_float_array_input", "task",
-                                      "tensor_name", "data", "shape"),
-                             &MLInferenceEngine::add_float_array_input);
-
-        ClassDB::bind_method(
-            D_METHOD("add_texture_input", "task", "tensor_name", "texture"),
-            &MLInferenceEngine::add_texture_input);
-
-        ClassDB::bind_method(D_METHOD("add_float_array_output", "task",
-                                      "tensor_name", "output_name"),
-                             &MLInferenceEngine::add_float_array_output);
 
         ClassDB::bind_method(D_METHOD("_process_pending_tasks"),
                              &MLInferenceEngine::_process_pending_tasks);
@@ -113,16 +99,21 @@ namespace godot {
         _destroying = true;
     }
 
-    Ref<InferenceTask> MLInferenceEngine::run_async(uint32_t model_rid) {
+    Ref<InferenceTask> MLInferenceEngine::queue_request(
+        uint32_t model_rid, Ref<InferenceRequest> request) {
         auto it = _graphs.find(model_rid);
 
         ERR_FAIL_COND_V_MSG(
             it == _graphs.end(), nullptr,
             "InferenceEngine: model " + String::num(model_rid) + " not found.");
 
+        ERR_FAIL_COND_V_MSG(
+            !request->has_inputs_defined(it->second.graph.input_names), nullptr,
+            "InferenceEngine: one or more required inputs are missing.");
+
         Ref<InferenceTask> task;
         task.instantiate();
-        task->init(model_rid, _rd);
+        task->init(model_rid, _rd, request);
         _pending_tasks.push_back(task);
         return task;
     }
@@ -168,35 +159,7 @@ namespace godot {
         godot::Variant output = output_handler->get();
         return output;
     }
-    void MLInferenceEngine::add_float_array_input(
-        Ref<InferenceTask> task,
-        const String& tensor_name,
-        const PackedFloat32Array& data,
-        const PackedFloat64Array& shape) {
-        std::vector<int64_t> s(shape.ptr(), shape.ptr() + shape.size());
 
-        task->add_input_handler(
-            tensor_name.utf8().get_data(),
-            std::make_unique<ml::FloatArrayInputHandler>(
-                ml::InputDesc::FloatArray{tensor_name.utf8().get_data(), data,
-                                          s}));
-    }
-    void MLInferenceEngine::add_texture_input(Ref<InferenceTask> task,
-                                              const String& tensor_name,
-                                              Ref<Texture2D> texture) {
-        task->add_input_handler(
-            tensor_name.utf8().get_data(),
-            std::make_unique<ml::TextureInputHandler>(ml::InputDesc::Texture{
-                tensor_name.utf8().get_data(), texture}));
-    }
-    void MLInferenceEngine::add_float_array_output(Ref<InferenceTask> task,
-                                                   const String& tensor_name,
-                                                   const String& output_name) {
-        task->add_output_handler(
-            output_name.utf8().get_data(),
-            std::make_unique<ml::FloatArrayOutputHandler>(
-                ml::OutputDesc::FloatArray{tensor_name.utf8().get_data()}));
-    }
     void MLInferenceEngine::_process_pending_tasks() {
         if (_destroying && _pending_tasks.empty() && _executing_tasks.empty()) {
             _free_all_resources();

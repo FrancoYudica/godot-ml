@@ -58,7 +58,11 @@ namespace ml {
                 return String(s.c_str());
             };
 
-            UtilityFunctions::print("Input: ", to_gstring(graph.input_name));
+            String inputs_str = "Inputs: ";
+            for (const auto& input_name : graph.input_names) {
+                inputs_str += to_gstring(input_name) + " ";
+            }
+            UtilityFunctions::print(inputs_str);
 
             String shape_str = "Input shape: [";
             for (const auto& i : graph.input_shape)
