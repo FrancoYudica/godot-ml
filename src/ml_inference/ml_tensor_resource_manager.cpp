@@ -6,7 +6,7 @@ namespace ml {
         _rd = rendering_device;
     }
 
-    void TensorResourceManager::clear() {
+    void TensorResourceManager::destroy() {
         for (auto& [name, tensor] : _tensors_data) {
             if (tensor.storage_buffer.is_valid()) {
                 _rd->free_rid(tensor.storage_buffer);

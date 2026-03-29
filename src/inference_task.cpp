@@ -14,6 +14,24 @@ namespace godot {
     }
 
     void InferenceTask::emit_completed() {
+        _is_completed = true;
         emit_signal("completed");
+    }
+
+    void InferenceTask::destroy(RenderingDevice* rd) {
+        activations_tm->destroy();
+
+        for (auto& [_, handler] : input_handlers) {
+            handler->destroy(rd);
+        }
+
+        for (auto& [_, handler] : output_handlers) {
+            handler->destroy(rd);
+        }
+
+        input_handlers.clear();
+        output_handlers.clear();
+
+        _freed = true;
     }
 }  // namespace godot

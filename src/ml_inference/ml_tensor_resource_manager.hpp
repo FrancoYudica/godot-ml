@@ -18,7 +18,7 @@ namespace ml {
     class TensorResourceManager : public RefCounted {
     public:
         void init(RenderingDevice* rendering_device);
-        void clear();
+        void destroy();
         /**
          * Gets an existing storage buffer or creates a new one if it doesn't
          * exist, based on it's shape

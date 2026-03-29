@@ -67,6 +67,7 @@ func _run_suite(tests: Array[Test]):
 
 func _on_test_completed(test: Test, task: InferenceTask):
 	var result = engine.get_task_output(task, "output_float_array")
+	engine.destroy_task(task)
 	assert_almost_equals(test.name, test.expected_output, result)
 
 

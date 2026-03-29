@@ -15,6 +15,9 @@ namespace ml {
         virtual void download(godot::RenderingDevice* rd,
                               Ref<TensorResourceManager> activations_tm) = 0;
 
+        virtual void destroy(RenderingDevice* rd) {
+        }
+
         /**
          * Returns the result of the output handler. This could be a texture,
          * cpu buffer, storage buffer, whatever

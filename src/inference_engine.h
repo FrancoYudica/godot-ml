@@ -30,8 +30,9 @@ namespace godot {
         Ref<InferenceTask> run_async(uint32_t model_rid);
         void print_model(uint32_t model_rid);
 
-        PackedFloat32Array get_task_output(Ref<InferenceTask> task,
-                                           const String& output_name);
+        void destroy_task(Ref<InferenceTask> task);
+        godot::Variant get_task_output(Ref<InferenceTask> task,
+                                       const String& output_name);
 
         void add_float_array_input(Ref<InferenceTask> task,
                                    const String& tensor_name,

@@ -18,6 +18,9 @@ namespace ml {
             const std::string& tensor_name,
             godot::RenderingDevice* rd,
             Ref<TensorResourceManager> activations_tm) = 0;
+
+        virtual void destroy(RenderingDevice* rd) {
+        }
     };
 
 }  // namespace ml

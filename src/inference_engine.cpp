@@ -27,6 +27,9 @@ namespace godot {
         ClassDB::bind_method(D_METHOD("unload_model", "model_rid"),
                              &MLInferenceEngine::unload_model);
 
+        ClassDB::bind_method(D_METHOD("destroy_task", "task"),
+                             &MLInferenceEngine::destroy_task);
+
         ClassDB::bind_method(D_METHOD("get_task_output", "task", "output_name"),
                              &MLInferenceEngine::get_task_output);
 
@@ -128,12 +131,23 @@ namespace godot {
         ml::Utils::print(it->second.graph);
     }
 
-    PackedFloat32Array MLInferenceEngine::get_task_output(
+    void MLInferenceEngine::destroy_task(Ref<InferenceTask> task) {
+        ERR_FAIL_COND_MSG(!task->is_completed(),
+                          "InferenceTask: Task not yet completed by GPU. Too "
+                          "early to destroy");
+
+        ERR_FAIL_COND_MSG(task->is_freed(),
+                          "InferenceEngine: Task already cleared");
+        // Frees all the resources
+        task->destroy(_rd);
+    }
+
+    godot::Variant MLInferenceEngine::get_task_output(
         Ref<InferenceTask> task, const String& output_name) {
-        ERR_FAIL_COND_V_MSG(!task->is_done, PackedFloat32Array(),
+        ERR_FAIL_COND_V_MSG(!task->is_completed(), PackedFloat32Array(),
                             "InferenceTask: Task not yet completed by GPU.");
 
-        ERR_FAIL_COND_V_MSG(task->freed, PackedFloat32Array(),
+        ERR_FAIL_COND_V_MSG(task->is_freed(), PackedFloat32Array(),
                             "InferenceEngine: Task already resources freed. "
                             "Unable to retrieve output");
 
@@ -147,10 +161,6 @@ namespace godot {
         auto& output_handler =
             task->output_handlers[output_name.utf8().get_data()];
         godot::Variant output = output_handler->get();
-
-        // Frees all the resources
-        task->activations_tm->clear();
-        task->freed = true;
         return output;
     }
     void MLInferenceEngine::add_float_array_input(
@@ -199,7 +209,6 @@ namespace godot {
 
         // Tasks that were executing now are finished
         for (const auto& task : _executing_tasks) {
-            task->is_done = true;
             task->emit_completed();
         }
 
@@ -269,7 +278,7 @@ namespace godot {
 
     void MLInferenceEngine::_free_all_resources() {
         for (auto& [_, graph_context] : _graphs) {
-            graph_context.weights_tm->clear();
+            graph_context.weights_tm->destroy();
         }
         _operator_registry.destroy(_rd);
         _process_deletion_queue();
