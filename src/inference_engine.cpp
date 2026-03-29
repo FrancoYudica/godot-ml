@@ -27,16 +27,16 @@ namespace godot {
         ClassDB::bind_method(D_METHOD("unload_model", "model_rid"),
                              &MLInferenceEngine::unload_model);
 
-        ClassDB::bind_method(D_METHOD("pop_task_output", "task", "output_name"),
-                             &MLInferenceEngine::pop_task_output);
+        ClassDB::bind_method(D_METHOD("get_task_output", "task", "output_name"),
+                             &MLInferenceEngine::get_task_output);
 
         ClassDB::bind_method(D_METHOD("add_float_array_input", "task",
                                       "tensor_name", "data", "shape"),
                              &MLInferenceEngine::add_float_array_input);
 
-        ClassDB::bind_method(
-            D_METHOD("add_float_array_output", "task", "tensor_name"),
-            &MLInferenceEngine::add_float_array_output);
+        ClassDB::bind_method(D_METHOD("add_float_array_output", "task",
+                                      "tensor_name", "output_name"),
+                             &MLInferenceEngine::add_float_array_output);
 
         ClassDB::bind_method(D_METHOD("_process_pending_tasks"),
                              &MLInferenceEngine::_process_pending_tasks);
@@ -128,7 +128,7 @@ namespace godot {
         ml::Utils::print(it->second.graph);
     }
 
-    PackedFloat32Array MLInferenceEngine::pop_task_output(
+    PackedFloat32Array MLInferenceEngine::get_task_output(
         Ref<InferenceTask> task, const String& output_name) {
         ERR_FAIL_COND_V_MSG(!task->is_done, PackedFloat32Array(),
                             "InferenceTask: Task not yet completed by GPU.");
@@ -147,17 +147,6 @@ namespace godot {
         auto& output_handler =
             task->output_handlers[output_name.utf8().get_data()];
         godot::Variant output = output_handler->get();
-
-        // RID sb =
-        // task->activations_tm->get_buffer_rid(output_name.utf8().ptr());
-
-        // ERR_FAIL_COND_V_MSG(!sb.is_valid(), PackedFloat32Array(),
-        //                     "InferenceEngine: Buffer not found.");
-
-        // PackedByteArray byte_array = _rd->buffer_get_data(sb);
-        // PackedFloat32Array float_array;
-        // float_array.resize(byte_array.size() / sizeof(float));
-        // memcpy(float_array.ptrw(), byte_array.ptrw(), byte_array.size());
 
         // Frees all the resources
         task->activations_tm->clear();
@@ -183,15 +172,16 @@ namespace godot {
                 ml::InputDesc::FloatArray{data, s});
     }
     void MLInferenceEngine::add_float_array_output(Ref<InferenceTask> task,
-                                                   const String& tensor_name) {
-        std::string output_name = tensor_name.utf8().get_data();
+                                                   const String& tensor_name,
+                                                   const String& output_name) {
+        std::string output_name_str = output_name.utf8().get_data();
 
-        ERR_FAIL_COND_MSG(task->input_handlers.find(output_name) !=
+        ERR_FAIL_COND_MSG(task->input_handlers.find(output_name_str) !=
                               task->input_handlers.end(),
                           "InferenceEngine: Output handler for tensor " +
                               tensor_name + " already exists.");
 
-        task->output_handlers[output_name] =
+        task->output_handlers[output_name_str] =
             std::make_unique<ml::FloatArrayOutputHandler>(
                 ml::OutputDesc::FloatArray{tensor_name.utf8().get_data()});
     }

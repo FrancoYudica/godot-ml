@@ -61,12 +61,12 @@ func _run_suite(tests: Array[Test]):
 		# Run Inference
 		var task = engine.run_async(model_id)
 		engine.add_float_array_input(task, "input", test.input, [1, 3])
-		engine.add_float_array_output(task, "output")
+		engine.add_float_array_output(task, "output", "output_float_array")
 		# Connect with binds so the callback knows wich test just finished
 		task.completed.connect(_on_test_completed.bind(test, task))
 
 func _on_test_completed(test: Test, task: InferenceTask):
-	var result = engine.pop_task_output(task, "output")
+	var result = engine.get_task_output(task, "output_float_array")
 	assert_almost_equals(test.name, test.expected_output, result)
 
 

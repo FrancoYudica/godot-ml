@@ -30,7 +30,7 @@ namespace godot {
         Ref<InferenceTask> run_async(uint32_t model_rid);
         void print_model(uint32_t model_rid);
 
-        PackedFloat32Array pop_task_output(Ref<InferenceTask> task,
+        PackedFloat32Array get_task_output(Ref<InferenceTask> task,
                                            const String& output_name);
 
         void add_float_array_input(Ref<InferenceTask> task,
@@ -39,7 +39,8 @@ namespace godot {
                                    const PackedFloat64Array& shape);
 
         void add_float_array_output(Ref<InferenceTask> task,
-                                    const String& tensor_name);
+                                    const String& tensor_name,
+                                    const String& output_name);
 
     protected:
         static void _bind_methods();
