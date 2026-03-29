@@ -1,6 +1,6 @@
-// operators/ml_op_elementwise.hpp
+// operatorsop_elementwise.hpp
 #pragma once
-#include "ml_operator.hpp"
+#include "operator.hpp"
 
 namespace ml {
 

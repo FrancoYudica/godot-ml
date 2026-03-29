@@ -1,6 +1,6 @@
 #pragma once
-#include "io/ml_input_handler.hpp"
-#include "io/ml_io_descriptor.hpp"
+#include "io/input_handler.hpp"
+#include "io/io_descriptor.hpp"
 
 namespace ml {
     class FloatArrayInputHandler : public IInputHandler {

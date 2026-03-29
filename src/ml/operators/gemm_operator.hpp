@@ -1,4 +1,4 @@
-#include "ml_operator.hpp"
+#include "operator.hpp"
 
 namespace ml {
     class GemmOperator : public IOperator {

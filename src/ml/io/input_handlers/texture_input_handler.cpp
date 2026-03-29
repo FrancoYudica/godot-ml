@@ -1,4 +1,4 @@
-#include "ml_texture_input_handler.hpp"
+#include "texture_input_handler.hpp"
 #include <godot_cpp/classes/image.hpp>
 
 std::vector<int64_t> ml::TextureInputHandler::upload(

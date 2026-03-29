@@ -2,7 +2,7 @@
 #include <memory>
 #include <godot_cpp/classes/rendering_device.hpp>
 #include "tensors/tensors.hpp"
-#include "ml_io_descriptor.hpp"
+#include "io_descriptor.hpp"
 
 namespace ml {
 

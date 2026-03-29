@@ -1,6 +1,6 @@
-#include "ml_input_handler_registry.hpp"
-#include "input_handlers/ml_float_array_input_handler.hpp"
-#include "input_handlers/ml_texture_input_handler.hpp"
+#include "input_handler_registry.hpp"
+#include "input_handlers/float_array_input_handler.hpp"
+#include "input_handlers/texture_input_handler.hpp"
 
 namespace ml {
 

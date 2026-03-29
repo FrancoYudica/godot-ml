@@ -2,7 +2,7 @@
 #include <unordered_map>
 #include <memory>
 #include "core/core.hpp"
-#include "ml_output_handler.hpp"
+#include "output_handler.hpp"
 
 namespace ml {
 

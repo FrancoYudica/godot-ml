@@ -1,6 +1,6 @@
-#include "ml_operator_registry.hpp"
-#include "operators/ml_gemm_operator.hpp"
-#include "operators/ml_element_wise_operator.hpp"
+#include "operator_registry.hpp"
+#include "operators/gemm_operator.hpp"
+#include "operators/element_wise_operator.hpp"
 
 namespace ml {
     bool OperatorRegistry::init(godot::RenderingDevice* rd) {

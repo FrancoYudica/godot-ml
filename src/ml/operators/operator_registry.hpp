@@ -1,7 +1,7 @@
 #pragma once
 #include <unordered_map>
 #include <memory>
-#include "ml_operator.hpp"
+#include "operator.hpp"
 #include "core/core.hpp"
 
 namespace ml {

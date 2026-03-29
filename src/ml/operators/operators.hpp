@@ -1,3 +1,3 @@
 #pragma once
-#include "ml_operator.hpp"
-#include "ml_operator_registry.hpp"
+#include "operator.hpp"
+#include "operator_registry.hpp"
