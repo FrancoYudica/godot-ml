@@ -1,8 +1,8 @@
+#pragma once
 #include <memory>
 #include <godot_cpp/classes/ref_counted.hpp>
-#include "ml_inference/ml_tensor_resource_manager.hpp"
-#include "ml_inference/ml_types.hpp"
-#include "ml_inference/ml_io_descriptor.hpp"
+#include "core/core.hpp"
+#include "tensors/tensors.hpp"
 #include "inference_descriptor.hpp"
 
 namespace godot {

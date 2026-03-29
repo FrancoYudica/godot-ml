@@ -2,8 +2,7 @@
 #include <unordered_map>
 #include <memory>
 #include "ml_operator.hpp"
-#include "ml_types.hpp"
-#include "ml_utils.hpp"
+#include "core/core.hpp"
 
 namespace ml {
 

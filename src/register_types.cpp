@@ -1,9 +1,8 @@
 #include "register_types.h"
-#include "inference_engine.h"
-#include "inference_descriptor.hpp"
 #include <gdextension_interface.h>
 #include <godot_cpp/core/defs.hpp>
 #include <godot_cpp/godot.hpp>
+#include "ml_inference/engine/engine.hpp"
 
 using namespace godot;
 

@@ -2,7 +2,6 @@
 #include <godot_cpp/classes/rd_shader_spirv.hpp>
 #include <godot_cpp/classes/resource_loader.hpp>
 #include "ml_gemm_operator.hpp"
-#include "../ml_utils.hpp"
 
 namespace ml {
 

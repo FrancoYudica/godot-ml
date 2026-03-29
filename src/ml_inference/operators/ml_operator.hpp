@@ -1,8 +1,7 @@
 #pragma once
 #include <godot_cpp/classes/rendering_device.hpp>
-#include "ml_types.hpp"
-#include "ml_tensor_resource_manager.hpp"
-#include "ml_deletion_stack.hpp"
+#include "core/core.hpp"
+#include "tensors/tensors.hpp"
 
 namespace ml {
     struct OperatorContext {

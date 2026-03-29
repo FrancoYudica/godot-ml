@@ -1,4 +1,4 @@
-#include "ml_tensor_resource_manager.hpp"
+#include "tensor_resource_manager.hpp"
 
 namespace ml {
 

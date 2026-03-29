@@ -4,7 +4,7 @@ import sys
 
 env = SConscript("godot-cpp/SConstruct")
 
-env.Append(CPPPATH=["src/"])
+env.Append(CPPPATH=["src/", "src/ml_inference"])
 env["ML_SOURCES"] = []
 
 # ── ML Inference ──────────────────────────────────────────────────────────────

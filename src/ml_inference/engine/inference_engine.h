@@ -6,14 +6,12 @@
 #include <godot_cpp/classes/ref.hpp>
 #include <godot_cpp/classes/rendering_device.hpp>
 #include <godot_cpp/classes/rd_uniform.hpp>
-#include "ml_inference/ml_types.hpp"
-#include "ml_inference/ml_tensor_resource_manager.hpp"
-#include "ml_inference/ml_parser.hpp"
-#include "ml_inference/ml_operator_registry.hpp"
-#include "ml_inference/ml_deletion_stack.hpp"
-#include "ml_inference/ml_input_handler_registry.hpp"
-#include "ml_inference/ml_output_handler_registry.hpp"
-#include "ml_inference/ml_deletion_stack.hpp"
+
+#include "core/core.hpp"
+#include "tensors/tensors.hpp"
+#include "parser/parser.hpp"
+#include "operators/operators.hpp"
+#include "io/io.hpp"
 #include "inference_task.hpp"
 #include "inference_descriptor.hpp"
 namespace godot {

@@ -4,7 +4,7 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <godot_cpp/classes/ref_counted.hpp>
-#include "ml_inference/ml_io_descriptor.hpp"
+#include "io/io.hpp"
 
 namespace godot {
 

@@ -44,12 +44,11 @@ for i in range(1, len(generated_cc)):
 
 # ── Sources → compile to build/ ───────────────────────────────────────────────
 
-ml_sources = glob.glob("*.cpp")
-ml_operator_sources = glob.glob("operators/*.cpp")
-ml_input_handler_sources = glob.glob("input_handlers/*.cpp")
-ml_output_handler_sources = glob.glob("output_handlers/*.cpp")
+all_cpp = glob.glob(os.path.join(scsub_dir, "**/*.cpp"), recursive=True)
 
-all_sources = ml_sources + ml_operator_sources + ml_input_handler_sources + ml_output_handler_sources + generated_cc
+# Exclude thirdparty - those are handled separately
+ml_sources = [f for f in all_cpp if "thirdparty" not in f]
+all_sources = ml_sources + generated_cc
 
 env_ml.Append(LIBS=[
     "protobuf",

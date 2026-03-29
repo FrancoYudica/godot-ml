@@ -1,7 +1,7 @@
 #pragma once
 #include <memory>
 #include <godot_cpp/classes/rendering_device.hpp>
-#include "ml_tensor_resource_manager.hpp"
+#include "tensors/tensors.hpp"
 #include "ml_io_descriptor.hpp"
 
 namespace ml {

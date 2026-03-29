@@ -1,5 +1,4 @@
 #include "ml_element_wise_operator.hpp"
-#include "../ml_utils.hpp"
 
 namespace ml {
 
