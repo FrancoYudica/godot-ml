@@ -70,10 +70,10 @@ grow_horizontal = 2
 grow_vertical = 2
 
 [node name="ImageTestRunner" type="Node" parent="." node_paths=PackedStringArray("viewport", "texture_rect")]
+process_mode = 4
 script = ExtResource("3_1bvp3")
 viewport = NodePath("../HBoxContainer/SubViewportContainer/SubViewport")
 texture_rect = NodePath("../HBoxContainer/ResultSubViewportContainer/SubViewport/TextureRect")
 
 [node name="TestRunner" type="Node" parent="."]
 script = ExtResource("3_h2yge")
-run = false

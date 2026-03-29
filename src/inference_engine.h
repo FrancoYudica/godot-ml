@@ -27,12 +27,19 @@ namespace godot {
         void destroy();
         uint32_t register_model(String model_path);
         void unload_model(uint32_t model_rid);
-        Ref<InferenceTask> run_async(uint32_t model_rid,
-                                     const PackedFloat32Array& input);
+        Ref<InferenceTask> run_async(uint32_t model_rid);
         void print_model(uint32_t model_rid);
 
         PackedFloat32Array pop_task_output(Ref<InferenceTask> task,
                                            const String& output_name);
+
+        void add_float_array_input(Ref<InferenceTask> task,
+                                   const String& tensor_name,
+                                   const PackedFloat32Array& data,
+                                   const PackedFloat64Array& shape);
+
+        void add_float_array_output(Ref<InferenceTask> task,
+                                    const String& tensor_name);
 
     protected:
         static void _bind_methods();

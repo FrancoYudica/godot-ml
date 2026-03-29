@@ -27,6 +27,8 @@ func _process(_delta: float) -> void:
 		_dispatch_inference()
 
 func _dispatch_inference() -> void:
+	var t = Time.get_ticks_usec()
+
 	var tex = viewport.get_texture()
 	var img = tex.get_image() # This is the CPU bottleneck
 	
@@ -39,10 +41,14 @@ func _dispatch_inference() -> void:
 	
 	is_processing_model = true
 	
-	var task = engine.run_async(model_id, input_data)
+	var task = engine.run_async(model_id)
 	task.completed.connect(_on_inference_completed.bind(task, src_size), CONNECT_ONE_SHOT)
-
+	var elapsed = Time.get_ticks_usec() - t
+	print("Dispatch took: %s ms" % [elapsed / 1000.0])
+	
 func _on_inference_completed(task: InferenceTask, src_size: Vector2i) -> void:
+	
+	var t = Time.get_ticks_usec()
 	# 1. Grab the output from the engine
 	var result_buffer = engine.pop_task_output(task, "result")
 	
@@ -58,6 +64,7 @@ func _on_inference_completed(task: InferenceTask, src_size: Vector2i) -> void:
 	# 3. Update existing texture instead of creating a new one
 	result_texture.set_image(img)
 	texture_rect.texture = result_texture
-	
+	var elapsed = Time.get_ticks_usec() - t
+	print("Getting output took: %s ms" % [elapsed / 1000.0])
 	# 4. Ready for the next frame
 	is_processing_model = false

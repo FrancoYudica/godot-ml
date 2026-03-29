@@ -7,11 +7,8 @@ namespace godot {
                        PropertyInfo(Variant::PACKED_FLOAT32_ARRAY, "result")));
     }
 
-    void InferenceTask::init(uint32_t graph_id,
-                             const PackedFloat32Array& input,
-                             RenderingDevice* rd) {
+    void InferenceTask::init(uint32_t graph_id, RenderingDevice* rd) {
         this->graph_id = graph_id;
-        this->input = input;
         this->activations_tm.instantiate();
         this->activations_tm->init(rd);
     }

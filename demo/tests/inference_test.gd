@@ -59,8 +59,9 @@ func _run_suite(tests: Array[Test]):
 			continue
 			
 		# Run Inference
-		var task = engine.run_async(model_id, test.input)
-		
+		var task = engine.run_async(model_id)
+		engine.add_float_array_input(task, "input", test.input, [1, 3])
+		engine.add_float_array_output(task, "output")
 		# Connect with binds so the callback knows wich test just finished
 		task.completed.connect(_on_test_completed.bind(test, task))
 

@@ -2,6 +2,8 @@
 #include "inference_engine.h"
 #include "ml_inference/ml_parser.hpp"
 #include "ml_inference/ml_utils.hpp"
+#include "ml_inference/input_handlers/ml_float_array_input_handler.hpp"
+#include "ml_inference/output_handlers/ml_float_array_output_handler.hpp"
 #include <godot_cpp/classes/rendering_server.hpp>
 #include <godot_cpp/classes/rd_shader_file.hpp>
 #include <godot_cpp/classes/rd_shader_spirv.hpp>
@@ -16,7 +18,7 @@ namespace godot {
         ClassDB::bind_method(D_METHOD("register_model", "model_path"),
                              &MLInferenceEngine::register_model);
 
-        ClassDB::bind_method(D_METHOD("run_async", "model_rid", "input"),
+        ClassDB::bind_method(D_METHOD("run_async", "model_rid"),
                              &MLInferenceEngine::run_async);
 
         ClassDB::bind_method(D_METHOD("print_model", "model_rid"),
@@ -27,6 +29,14 @@ namespace godot {
 
         ClassDB::bind_method(D_METHOD("pop_task_output", "task", "output_name"),
                              &MLInferenceEngine::pop_task_output);
+
+        ClassDB::bind_method(D_METHOD("add_float_array_input", "task",
+                                      "tensor_name", "data", "shape"),
+                             &MLInferenceEngine::add_float_array_input);
+
+        ClassDB::bind_method(
+            D_METHOD("add_float_array_output", "task", "tensor_name"),
+            &MLInferenceEngine::add_float_array_output);
 
         ClassDB::bind_method(D_METHOD("_process_pending_tasks"),
                              &MLInferenceEngine::_process_pending_tasks);
@@ -95,8 +105,7 @@ namespace godot {
         _destroying = true;
     }
 
-    Ref<InferenceTask> MLInferenceEngine::run_async(
-        uint32_t model_rid, const PackedFloat32Array& input) {
+    Ref<InferenceTask> MLInferenceEngine::run_async(uint32_t model_rid) {
         auto it = _graphs.find(model_rid);
 
         ERR_FAIL_COND_V_MSG(
@@ -105,7 +114,7 @@ namespace godot {
 
         Ref<InferenceTask> task;
         task.instantiate();
-        task->init(model_rid, input, _rd);
+        task->init(model_rid, _rd);
         _pending_tasks.push_back(task);
         return task;
     }
@@ -128,20 +137,63 @@ namespace godot {
                             "InferenceEngine: Task already resources freed. "
                             "Unable to retrieve output");
 
-        RID sb = task->activations_tm->get_buffer_rid(output_name.utf8().ptr());
+        ERR_FAIL_COND_V_MSG(
+            task->output_handlers.find(output_name.utf8().get_data()) ==
+                task->output_handlers.end(),
+            PackedFloat32Array(),
+            "InferenceEngine: Output handler for tensor " + output_name +
+                " not found.");
 
-        ERR_FAIL_COND_V_MSG(!sb.is_valid(), PackedFloat32Array(),
-                            "InferenceEngine: Buffer not found.");
+        auto& output_handler =
+            task->output_handlers[output_name.utf8().get_data()];
+        godot::Variant output = output_handler->get();
 
-        PackedByteArray byte_array = _rd->buffer_get_data(sb);
-        PackedFloat32Array float_array;
-        float_array.resize(byte_array.size() / sizeof(float));
-        memcpy(float_array.ptrw(), byte_array.ptrw(), byte_array.size());
+        // RID sb =
+        // task->activations_tm->get_buffer_rid(output_name.utf8().ptr());
+
+        // ERR_FAIL_COND_V_MSG(!sb.is_valid(), PackedFloat32Array(),
+        //                     "InferenceEngine: Buffer not found.");
+
+        // PackedByteArray byte_array = _rd->buffer_get_data(sb);
+        // PackedFloat32Array float_array;
+        // float_array.resize(byte_array.size() / sizeof(float));
+        // memcpy(float_array.ptrw(), byte_array.ptrw(), byte_array.size());
 
         // Frees all the resources
         task->activations_tm->clear();
         task->freed = true;
-        return float_array;
+        return output;
+    }
+    void MLInferenceEngine::add_float_array_input(
+        Ref<InferenceTask> task,
+        const String& tensor_name,
+        const PackedFloat32Array& data,
+        const PackedFloat64Array& shape) {
+        std::string input_name = tensor_name.utf8().get_data();
+
+        ERR_FAIL_COND_MSG(
+            task->input_handlers.find(input_name) != task->input_handlers.end(),
+            "InferenceEngine: Input handler for tensor " + tensor_name +
+                " already exists.");
+
+        std::vector<int64_t> s(shape.ptr(), shape.ptr() + shape.size());
+
+        task->input_handlers[input_name] =
+            std::make_unique<ml::FloatArrayInputHandler>(
+                ml::InputDesc::FloatArray{data, s});
+    }
+    void MLInferenceEngine::add_float_array_output(Ref<InferenceTask> task,
+                                                   const String& tensor_name) {
+        std::string output_name = tensor_name.utf8().get_data();
+
+        ERR_FAIL_COND_MSG(task->input_handlers.find(output_name) !=
+                              task->input_handlers.end(),
+                          "InferenceEngine: Output handler for tensor " +
+                              tensor_name + " already exists.");
+
+        task->output_handlers[output_name] =
+            std::make_unique<ml::FloatArrayOutputHandler>(
+                ml::OutputDesc::FloatArray{tensor_name.utf8().get_data()});
     }
     void MLInferenceEngine::_process_pending_tasks() {
         if (_destroying && _pending_tasks.empty() && _executing_tasks.empty()) {
@@ -180,29 +232,14 @@ namespace godot {
         const ml::Graph& graph = it->second.graph;
         Ref<ml::TensorResourceManager> weights_tm = it->second.weights_tm;
 
-        const PackedFloat32Array& input = task->input;
-
-        ERR_FAIL_COND_MSG(
-            graph.input_shape.size() < 2,
-            "InferenceEngine: Invalid graph input shape for model " +
-                String::num(task->graph_id) + ". Graph dims " +
-                String::num(graph.input_shape.size()) +
-                ". Expected at least 2 dimensions.");
-
-        ERR_FAIL_COND_MSG(graph.input_shape[1] == 0,
-                          "InferenceEngine: Unable to support zero-sized input "
-                          "dimension.");
-
-        // Upload input buffer
-        // If we have 300 float, that means that we have 100 pixels.
-        int64_t first_axis = input.size() / graph.input_shape[1];
-        std::vector<int64_t> dim = {first_axis, graph.input_shape[1]};
-
-        task->activations_tm->get_or_create(graph.input_name, dim,
-                                            input.to_byte_array());
+        // Loads inputs
+        for (auto& [tensor_name, input_handler] : task->input_handlers) {
+            input_handler->upload(tensor_name, _rd, task->activations_tm);
+        }
 
         int compute_list = _rd->compute_list_begin();
 
+        // Processes the graph
         for (size_t i = 0; i < graph.nodes.size(); ++i) {
             const ml::GraphNode& node = graph.nodes[i];
 
@@ -212,7 +249,13 @@ namespace godot {
                 _rd->compute_list_add_barrier(compute_list);
             }
         }
+
         _rd->compute_list_end();
+
+        // Downloads the outputs
+        for (auto& [tensor_name, output_handler] : task->output_handlers) {
+            output_handler->download(_rd, task->activations_tm);
+        }
     }
 
     void MLInferenceEngine::_run_node(
