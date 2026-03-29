@@ -1,5 +1,5 @@
-[submodule "src/ml_inference/thirdparty/onnx"]
-	path = src/ml_inference/thirdparty/onnx
+[submodule "src/ml/thirdparty/onnx"]
+	path = src/ml/thirdparty/onnx
 	url = https://github.com/onnx/onnx.git
 [submodule "godot-cpp"]
 	path = godot-cpp

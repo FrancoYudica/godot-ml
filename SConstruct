@@ -4,11 +4,11 @@ import sys
 
 env = SConscript("godot-cpp/SConstruct")
 
-env.Append(CPPPATH=["src/", "src/ml_inference"])
+env.Append(CPPPATH=["src/", "src/ml"])
 env["ML_SOURCES"] = []
 
 # ── ML Inference ──────────────────────────────────────────────────────────────
-SConscript("src/ml_inference/SCsub", exports="env")
+SConscript("src/ml/SCsub", exports="env")
 if "ML_ENV" in env:
     ml_env = env["ML_ENV"]
     env.Append(LIBS=ml_env["LIBS"])

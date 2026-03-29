@@ -2,7 +2,7 @@
 #include <gdextension_interface.h>
 #include <godot_cpp/core/defs.hpp>
 #include <godot_cpp/godot.hpp>
-#include "ml_inference/engine/engine.hpp"
+#include "engine/engine.hpp"
 
 using namespace godot;
 
