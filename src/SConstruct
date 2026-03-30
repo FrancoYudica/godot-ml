@@ -28,8 +28,8 @@ sources = (
     + env.get("ONNX_SOURCES", [])
 )
 
-lib_base_name = "libcnn"
-demo_bin = "../demo/addons/cnn/bin/"
+lib_base_name = "libml"
+demo_bin = "../demo/addons/ml/bin/"
 
 if env["platform"] == "macos":
     target_path = "{}{}.{}.{}.framework/{}".format(
