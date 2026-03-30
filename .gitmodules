@@ -1,0 +1,8 @@
+[submodule "src/thirdparty/onnx"]
+	path = src/thirdparty/onnx
+	url = https://github.com/onnx/onnx.git
+	branch = rel-1.9.1
+[submodule "src/thirdparty/godot-cpp"]
+	path = src/thirdparty/godot-cpp
+	url = git@github.com:godotengine/godot-cpp.git
+	branch = 4.5

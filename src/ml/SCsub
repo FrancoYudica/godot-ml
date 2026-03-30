@@ -8,7 +8,7 @@ env_ml = env.Clone()
 
 # Absolute path to this SCsub's directory
 scsub_dir = Dir(".").abspath
-onnx_dir = os.path.join(scsub_dir, "thirdparty/onnx")
+onnx_dir = os.path.join(scsub_dir, "../thirdparty/onnx")
 
 env_ml.Append(CPPDEFINES=["ONNX_ML=0"])
 env_ml.Append(CPPPATH=[

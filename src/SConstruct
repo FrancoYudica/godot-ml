@@ -1,0 +1,41 @@
+#!/usr/bin/env python
+import os
+import sys
+
+env = SConscript("thirdparty/godot-cpp/SConstruct")
+
+env.Append(CPPPATH=["ml/"])
+env["ML_SOURCES"] = []
+
+# ── ML Inference ──────────────────────────────────────────────────────────────
+SConscript("ml/SCsub", exports="env")
+if "ML_ENV" in env:
+    ml_env = env["ML_ENV"]
+    env.Append(LIBS=ml_env["LIBS"])
+    env.Append(LIBPATH=ml_env.get("LIBPATH", []))
+    
+# ── Extension library ─────────────────────────────────────────────────────────
+
+sources = Glob("*.cpp") + env.get("ML_SOURCES", [])
+
+lib_base_name = "libcnn"
+demo_bin = "../demo/addons/cnn/bin/"
+
+if env["platform"] == "macos":
+    target_path = "{}{}.{}.{}.framework/{}".format(
+        demo_bin, lib_base_name, env["platform"], env["target"], lib_base_name
+    )
+    library = env.SharedLibrary(target_path, source=sources)
+elif env["platform"] == "ios":
+    suffix = ".simulator.a" if env["ios_simulator"] else ".a"
+    target_path = "{}{}.{}.{}{}".format(
+        demo_bin, lib_base_name, env["platform"], env["target"], suffix
+    )
+    library = env.StaticLibrary(target_path, source=sources)
+else:
+    target_path = "{}{}{}{}".format(
+        demo_bin, lib_base_name, env["suffix"], env["SHLIBSUFFIX"]
+    )
+    library = env.SharedLibrary(target_path, source=sources)
+
+Default(library)
