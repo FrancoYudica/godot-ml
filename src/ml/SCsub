@@ -1,72 +1,41 @@
-# SCsub
+# ml/SCsub
 import os
 import glob
-
 Import("env")
 
 env_ml = env.Clone()
 
-# Absolute path to this SCsub's directory
 scsub_dir = Dir(".").abspath
-onnx_dir = os.path.join(scsub_dir, "../thirdparty/onnx")
+build_dir = os.path.join(scsub_dir, "build")
 
 env_ml.Append(CPPDEFINES=["ONNX_ML=0"])
 env_ml.Append(CPPPATH=[
-    scsub_dir,
-    onnx_dir,
-    onnx_dir + "/onnx",
-])
+    os.path.dirname(scsub_dir),    # src/
+    scsub_dir,                     # src/ml/
+] + env.get("ONNX_INCLUDE_PATHS", []))
 
-# ── Protobuf generation ───────────────────────────────────────────────────────
-
-proto_files = [
-    onnx_dir + "/onnx/onnx-ml.proto",
-    onnx_dir + "/onnx/onnx-data.proto",
-]
-
-generated_cc = []
-for proto in proto_files:
-    cc  = proto.replace(".proto", ".pb.cc")
-    hdr = proto.replace(".proto", ".pb.h")
-    env_ml.Command(
-        [cc, hdr],
-        proto,
-        "protoc"
-        f" --cpp_out={onnx_dir}/onnx/"
-        f" --proto_path={onnx_dir}/onnx/"
-        f" --proto_path={onnx_dir}/"
-        f" {proto}"   # explicit path instead of $SOURCE to avoid SCons mangling
-    )
-    generated_cc.append(cc)
-
-for i in range(1, len(generated_cc)):
-    env_ml.Depends(generated_cc[i], generated_cc[i - 1])
-
-# ── Sources → compile to build/ ───────────────────────────────────────────────
+# ── Sources ───────────────────────────────────────────────────────────────────
 
 all_cpp = glob.glob(os.path.join(scsub_dir, "**/*.cpp"), recursive=True)
-
-# Exclude thirdparty - those are handled separately
-ml_sources = [f for f in all_cpp if "thirdparty" not in f]
-all_sources = ml_sources + generated_cc
-
-env_ml.Append(LIBS=[
-    "protobuf",
-    "absl_log_internal_check_op",
-    "absl_log_internal_message",
-    "absl_log_internal_log_sink_set",
-    "absl_log_internal_nullguard",
-    "absl_status",
-    "absl_strings",
-    "absl_base",
-])
-
-env["ML_SOURCES"] = [
-    env_ml.SharedObject(target=f"build/{os.path.splitext(os.path.basename(src))[0]}", source=src)
-    for src in all_sources
+ml_sources = [
+    f for f in all_cpp
+    if "thirdparty" not in f and "build" not in f
 ]
 
+env_ml.Append(LIBS=env.get("ONNX_LIBS", []))
 
-
-
-env["ML_ENV"] = env_ml
+env["ML_SOURCES"] = [
+    env_ml.SharedObject(
+        target=os.path.join(
+            build_dir,
+            os.path.relpath(src, scsub_dir).replace(os.sep, "_").replace(".cpp", "")
+        ),
+        source=src
+    )
+    for src in ml_sources
+]
+env["ML_ENV"]          = env_ml
+env["ML_INCLUDE_PATHS"] = [
+    os.path.dirname(scsub_dir),
+    scsub_dir,
+]

@@ -4,19 +4,29 @@ import sys
 
 env = SConscript("thirdparty/godot-cpp/SConstruct")
 
-env.Append(CPPPATH=["ml/"])
-env["ML_SOURCES"] = []
+env["ML_SOURCES"]  = []
+env["ONNX_SOURCES"] = []
 
-# ── ML Inference ──────────────────────────────────────────────────────────────
+# Thirdparty 
+SConscript("thirdparty/SCsub", exports="env")
+
+# ML Runtime
 SConscript("ml/SCsub", exports="env")
-if "ML_ENV" in env:
-    ml_env = env["ML_ENV"]
-    env.Append(LIBS=ml_env["LIBS"])
-    env.Append(LIBPATH=ml_env.get("LIBPATH", []))
-    
-# ── Extension library ─────────────────────────────────────────────────────────
 
-sources = Glob("*.cpp") + env.get("ML_SOURCES", [])
+# Include paths + libs
+env.Append(CPPPATH=env.get("ML_INCLUDE_PATHS", []))
+env.Append(CPPPATH=env.get("ONNX_INCLUDE_PATHS", []))
+
+if "ML_ENV" in env:
+    env.Append(LIBS=env["ML_ENV"]["LIBS"])
+    env.Append(LIBPATH=env["ML_ENV"].get("LIBPATH", []))
+
+# Extension library
+sources = (
+    ["register_types.cpp"]
+    + env.get("ML_SOURCES", [])
+    + env.get("ONNX_SOURCES", [])
+)
 
 lib_base_name = "libcnn"
 demo_bin = "../demo/addons/cnn/bin/"
@@ -27,7 +37,7 @@ if env["platform"] == "macos":
     )
     library = env.SharedLibrary(target_path, source=sources)
 elif env["platform"] == "ios":
-    suffix = ".simulator.a" if env["ios_simulator"] else ".a"
+    suffix      = ".simulator.a" if env["ios_simulator"] else ".a"
     target_path = "{}{}.{}.{}{}".format(
         demo_bin, lib_base_name, env["platform"], env["target"], suffix
     )

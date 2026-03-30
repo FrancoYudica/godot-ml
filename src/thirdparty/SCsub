@@ -1,0 +1,61 @@
+# thirdparty/onnx/SCsub
+import os
+Import("env")
+
+env_onnx = env.Clone()
+
+onnx_dir  = os.path.join(Dir(".").abspath, "onnx")
+build_dir = os.path.join(onnx_dir, "build")
+
+env_onnx.Append(CPPDEFINES=["ONNX_ML=0"])
+env_onnx.Append(CPPPATH=[
+    onnx_dir,
+    onnx_dir + "/onnx",
+])
+
+# ── Protobuf generation ───────────────────────────────────────────────────────
+
+proto_files = [
+    onnx_dir + "/onnx/onnx-ml.proto",
+    onnx_dir + "/onnx/onnx-data.proto",
+]
+
+generated_cc = []
+for proto in proto_files:
+    cc  = proto.replace(".proto", ".pb.cc")
+    hdr = proto.replace(".proto", ".pb.h")
+    env_onnx.Command(
+        [cc, hdr],
+        proto,
+        f"protoc"
+        f" --cpp_out={onnx_dir}/onnx/"
+        f" --proto_path={onnx_dir}/onnx/"
+        f" --proto_path={onnx_dir}/"
+        f" {proto}"
+    )
+    generated_cc.append(cc)
+
+for i in range(1, len(generated_cc)):
+    env_onnx.Depends(generated_cc[i], generated_cc[i - 1])
+
+env["ONNX_SOURCES"] = [
+    env_onnx.SharedObject(
+        target=os.path.join(
+            build_dir,
+            os.path.relpath(src, onnx_dir).replace(os.sep, "_").replace(".cc", "")
+        ),
+        source=src
+    )
+    for src in generated_cc
+]
+env["ONNX_INCLUDE_PATHS"] = [onnx_dir, onnx_dir + "/onnx"]
+env["ONNX_LIBS"] = [
+    "protobuf",
+    "absl_log_internal_check_op",
+    "absl_log_internal_message",
+    "absl_log_internal_log_sink_set",
+    "absl_log_internal_nullguard",
+    "absl_status",
+    "absl_strings",
+    "absl_base",
+]
