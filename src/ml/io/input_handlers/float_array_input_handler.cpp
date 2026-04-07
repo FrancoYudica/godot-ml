@@ -2,8 +2,7 @@
 
 std::vector<int64_t> ml::FloatArrayInputHandler::upload(
     const std::unique_ptr<InputDesc::BaseData>& desc,
-    godot::RenderingDevice* rd,
-    Ref<TensorResourceManager> activations_tm) {
+    const InputHandlerContext& ctx) {
     // Use dynamic_cast on the raw pointer
     InputDesc::FloatArray* float_array_desc =
         dynamic_cast<InputDesc::FloatArray*>(desc.get());
@@ -13,9 +12,9 @@ std::vector<int64_t> ml::FloatArrayInputHandler::upload(
         return {};
     }
 
-    activations_tm->get_or_create(float_array_desc->tensor_name,
-                                  float_array_desc->shape,
-                                  float_array_desc->data.to_byte_array());
+    ctx.activations_tm->get_or_create(float_array_desc->tensor_name,
+                                      float_array_desc->shape,
+                                      float_array_desc->data.to_byte_array());
 
     return float_array_desc->shape;
 }

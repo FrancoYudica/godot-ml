@@ -1,6 +1,7 @@
 #include "input_handler_registry.hpp"
 #include "input_handlers/float_array_input_handler.hpp"
 #include "input_handlers/texture_input_handler.hpp"
+#include "input_handlers/texture_input_handler_compute.hpp"
 
 namespace ml {
 
@@ -11,7 +12,8 @@ namespace ml {
             false,
             "InputHandlerRegistry: failed to register FloatArray operator.");
         ERR_FAIL_COND_V_MSG(
-            !_register<TextureInputHandler>(InputType::Texture2D, rd), false,
+            !_register<TextureInputHandlerCompute>(InputType::Texture2D, rd),
+            false,
             "InputHandlerRegistry: failed to register Texture operator.");
 
         return true;

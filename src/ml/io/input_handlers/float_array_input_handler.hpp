@@ -7,8 +7,7 @@ namespace ml {
     public:
         std::vector<int64_t> upload(
             const std::unique_ptr<InputDesc::BaseData>& desc,
-            godot::RenderingDevice* rd,
-            Ref<TensorResourceManager> activations_tm) override;
+            const InputHandlerContext& ctx) override;
     };
 
 }  // namespace ml

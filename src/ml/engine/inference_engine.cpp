@@ -200,12 +200,25 @@ namespace godot {
         Ref<ml::TensorResourceManager> weights_tm = it->second.weights_tm;
 
         // Loads inputs
+
+        ml::InputHandlerContext ctx = {_rd, task->activations_tm, 0};
+
+        // Uploads all the input handlers data
         for (auto& [tensor_name, descriptor] : task->descriptor->inputs) {
             auto& handler = _input_registry.get(descriptor->type);
-            handler->upload(descriptor, _rd, task->activations_tm);
+            handler->upload(descriptor, ctx);
         }
 
+        // Creates compute list
         int compute_list = _rd->compute_list_begin();
+
+        // Dispatches the input handlers, making sure that these are the first
+        // one on the compute list
+        ctx.compute_list = compute_list;
+        for (auto& [_, descriptor] : task->descriptor->inputs) {
+            auto& handler = _input_registry.get(descriptor->type);
+            handler->dispatch(ctx);
+        }
 
         // Processes the graph
         for (size_t i = 0; i < graph.nodes.size(); ++i) {

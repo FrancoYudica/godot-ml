@@ -6,6 +6,12 @@
 
 namespace ml {
 
+    struct InputHandlerContext {
+        godot::RenderingDevice* rd;
+        godot::Ref<TensorResourceManager> activations_tm;
+        int64_t compute_list;
+    };
+
     class IInputHandler {
     public:
         virtual ~IInputHandler() = default;
@@ -22,8 +28,10 @@ namespace ml {
          */
         virtual std::vector<int64_t> upload(
             const std::unique_ptr<InputDesc::BaseData>& desc,
-            godot::RenderingDevice* rd,
-            Ref<TensorResourceManager> activations_tm) = 0;
+            const InputHandlerContext& ctx) = 0;
+
+        virtual void dispatch(const InputHandlerContext& ctx) {
+        }
     };
 
 }  // namespace ml
