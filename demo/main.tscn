@@ -1,9 +1,10 @@
-[gd_scene load_steps=5 format=3 uid="uid://bqv83hujlxed5"]
+[gd_scene load_steps=6 format=3 uid="uid://bqv83hujlxed5"]
 
 [ext_resource type="Script" uid="uid://pj6wlw6hdawt" path="res://main.gd" id="1_ig7tw"]
 [ext_resource type="Texture2D" uid="uid://2aaci7qapndj" path="res://icon.svg" id="2_0xm2m"]
 [ext_resource type="Script" uid="uid://c5ip6kwl0d1ik" path="res://image_test_runner.gd" id="3_1bvp3"]
 [ext_resource type="Script" uid="uid://doghqj6dwl5p2" path="res://tests/inference_test.gd" id="3_h2yge"]
+[ext_resource type="Script" uid="uid://b4gqpqq56d7ym" path="res://test_sprite_2d.gd" id="3_lquwl"]
 
 [node name="Main" type="Control"]
 layout_mode = 3
@@ -40,9 +41,10 @@ grow_horizontal = 2
 grow_vertical = 2
 color = Color(0.1584723, 0.15847233, 0.1584723, 1)
 
-[node name="Sprite2D" type="Sprite2D" parent="HBoxContainer/SubViewportContainer/SubViewport"]
+[node name="TestSprite2D" type="Sprite2D" parent="HBoxContainer/SubViewportContainer/SubViewport"]
 position = Vector2(280, 309)
 texture = ExtResource("2_0xm2m")
+script = ExtResource("3_lquwl")
 
 [node name="ResultSubViewportContainer" type="SubViewportContainer" parent="HBoxContainer"]
 layout_mode = 2
