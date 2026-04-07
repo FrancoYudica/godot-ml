@@ -215,23 +215,36 @@ namespace godot {
         // Creates compute list
         int compute_list = _rd->compute_list_begin();
 
-        // Dispatches the input handlers, making sure that these are the first
-        // one on the compute list
+        // Dispatches the input handlers parallelly, making sure that these are
+        // the first one on the compute list
         ctx.compute_list = compute_list;
         for (auto& [_, descriptor] : task->descriptor->inputs) {
             auto& handler = _input_registry.get(descriptor->type);
             handler->dispatch(ctx);
         }
 
+        // Make sure that all the inputs where loaded
+        _rd->compute_list_add_barrier(compute_list);
+
         // Processes the graph
         for (size_t i = 0; i < graph.nodes.size(); ++i) {
             const ml::GraphNode& node = graph.nodes[i];
 
             _run_node(node, compute_list, weights_tm, task->activations_tm);
-            // Add a barrier unless it's the very last node
-            if (i < graph.nodes.size() - 1) {
-                _rd->compute_list_add_barrier(compute_list);
-            }
+            // Add a barrier (also for the last node for output dispatch)
+            _rd->compute_list_add_barrier(compute_list);
+        }
+
+        // Dispatch outputs parallelly
+        ml::OutputHandlerContext out_ctx = {
+            .rd = _rd,
+            .activations_tm = task->activations_tm,
+            .compute_list = compute_list,
+            .frame_deletion_stack = &_frame_deletion_stack};
+
+        for (auto& [_, descriptor] : task->descriptor->outputs) {
+            auto& handler = _output_registry.get(descriptor->type);
+            handler->dispatch(out_ctx);
         }
 
         _rd->compute_list_end();
