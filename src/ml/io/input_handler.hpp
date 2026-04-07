@@ -3,6 +3,7 @@
 #include <godot_cpp/classes/rendering_device.hpp>
 #include "tensors/tensors.hpp"
 #include "io_descriptor.hpp"
+#include "core/core.hpp"
 
 namespace ml {
 
@@ -10,6 +11,7 @@ namespace ml {
         godot::RenderingDevice* rd;
         godot::Ref<TensorResourceManager> activations_tm;
         int64_t compute_list;
+        DeletionStack* frame_deletion_stack;
     };
 
     class IInputHandler {

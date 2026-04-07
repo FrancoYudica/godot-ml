@@ -200,8 +200,11 @@ namespace godot {
         Ref<ml::TensorResourceManager> weights_tm = it->second.weights_tm;
 
         // Loads inputs
-
-        ml::InputHandlerContext ctx = {_rd, task->activations_tm, 0};
+        ml::InputHandlerContext ctx = {
+            .rd = _rd,
+            .activations_tm = task->activations_tm,
+            .compute_list = 0,
+            .frame_deletion_stack = &_frame_deletion_stack};
 
         // Uploads all the input handlers data
         for (auto& [tensor_name, descriptor] : task->descriptor->inputs) {
@@ -256,12 +259,10 @@ namespace godot {
         ml::OperatorContext ctx{.rd = _rd,
                                 .weights_tm = weights_tm,
                                 .activations_tm = activations_tm,
-                                .compute_list = compute_list};
+                                .compute_list = compute_list,
+                                .frame_deletion_stack = &_frame_deletion_stack};
 
         op->dispatch(node, ctx);
-
-        // Makes sure that after the frame it's deletion stack gets processed
-        _frame_deletion_stack.push([op]() { op->deletion_stack.process(); });
     }
 
     void MLInferenceEngine::_free_all_resources() {

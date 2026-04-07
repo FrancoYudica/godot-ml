@@ -99,7 +99,6 @@ namespace ml {
         RID uniform_set_rid = ctx.rd->uniform_set_create(
             {_uniforms[0], _uniforms[1]}, _shader_rid, 0);
 
-        // TODO: Add deletion stack
         PushConstants pc{_texture_width, _texture_height, _texture_channels};
 
         PackedByteArray pc_bytes;
@@ -111,11 +110,16 @@ namespace ml {
         ctx.rd->compute_list_bind_uniform_set(ctx.compute_list, uniform_set_rid,
                                               0);
         ctx.rd->compute_list_set_push_constant(ctx.compute_list, pc_bytes,
-                                               sizeof(PushConstants));
+                                               pc_bytes.size());
 
         // Makes sure to dispatch in groups of 8x8
         uint32_t x_groups = (_texture_width + 7) / 8;
         uint32_t y_groups = (_texture_height + 7) / 8;
         ctx.rd->compute_list_dispatch(ctx.compute_list, x_groups, y_groups, 1);
+
+        ctx.frame_deletion_stack->push([uniform_set_rid, rd = ctx.rd]() {
+            if (rd->uniform_set_is_valid(uniform_set_rid))
+                rd->free_rid(uniform_set_rid);
+        });
     }
 }  // namespace ml

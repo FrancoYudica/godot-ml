@@ -47,9 +47,11 @@ namespace ml {
         uniforms.push_back(make_uniform(input, 0));
         uniforms.push_back(make_uniform(output, 1));
 
-        RID uniform_set = ctx.rd->uniform_set_create(uniforms, _shader, 0);
-        deletion_stack.push(
-            [uniform_set, rd = ctx.rd]() { rd->free_rid(uniform_set); });
+        RID uniform_set_rid = ctx.rd->uniform_set_create(uniforms, _shader, 0);
+        ctx.frame_deletion_stack->push([uniform_set_rid, rd = ctx.rd]() {
+            if (rd->uniform_set_is_valid(uniform_set_rid))
+                rd->free_rid(uniform_set_rid);
+        });
 
         PushConstants pc{M, K};
         PackedByteArray pc_bytes;
@@ -57,9 +59,10 @@ namespace ml {
         memcpy(pc_bytes.ptrw(), &pc, sizeof(PushConstants));
 
         ctx.rd->compute_list_bind_compute_pipeline(ctx.compute_list, _pipeline);
-        ctx.rd->compute_list_bind_uniform_set(ctx.compute_list, uniform_set, 0);
+        ctx.rd->compute_list_bind_uniform_set(ctx.compute_list, uniform_set_rid,
+                                              0);
         ctx.rd->compute_list_set_push_constant(ctx.compute_list, pc_bytes,
-                                               sizeof(PushConstants));
+                                               pc_bytes.size());
         ctx.rd->compute_list_dispatch(ctx.compute_list, (M * K + 63) / 64, 1,
                                       1);
     }

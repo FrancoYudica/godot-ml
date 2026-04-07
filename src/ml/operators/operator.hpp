@@ -9,6 +9,7 @@ namespace ml {
         Ref<TensorResourceManager> weights_tm;
         Ref<TensorResourceManager> activations_tm;
         int64_t compute_list;
+        DeletionStack* frame_deletion_stack;
     };
 
     class IOperator {
@@ -18,9 +19,6 @@ namespace ml {
         virtual void dispatch(const ml::GraphNode& node,
                               const OperatorContext& ctx) = 0;
         virtual void destroy(godot::RenderingDevice* rd) = 0;
-
-    public:
-        DeletionStack deletion_stack;
     };
 
 }  // namespace ml
