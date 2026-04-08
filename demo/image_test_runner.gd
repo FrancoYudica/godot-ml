@@ -16,8 +16,8 @@ func _ready() -> void:
 	var rd = RenderingServer.get_rendering_device()
 	var format = RDTextureFormat.new()
 	format.format = RenderingDevice.DATA_FORMAT_R8G8B8A8_UNORM
-	format.width = 512
-	format.height = 512
+	format.width = 128
+	format.height = 128
 	format.texture_type = RenderingDevice.TEXTURE_TYPE_2D
 	format.usage_bits = RenderingDevice.TEXTURE_USAGE_SAMPLING_BIT \
 		| RenderingDevice.TEXTURE_USAGE_STORAGE_BIT \
@@ -40,7 +40,7 @@ func _process(_delta: float) -> void:
 func _dispatch_inference() -> void:
 	var descriptor = InferenceDescriptor.new()
 	var tex = viewport.get_texture()
-	descriptor.add_texture_input("pixels", tex)
+	descriptor.add_texture_input("pixels", tex, 128, 128)
 	descriptor.add_texture_output("result", result_texture)
 	var task = engine.queue_request(model_id, descriptor)
 	if task == null:

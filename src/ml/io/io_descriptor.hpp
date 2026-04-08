@@ -38,12 +38,14 @@ namespace ml {
         public:
             godot::Ref<godot::Texture2D> texture;
             uint32_t channels = 3;  // how many channels to extract
+            uint32_t process_width_override = 0;
+            uint32_t process_height_override = 0;
         };
 
         class FloatArray : public BaseData {
         public:
             godot::PackedFloat32Array data;
-            std::vector<int64_t> shape;  // explicit shape, e.g. {4096, 3}
+            std::vector<int64_t> shape;
         };
 
         class StorageBuffer : public BaseData {

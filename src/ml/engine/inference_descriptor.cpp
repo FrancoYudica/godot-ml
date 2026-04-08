@@ -7,8 +7,9 @@ namespace godot {
             D_METHOD("add_float_array_input", "tensor_name", "data", "shape"),
             &InferenceDescriptor::add_float_array_input);
         ClassDB::bind_method(
-            D_METHOD("add_texture_input", "tensor_name", "texture"),
-            &InferenceDescriptor::add_texture_input);
+            D_METHOD("add_texture_input", "tensor_name", "texture",
+                     "process_width_override", "process_height_override"),
+            &InferenceDescriptor::add_texture_input, DEFVAL(0), DEFVAL(0));
         ClassDB::bind_method(
             D_METHOD("add_float_array_output", "tensor_name", "output_name"),
             &InferenceDescriptor::add_float_array_output);
@@ -51,8 +52,11 @@ namespace godot {
         inputs[tensor_name.utf8().get_data()] = std::move(desc);
     }
 
-    void InferenceDescriptor::add_texture_input(const String& tensor_name,
-                                                Ref<Texture2D> texture) {
+    void InferenceDescriptor::add_texture_input(
+        const String& tensor_name,
+        Ref<Texture2D> texture,
+        uint32_t process_width_override,
+        uint32_t process_height_override) {
         ERR_FAIL_COND_MSG(
             inputs.find(tensor_name.utf8().get_data()) != inputs.end(),
             "Input for tensor '" + tensor_name + "' already exists.");
@@ -62,6 +66,8 @@ namespace godot {
         desc->tensor_name = tensor_name.utf8().get_data();
         desc->channels = 3;
         desc->texture = texture;
+        desc->process_width_override = process_width_override;
+        desc->process_height_override = process_height_override;
         inputs[tensor_name.utf8().get_data()] = std::move(desc);
     }
 

@@ -23,7 +23,9 @@ namespace godot {
                                    const PackedFloat64Array& shape);
 
         void add_texture_input(const String& tensor_name,
-                               Ref<Texture2D> texture);
+                               Ref<Texture2D> texture,
+                               uint32_t process_width_override = 0,
+                               uint32_t process_height_override = 0);
 
         void add_float_array_output(const String& tensor_name,
                                     const String& output_name);

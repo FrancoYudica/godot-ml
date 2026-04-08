@@ -78,6 +78,14 @@ namespace ml {
 
         _texture_width = texture_desc->texture->get_width();
         _texture_height = texture_desc->texture->get_height();
+
+        if (texture_desc->process_width_override > 0) {
+            _texture_width = texture_desc->process_width_override;
+        }
+        if (texture_desc->process_height_override > 0) {
+            _texture_height = texture_desc->process_height_override;
+        }
+
         _texture_channels = texture_desc->channels;
 
         std::vector<int64_t> texture_shape = {_texture_width * _texture_height,
