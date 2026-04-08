@@ -15,7 +15,4 @@ namespace ml {
         return out;
     }
 
-    void FloatArrayOutputHandler::dispatch(const OutputHandlerContext& ctx) {
-    }
-
 }  // namespace ml

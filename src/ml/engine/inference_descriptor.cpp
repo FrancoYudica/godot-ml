@@ -1,3 +1,4 @@
+#include <godot_cpp/classes/rendering_server.hpp>
 #include "inference_descriptor.hpp"
 
 namespace godot {
@@ -11,6 +12,9 @@ namespace godot {
         ClassDB::bind_method(
             D_METHOD("add_float_array_output", "tensor_name", "output_name"),
             &InferenceDescriptor::add_float_array_output);
+        ClassDB::bind_method(
+            D_METHOD("add_texture_output", "tensor_name", "texture"),
+            &InferenceDescriptor::add_texture_output);
     }
 
     bool InferenceDescriptor::has_inputs_defined(
@@ -71,6 +75,21 @@ namespace godot {
         desc->type = ml::OutputType::FloatArray;
         desc->tensor_name = tensor_name.utf8().get_data();
         outputs[output_name.utf8().get_data()] = std::move(desc);
+    }
+
+    void InferenceDescriptor::add_texture_output(const String& tensor_name,
+                                                 Ref<Texture2D> texture) {
+        ERR_FAIL_COND_MSG(
+            outputs.find(tensor_name.utf8().get_data()) != outputs.end(),
+            "User already defined an output named '" + tensor_name + "'.");
+
+        auto desc = std::make_unique<ml::OutputDesc::Texture>();
+        desc->type = ml::OutputType::Texture2D;
+        desc->tensor_name = tensor_name.utf8().get_data();
+        desc->target_texture =
+            RenderingServer::get_singleton()->texture_get_rd_texture(
+                texture->get_rid());
+        outputs[tensor_name.utf8().get_data()] = std::move(desc);
     }
 
 }  // namespace godot

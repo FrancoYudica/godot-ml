@@ -67,8 +67,6 @@ namespace ml {
         class Texture : public BaseData {
         public:
             godot::RID target_texture;
-            uint32_t width;
-            uint32_t height;
         };
 
         class StorageBuffer : public BaseData {};

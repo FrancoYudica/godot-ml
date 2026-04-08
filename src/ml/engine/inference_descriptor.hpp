@@ -28,6 +28,9 @@ namespace godot {
         void add_float_array_output(const String& tensor_name,
                                     const String& output_name);
 
+        void add_texture_output(const String& tensor_name,
+                                Ref<Texture2D> texture);
+
     public:
         /**
          * Maps the tensor name to the input descriptor. This is done

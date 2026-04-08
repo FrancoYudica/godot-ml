@@ -200,7 +200,7 @@ namespace godot {
         Ref<ml::TensorResourceManager> weights_tm = it->second.weights_tm;
 
         // Loads inputs
-        ml::InputHandlerContext ctx = {
+        ml::InputHandlerContext in_ctx = {
             .rd = _rd,
             .activations_tm = task->activations_tm,
             .compute_list = 0,
@@ -209,7 +209,7 @@ namespace godot {
         // Uploads all the input handlers data
         for (auto& [tensor_name, descriptor] : task->descriptor->inputs) {
             auto& handler = _input_registry.get(descriptor->type);
-            handler->upload(descriptor, ctx);
+            handler->upload(descriptor, in_ctx);
         }
 
         // Creates compute list
@@ -217,10 +217,10 @@ namespace godot {
 
         // Dispatches the input handlers parallelly, making sure that these are
         // the first one on the compute list
-        ctx.compute_list = compute_list;
+        in_ctx.compute_list = compute_list;
         for (auto& [_, descriptor] : task->descriptor->inputs) {
             auto& handler = _input_registry.get(descriptor->type);
-            handler->dispatch(ctx);
+            handler->dispatch(in_ctx);
         }
 
         // Make sure that all the inputs where loaded
@@ -244,7 +244,7 @@ namespace godot {
 
         for (auto& [_, descriptor] : task->descriptor->outputs) {
             auto& handler = _output_registry.get(descriptor->type);
-            handler->dispatch(out_ctx);
+            handler->dispatch(descriptor, out_ctx);
         }
 
         _rd->compute_list_end();
@@ -254,7 +254,9 @@ namespace godot {
             auto& handler = _output_registry.get(descriptor->type);
             auto result =
                 handler->download(descriptor, _rd, task->activations_tm);
-            task->outputs[output_name] = result;
+
+            if (result.get_type() != Variant::Type::NIL)
+                task->outputs[output_name] = result;
         }
     }
 

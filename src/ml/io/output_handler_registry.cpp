@@ -1,5 +1,6 @@
 #include "output_handler_registry.hpp"
 #include "output_handlers/float_array_output_handler.hpp"
+#include "output_handlers/texture_output_handler_compute.hpp"
 
 namespace ml {
 
@@ -9,6 +10,11 @@ namespace ml {
             !_register<FloatArrayOutputHandler>(OutputType::FloatArray, rd),
             false,
             "OutputHandlerRegistry: failed to register FloatArray operator.");
+
+        ERR_FAIL_COND_V_MSG(
+            !_register<TextureOutputHandlerCompute>(OutputType::Texture2D, rd),
+            false,
+            "OutputHandlerRegistry: failed to register Texture operator.");
 
         return true;
     }

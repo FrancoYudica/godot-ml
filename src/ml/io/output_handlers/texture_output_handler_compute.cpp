@@ -1,7 +1,7 @@
-#include "texture_input_handler_compute.hpp"
+#include <godot_cpp/classes/rd_texture_format.hpp>
+#include "texture_output_handler_compute.hpp"
 #include "core/core.hpp"
-#include <godot_cpp/classes/rd_sampler_state.hpp>
-#include <godot_cpp/classes/rendering_server.hpp>
+
 using namespace godot;
 
 struct PushConstants {
@@ -13,9 +13,9 @@ struct PushConstants {
 
 namespace ml {
 
-    bool TextureInputHandlerCompute::init(RenderingDevice* rd) {
+    bool TextureOutputHandlerCompute::init(godot::RenderingDevice* rd) {
         // Shader and pipeline creation
-        const String path = "shaders/texture_sample.glsl";
+        const String path = "shaders/texture_write.glsl";
         const String& shader_path = Utils::get_project_relative_path(path);
         _shader_rid = Utils::load_shader(rd, shader_path);
         ERR_FAIL_COND_V_MSG(!_shader_rid.is_valid(), false,
@@ -25,20 +25,10 @@ namespace ml {
         ERR_FAIL_COND_V_MSG(!_pipeline_rid.is_valid(), false,
                             "Failed to create compute pipeline.");
 
-        // Creates a linear sampler
-        Ref<RDSamplerState> sampler_state;
-        sampler_state.instantiate();
-        sampler_state->set_mag_filter(RenderingDevice::SAMPLER_FILTER_LINEAR);
-        sampler_state->set_min_filter(RenderingDevice::SAMPLER_FILTER_LINEAR);
-        _sampler_rid = rd->sampler_create(sampler_state);
-        ERR_FAIL_COND_V_MSG(!_sampler_rid.is_valid(), false,
-                            "Failed to create sampler.");
-
         // Uniform for texture sampler and storage buffer
         Ref<RDUniform> texture_uniform;
         texture_uniform.instantiate();
-        texture_uniform->set_uniform_type(
-            RenderingDevice::UNIFORM_TYPE_SAMPLER_WITH_TEXTURE);
+        texture_uniform->set_uniform_type(RenderingDevice::UNIFORM_TYPE_IMAGE);
         texture_uniform->set_binding(0);
 
         Ref<RDUniform> tensor_uniform;
@@ -53,49 +43,38 @@ namespace ml {
         return true;
     }
 
-    void TextureInputHandlerCompute::destroy(RenderingDevice* rd) {
+    void TextureOutputHandlerCompute::destroy(RenderingDevice* rd) {
         _uniforms.clear();
-        rd->free_rid(_sampler_rid);
         rd->free_rid(_pipeline_rid);
         rd->free_rid(_shader_rid);
     }
 
-    std::vector<int64_t> TextureInputHandlerCompute::upload(
-        const std::unique_ptr<InputDesc::BaseData>& desc,
-        const InputHandlerContext& ctx) {
-        InputDesc::Texture* texture_desc =
-            dynamic_cast<InputDesc::Texture*>(desc.get());
+    void TextureOutputHandlerCompute::dispatch(
+        const std::unique_ptr<OutputDesc::BaseData>& desc,
+        const OutputHandlerContext& ctx) {
+        OutputDesc::Texture* texture_desc =
+            dynamic_cast<OutputDesc::Texture*>(desc.get());
 
         if (!texture_desc) {
-            ERR_PRINT("InferenceEngine: Failed to cast InputDesc to Texture.");
-            return {};
+            ERR_PRINT("InferenceEngine: Failed to cast OutputDesc to Texture.");
+            return;
         }
 
-        // Resolve buffers
-        RID texture_rid =
-            RenderingServer::get_singleton()->texture_get_rd_texture(
-                texture_desc->texture->get_rid());
+        auto format = ctx.rd->texture_get_format(texture_desc->target_texture);
 
-        _texture_width = texture_desc->texture->get_width();
-        _texture_height = texture_desc->texture->get_height();
-        _texture_channels = texture_desc->channels;
+        _texture_width = format->get_width();
+        _texture_height = format->get_height();
+        _texture_channels = 3;
 
-        std::vector<int64_t> texture_shape = {_texture_width * _texture_height,
-                                              _texture_channels};
-
-        RID tensor_rid = ctx.activations_tm->get_or_create(
-            texture_desc->tensor_name, texture_shape);
+        RID tensor_rid =
+            ctx.activations_tm->get_buffer_rid(texture_desc->tensor_name);
 
         // Prepare uniforms for uniform set creation
         _uniforms[0]->clear_ids();
-        _uniforms[0]->add_id(_sampler_rid);
-        _uniforms[0]->add_id(texture_rid);
+        _uniforms[0]->add_id(texture_desc->target_texture);
         _uniforms[1]->clear_ids();
         _uniforms[1]->add_id(tensor_rid);
 
-        return texture_shape;
-    }
-    void TextureInputHandlerCompute::dispatch(const InputHandlerContext& ctx) {
         RID uniform_set_rid = ctx.rd->uniform_set_create(
             {_uniforms[0], _uniforms[1]}, _shader_rid, 0);
 
@@ -121,5 +100,12 @@ namespace ml {
             if (rd->uniform_set_is_valid(uniform_set_rid))
                 rd->free_rid(uniform_set_rid);
         });
+    }
+
+    Variant TextureOutputHandlerCompute::download(
+        const std::unique_ptr<OutputDesc::BaseData>& desc,
+        RenderingDevice* rd,
+        Ref<TensorResourceManager> activations_tm) {
+        return nullptr;
     }
 }  // namespace ml

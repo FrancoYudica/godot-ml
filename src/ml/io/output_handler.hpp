@@ -26,6 +26,14 @@ namespace ml {
         }
 
         /**
+         * Dispatches the output handler with the given context.
+         * This could dispatch a compute shader to read data
+         */
+        virtual void dispatch(const std::unique_ptr<OutputDesc::BaseData>& desc,
+                              const OutputHandlerContext& ctx) {
+        }
+
+        /**
          * Called after inference completes. Reads or transfers the result
          * from the activation manager to whatever the user requested.
          */
@@ -33,9 +41,6 @@ namespace ml {
             const std::unique_ptr<OutputDesc::BaseData>& desc,
             godot::RenderingDevice* rd,
             Ref<TensorResourceManager> activations_tm) = 0;
-
-        virtual void dispatch(const OutputHandlerContext& ctx) {
-        }
     };
 
 }  // namespace ml
