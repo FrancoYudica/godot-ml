@@ -94,5 +94,28 @@ namespace ml {
                 UtilityFunctions::print(tensor_str);
             }
         }
+        bool tensor_shape_matches(const std::vector<int64_t>& shape1,
+                                  const std::vector<int64_t>& shape2) {
+            if (shape1.size() != shape2.size()) {
+                return false;
+            }
+            for (size_t i = 0; i < shape1.size(); ++i) {
+                if (shape1[i] != shape2[i]) {
+                    return false;
+                }
+            }
+            return true;
+        }
+        String shape_to_str(const std::vector<int64_t>& shape) {
+            String str = "[";
+            for (size_t i = 0; i < shape.size(); ++i) {
+                str += String::num_int64(shape[i]);
+                if (i < shape.size() - 1) {
+                    str += ",";
+                }
+            }
+            str += "]";
+            return str;
+        }
     }  // namespace Utils
 }  // namespace ml

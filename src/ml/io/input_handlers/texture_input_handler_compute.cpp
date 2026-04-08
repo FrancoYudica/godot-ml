@@ -66,10 +66,9 @@ namespace ml {
         InputDesc::Texture* texture_desc =
             dynamic_cast<InputDesc::Texture*>(desc.get());
 
-        if (!texture_desc) {
-            ERR_PRINT("InferenceEngine: Failed to cast InputDesc to Texture.");
-            return {};
-        }
+        ERR_FAIL_COND_V_MSG(
+            !texture_desc, std::vector<int64_t>(),
+            "InferenceEngine: Failed to cast InputDesc to Texture.");
 
         // Resolve buffers
         RID texture_rid =

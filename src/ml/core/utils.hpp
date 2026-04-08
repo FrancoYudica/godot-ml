@@ -18,5 +18,10 @@ namespace ml {
                                const godot::String& path);
 
         void print(const Graph& graph);
+
+        bool tensor_shape_matches(const std::vector<int64_t>& shape1,
+                                  const std::vector<int64_t>& shape2);
+
+        godot::String shape_to_str(const std::vector<int64_t>& shape);
     }  // namespace Utils
 }  // namespace ml

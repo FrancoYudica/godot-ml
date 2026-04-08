@@ -11,6 +11,19 @@ struct PushConstants {
     float padding[1];  // Alignment to 16 bytes
 };
 
+static bool is_supported_format(
+    const godot::Ref<godot::RDTextureFormat>& format) {
+    switch (format->get_format()) {
+        case RenderingDevice::DATA_FORMAT_R8G8B8A8_UNORM:
+            return true;
+        default:
+            ERR_PRINT(
+                "InferenceEngine: Unsupported texture format. Only supported: "
+                "R8G8B8A8_UNORM");
+            return false;
+    }
+}
+
 namespace ml {
 
     bool TextureOutputHandlerCompute::init(godot::RenderingDevice* rd) {
@@ -55,16 +68,31 @@ namespace ml {
         OutputDesc::Texture* texture_desc =
             dynamic_cast<OutputDesc::Texture*>(desc.get());
 
-        if (!texture_desc) {
-            ERR_PRINT("InferenceEngine: Failed to cast OutputDesc to Texture.");
-            return;
-        }
+        ERR_FAIL_COND_MSG(
+            !texture_desc,
+            "InferenceEngine: Failed to cast OutputDesc to Texture.");
 
         auto format = ctx.rd->texture_get_format(texture_desc->target_texture);
+
+        ERR_FAIL_COND_MSG(!is_supported_format(format),
+                          "InferenceEngine: Unsupported texture format.");
 
         _texture_width = format->get_width();
         _texture_height = format->get_height();
         _texture_channels = 3;
+
+        const std::vector<int64_t>& tensor_shape =
+            ctx.activations_tm->get_tensor_shape(texture_desc->tensor_name);
+
+        const std::vector<int64_t> texture_shape = {
+            _texture_width * _texture_height, _texture_channels};
+
+        ERR_FAIL_COND_MSG(
+            !Utils::tensor_shape_matches(tensor_shape, texture_shape),
+            "InferenceEngine: Texture shape " +
+                Utils::shape_to_str(texture_shape) +
+                " does not match tensor shape " +
+                Utils::shape_to_str(tensor_shape) + ".");
 
         RID tensor_rid =
             ctx.activations_tm->get_buffer_rid(texture_desc->tensor_name);
