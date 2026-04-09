@@ -1,3 +1,4 @@
+// Umbrella header
 #pragma once
-#include "operator.hpp"
-#include "operator_registry.hpp"
+#include "operator.hpp"          // IWYU pragma: export
+#include "operator_registry.hpp" // IWYU pragma: export

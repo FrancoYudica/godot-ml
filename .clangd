@@ -1,0 +1,8 @@
+CompileFlags:
+  Remove: [-fno-gnu-unique]
+
+InlayHints:
+  Designators: true
+  Enabled: true
+  ParameterNames: false
+  DeducedTypes: true

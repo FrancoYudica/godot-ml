@@ -1,13 +1,64 @@
-BasedOnStyle: Google
+# BasedOnStyle: Google
+# IndentWidth: 4
+# TabWidth: 4
+# AccessModifierOffset: -4
+# PointerAlignment: Left
+# BreakBeforeBraces: Attach
+# NamespaceIndentation: All
+# ColumnLimit: 80
+# SortIncludes: false
+# AllowAllParametersOfDeclarationOnNextLine: true 
+# BinPackParameters: false
+# AllowShortFunctionsOnASingleLine: None
+# AlwaysBreakAfterReturnType: None
+
+
+Language: Cpp
+BasedOnStyle: LLVM
+
+# 2. Versatility: Don't mess with my manually aligned spaces
+# This allows you to align equals signs or comments manually
+AlignConsecutiveAssignments: None
+AlignConsecutiveDeclarations: None
+
+# 3. Padding: Give the code some room
+SpaceBeforeParens: ControlStatements
+SpaceInEmptyParentheses: false
+
+# 4. Versatility: Keep short blocks on one line if I put them there
+# This is great for simple getters/setters in engine code
+AllowShortBlocksOnASingleLine: true
+AllowShortFunctionsOnASingleLine: Inline
+AllowShortIfStatementsOnASingleLine: WithoutElse
+
+# 5. Indentation
 IndentWidth: 4
-TabWidth: 4
-AccessModifierOffset: -4
+ColumnLimit: 0 # Set this higher if you hate aggressive line wrapping
+
+# 6. Sorting: Keep your Godot/Engine includes organized
+SortIncludes: true
+IncludeBlocks: Regroup
+
+# 7. Pointer Alignment: C# style (int* ptr, not int *ptr)
 PointerAlignment: Left
-BreakBeforeBraces: Attach
-NamespaceIndentation: All
-ColumnLimit: 80
-SortIncludes: false
-AllowAllParametersOfDeclarationOnNextLine: true 
+
+# 8. Constructor alignment
+ConstructorInitializerIndentWidth: 4
+PackConstructorInitializers: Never
+
+
+
+# 1. Disable "Bin Packing": This stops it from forcing parameters onto one line
+BinPackArguments: false
 BinPackParameters: false
-AllowShortFunctionsOnASingleLine: None
-AlwaysBreakAfterReturnType: None
+
+# 2. Force a break after the open parenthesis if the arguments are on new lines
+AllowAllArgumentsOnNextLine: false
+AllowAllParametersOfDeclarationOnNextLine: false
+
+# 3. Always break before a comma or keep them aligned
+AlignAfterOpenBracket: AlwaysBreak
+
+# 4. Optional: Increase the penalty for breaking a line (keeps simple stuff together)
+# but allows your multi-line layout to persist.
+PenaltyBreakBeforeFirstCallParameter: 1

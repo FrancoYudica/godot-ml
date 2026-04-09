@@ -5,3 +5,5 @@ bin
 .sconsign.dblite
 config.log
 .sconf_temp
+compile_commands.json
+.cache

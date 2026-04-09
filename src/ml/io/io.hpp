@@ -1,6 +1,7 @@
+// Umbrella header
 #pragma once
-#include "io_descriptor.hpp"
-#include "input_handler.hpp"
-#include "output_handler.hpp"
-#include "input_handler_registry.hpp"
-#include "output_handler_registry.hpp"
+#include "input_handler.hpp"           // IWYU pragma: export
+#include "input_handler_registry.hpp"  // IWYU pragma: export
+#include "io_descriptor.hpp"           // IWYU pragma: export
+#include "output_handler.hpp"          // IWYU pragma: export
+#include "output_handler_registry.hpp" // IWYU pragma: export

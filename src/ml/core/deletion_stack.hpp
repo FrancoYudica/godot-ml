@@ -3,20 +3,20 @@
 #include <stack>
 
 namespace ml {
-    class DeletionStack {
-    public:
-        void push(std::function<void()> func) {
-            _stack.push(func);
-        }
+class DeletionStack {
+  public:
+    void push(std::function<void()> func) {
+        _stack.push(func);
+    }
 
-        void process() {
-            while (!_stack.empty()) {
-                _stack.top()();
-                _stack.pop();
-            }
+    void process() {
+        while (!_stack.empty()) {
+            _stack.top()();
+            _stack.pop();
         }
+    }
 
-    private:
-        std::stack<std::function<void()>> _stack;
-    };
-}  // namespace ml
+  private:
+    std::stack<std::function<void()>> _stack;
+};
+} // namespace ml

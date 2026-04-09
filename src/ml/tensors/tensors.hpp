@@ -1,2 +1,2 @@
 #pragma once
-#include "tensor_resource_manager.hpp"
+#include "tensor_resource_manager.hpp" // IWYU pragma: export

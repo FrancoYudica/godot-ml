@@ -4,6 +4,10 @@ import sys
 
 env = SConscript("thirdparty/godot-cpp/SConstruct")
 
+env.Tool('compilation_db')
+compilation_db = env.CompilationDatabase('compile_commands.json')
+env.Alias('compiledb', compilation_db)
+
 env["ML_SOURCES"]  = []
 env["ONNX_SOURCES"] = []
 
