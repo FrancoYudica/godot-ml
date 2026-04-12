@@ -22,5 +22,32 @@ void print(const Graph& graph);
 bool tensor_shape_matches(const std::vector<int64_t>& shape1, const std::vector<int64_t>& shape2);
 
 godot::String shape_to_str(const std::vector<int64_t>& shape);
+
+template <typename Iterator>
+godot::String get_iterator_str(Iterator begin, Iterator end, const godot::String separator = ", ") {
+    godot::String output = "[";
+
+    for (Iterator it = begin; it != end; ++it) {
+        // We use a helper function or a manual check to handle std::string
+        // godot::Variant has a constructor for const char*, which std::string provides.
+        // For other types (int, float, String), godot::Variant works directly.
+        if constexpr (std::is_same_v<typename std::iterator_traits<Iterator>::value_type, std::string>) {
+            // Special handling for std::string
+            output += godot::Variant((*it).c_str()).stringify();
+        } else {
+            // Default handling for Godot types and primitives
+            output += godot::Variant(*it).stringify();
+        }
+
+        Iterator next_it = it;
+        if (++next_it != end) {
+            output += separator;
+        }
+    }
+
+    output += "]";
+    return output;
+}
+
 } // namespace Utils
 } // namespace ml

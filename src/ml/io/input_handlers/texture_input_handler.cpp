@@ -46,9 +46,12 @@ std::vector<int64_t> TextureInputHandler::upload(
         }
     }
 
+    // (channels, height, width)
     std::vector<int64_t> shape = {
-        (int64_t)pixels,
-        (int64_t)channels};
+        1, // Batches
+        (int64_t)channels,
+        (int64_t)h,
+        (int64_t)w};
 
     ctx.activations_tm->get_or_create(
         texture_desc->tensor_name,

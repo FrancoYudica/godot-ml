@@ -9,12 +9,20 @@
 
 namespace ml {
 
-static NodeOperator parse_operator(const std::string& op_type) {
-    if (op_type == "Gemm") return NodeOperator::Gemm;
-    if (op_type == "Relu") return NodeOperator::ReLU;
-    if (op_type == "Sigmoid") return NodeOperator::Sigmoid;
-    return NodeOperator::Unknown;
-}
+enum class ParserOperatorType {
+    ReLu,
+    Sigmoid,
+    Gemm,
+    Conv,
+    Unknown
+};
+
+static const std::unordered_map<std::string, ParserOperatorType> operator_names = {
+    {"Relu", ParserOperatorType::ReLu},
+    {"Sigmoid", ParserOperatorType::Sigmoid},
+    {"Gemm", ParserOperatorType::Gemm},
+    {"Conv", ParserOperatorType::Conv},
+    {"Unknown", ParserOperatorType::Unknown}};
 
 // ── Parser
 // ───────────────────────────────────────────────────────────────────
@@ -55,31 +63,88 @@ static void _parse_initializers(const onnx::GraphProto& proto, Graph& graph) {
     }
 }
 
-static void _parse_nodes(const onnx::GraphProto& proto, Graph& graph) {
+static bool _parse_nodes(const onnx::GraphProto& proto, Graph& graph) {
     for (const auto& node : proto.node()) {
         GraphNode n;
-        n.op = parse_operator(node.op_type());
 
-        ERR_FAIL_COND_MSG(
-            n.op == NodeOperator::Unknown,
+        ERR_FAIL_COND_V_MSG(
+            operator_names.find(node.op_type()) == operator_names.end(),
+            false,
             "Parser: unsupported operator: " + godot::String(node.op_type().c_str()));
+
+        ParserOperatorType operator_type = operator_names.at(node.op_type());
 
         for (const auto& inp : node.input())
             n.inputs.push_back(inp);
         for (const auto& out : node.output())
             n.outputs.push_back(out);
 
-        // Parse Gemm-specific attributes
-        if (n.op == NodeOperator::Gemm) {
+        if (operator_type == ParserOperatorType::ReLu) {
+            n.op = ml::NodeOperator::ReLU;
+        }
+
+        else if (operator_type == ParserOperatorType::Sigmoid) {
+            n.op = ml::NodeOperator::Sigmoid;
+        }
+
+        //  Parsing Gemm
+        else if (operator_type == ParserOperatorType::Gemm) {
+            // Initialize the variant to GemmAttributes once
+            n.attributes.emplace<GemmAttributes>();
+            auto& gemm = std::get<GemmAttributes>(n.attributes);
+
             for (const auto& attr : node.attribute()) {
-                if (attr.name() == "alpha") n.alpha = attr.f();
-                if (attr.name() == "beta") n.beta = attr.f();
-                if (attr.name() == "transB") n.transB = attr.i() == 1;
+                if (attr.name() == "alpha") gemm.alpha = attr.f();
+                if (attr.name() == "beta") gemm.beta = attr.f();
+                if (attr.name() == "transB") gemm.transB = (attr.i() == 1);
             }
+
+            ERR_FAIL_COND_V_MSG(
+                !gemm.transB,
+                false,
+                "Parser: only transB = 1 is supported for GEMM.");
+
+            n.op = ml::NodeOperator::Gemm;
+        }
+
+        // Parsing Conv (currently any shape)
+        else if (operator_type == ParserOperatorType::Conv) {
+            // Initialize the variant to ConvAttributes once
+            n.attributes.emplace<ConvAttributes>();
+            auto& conv = std::get<ConvAttributes>(n.attributes);
+
+            for (const auto& attr : node.attribute()) {
+                if (attr.name() == "kernel_shape") {
+                    for (int i = 0; i < attr.ints_size(); ++i) {
+                        conv.kernel_shape.push_back(attr.ints(i));
+                    }
+                }
+                if (attr.name() == "pads") {
+                    for (int i = 0; i < attr.ints_size(); ++i) {
+                        conv.pads.push_back(attr.ints(i));
+                    }
+                }
+
+                if (attr.name() == "strides") {
+                    for (int i = 0; i < attr.ints_size(); ++i) {
+                        conv.strides.push_back(attr.ints(i));
+                    }
+                }
+            }
+
+            ERR_FAIL_COND_V_MSG(
+                conv.kernel_shape.size() != 2 ||
+                    conv.pads.size() != 4 ||
+                    conv.strides.size() != 2,
+                false,
+                "Parser: only 2D convolutions are supported. Make sure that the kernel shape, pads, and strides are correctly specified.");
+
+            n.op = NodeOperator::Conv2D;
         }
 
         graph.nodes.push_back(std::move(n));
     }
+    return true;
 }
 
 namespace Parser {
@@ -109,7 +174,12 @@ bool parse(const std::string& path, Graph& graph) {
     const onnx::GraphProto& proto = model.graph();
     _parse_inputs(proto, graph);
     _parse_initializers(proto, graph);
-    _parse_nodes(proto, graph);
+
+    ERR_FAIL_COND_V_MSG(
+        !_parse_nodes(proto, graph),
+        false,
+        "ONNXParser: failed to parse nodes.");
+
     return true;
 }
 } // namespace Parser

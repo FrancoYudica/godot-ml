@@ -1,10 +1,11 @@
-[gd_scene load_steps=6 format=3 uid="uid://bqv83hujlxed5"]
+[gd_scene load_steps=7 format=3 uid="uid://bqv83hujlxed5"]
 
 [ext_resource type="Script" uid="uid://pj6wlw6hdawt" path="res://main.gd" id="1_ig7tw"]
 [ext_resource type="Texture2D" uid="uid://2aaci7qapndj" path="res://icon.svg" id="2_0xm2m"]
 [ext_resource type="Script" uid="uid://c5ip6kwl0d1ik" path="res://image_test_runner.gd" id="3_1bvp3"]
 [ext_resource type="Script" uid="uid://doghqj6dwl5p2" path="res://tests/inference_test.gd" id="3_h2yge"]
 [ext_resource type="Script" uid="uid://b4gqpqq56d7ym" path="res://test_sprite_2d.gd" id="3_lquwl"]
+[ext_resource type="Script" uid="uid://dsjff6kj6fxli" path="res://conv_2d_test_runner.gd" id="6_7mycd"]
 
 [node name="Main" type="Control"]
 layout_mode = 3
@@ -74,4 +75,6 @@ texture_rect = NodePath("../HBoxContainer/ResultSubViewportContainer/SubViewport
 
 [node name="TestRunner" type="Node" parent="."]
 script = ExtResource("3_h2yge")
-run = false
+
+[node name="Conv2DTestRunner" type="Node" parent="."]
+script = ExtResource("6_7mycd")

@@ -9,8 +9,7 @@
 
 using namespace godot;
 
-namespace ml {
-namespace Utils {
+namespace ml::Utils {
 
 godot::String get_project_relative_path(
     const godot::String& addon_relative_path) {
@@ -24,6 +23,7 @@ godot::String node_operator_to_string(NodeOperator op) {
             {NodeOperator::Unknown, "Unknown"},
             {NodeOperator::Gemm, "Gemm"},
             {NodeOperator::ReLU, "ReLU"},
+            {NodeOperator::Conv2D, "Conv2D"},
             {NodeOperator::Sigmoid, "Sigmoid"}};
     auto it = operator_names.find(op);
     if (it != operator_names.end()) {
@@ -65,39 +65,40 @@ void print(const Graph& graph) {
         return String(s.c_str());
     };
 
-    String inputs_str = "Inputs: ";
-    for (const auto& input_name : graph.input_names) {
-        inputs_str += to_gstring(input_name) + " ";
-    }
-    UtilityFunctions::print(inputs_str);
-
-    String shape_str = "Input shape: [";
-    for (const auto& i : graph.input_shape)
-        shape_str += String::num_int64(i) + ",";
-    shape_str += "]";
-    UtilityFunctions::print(shape_str);
+    UtilityFunctions::print("Input names: " + get_iterator_str(graph.input_names.begin(), graph.input_names.end()));
+    UtilityFunctions::print("Input shape: " + get_iterator_str(graph.input_shape.begin(), graph.input_shape.end()));
 
     for (const auto& node : graph.nodes) {
         UtilityFunctions::print("Node: ", node_operator_to_string(node.op));
+        UtilityFunctions::print(" inputs: ", get_iterator_str(node.inputs.begin(), node.inputs.end()));
+        UtilityFunctions::print(" outputs: ", get_iterator_str(node.outputs.begin(), node.outputs.end()));
 
-        String inputs_str = "  inputs: ";
-        for (const auto& i : node.inputs)
-            inputs_str += to_gstring(i) + " ";
-        UtilityFunctions::print(inputs_str);
+        std::visit([&](const auto& attr) {
+            UtilityFunctions::print("  attributes:");
 
-        String outputs_str = "  outputs: ";
-        for (const auto& o : node.outputs)
-            outputs_str += to_gstring(o) + " ";
-        UtilityFunctions::print(outputs_str);
-    }
+            // Get the type of the current attribute set
+            using T = std::decay_t<decltype(attr)>;
 
-    UtilityFunctions::print("Initializers:");
-    for (const auto& [name, tensor] : graph.initializers) {
-        String tensor_str = "  " + to_gstring(name) + ": [";
-        for (auto d : tensor.shape)
-            tensor_str += String::num_int64(d) + ",";
-        tensor_str += "]";
-        UtilityFunctions::print(tensor_str);
+            if constexpr (std::is_same_v<T, GemmAttributes>) {
+                UtilityFunctions::print("    Type: Gemm");
+                UtilityFunctions::print("    alpha: ", String::num_real(attr.alpha));
+                UtilityFunctions::print("    beta: ", String::num_real(attr.beta));
+                UtilityFunctions::print("    transB: ", attr.transB ? "true" : "false");
+            } else if constexpr (std::is_same_v<T, ConvAttributes>) {
+                UtilityFunctions::print("    Type: Conv2D");
+                UtilityFunctions::print("    kernel_shape: ", get_iterator_str(attr.kernel_shape.begin(), attr.kernel_shape.end()));
+                UtilityFunctions::print("    pads: ", get_iterator_str(attr.pads.begin(), attr.pads.end()));
+                UtilityFunctions::print("    strides: ", get_iterator_str(attr.strides.begin(), attr.strides.end()));
+            } else {
+                UtilityFunctions::print("    No specific attributes for this node type.");
+            }
+        },
+                   node.attributes);
+
+        UtilityFunctions::print("Initializers:");
+        for (const auto& [name, tensor] : graph.initializers) {
+            UtilityFunctions::print(" " + to_gstring(name) + ": ", get_iterator_str(tensor.shape.begin(), tensor.shape.end()));
+        }
     }
 }
 bool tensor_shape_matches(
@@ -124,5 +125,4 @@ String shape_to_str(const std::vector<int64_t>& shape) {
     str += "]";
     return str;
 }
-} // namespace Utils
-} // namespace ml
+} // namespace ml::Utils

@@ -1,0 +1,14 @@
+[remap]
+
+importer="glsl"
+type="RDShaderFile"
+uid="uid://d4a00qoljly41"
+path="res://.godot/imported/conv2d.glsl-d7100d5b3fde7d69ed954958ce295178.res"
+
+[deps]
+
+source_file="res://addons/ml/shaders/conv2d.glsl"
+dest_files=["res://.godot/imported/conv2d.glsl-d7100d5b3fde7d69ed954958ce295178.res"]
+
+[params]
+

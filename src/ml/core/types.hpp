@@ -4,6 +4,7 @@
 #include <memory> // IWYU pragma: export
 #include <string>
 #include <unordered_map>
+#include <variant>
 #include <vector>
 
 namespace ml {
@@ -15,6 +16,7 @@ enum class NodeOperator : int {
     Gemm,
     ReLU,
     Sigmoid,
+    Conv2D,
     Unknown
 };
 
@@ -25,6 +27,28 @@ struct Tensor {
     std::string name;
     std::vector<int64_t> shape;
     std::vector<float> data;
+};
+
+struct GemmAttributes {
+    /**
+     * GeMM (General Matrix Multiply) attributes
+     * output = alpha * (A @ B^T) + beta * C
+     *
+     * A = input activations, B = weights, C = bias
+     * transB = true means B is already stored transposed in the file,
+     * i.e. shape is [out_features, in_features] instead of [in_features,
+     * out_features]
+     */
+    float alpha = 1.0f;
+    float beta = 1.0f;
+    bool transB = false;
+};
+
+struct ConvAttributes {
+
+    std::vector<int64_t> kernel_shape;
+    std::vector<int64_t> pads;
+    std::vector<int64_t> strides;
 };
 
 /**
@@ -43,18 +67,7 @@ struct GraphNode {
      */
     std::vector<std::string> outputs;
 
-    /**
-     * GeMM (General Matrix Multiply) attributes
-     * output = alpha * (A @ B^T) + beta * C
-     *
-     * A = input activations, B = weights, C = bias
-     * transB = true means B is already stored transposed in the file,
-     * i.e. shape is [out_features, in_features] instead of [in_features,
-     * out_features]
-     */
-    float alpha = 1.0f;
-    float beta = 1.0f;
-    bool transB = false;
+    std::variant<GemmAttributes, ConvAttributes> attributes;
 };
 
 /**

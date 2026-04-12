@@ -1,4 +1,4 @@
-#include "gemm_operator.hpp"
+#include "conv2d_operator.hpp"
 
 #include <godot_cpp/classes/rd_shader_file.hpp>
 #include <godot_cpp/classes/rd_shader_spirv.hpp>
@@ -6,21 +6,21 @@
 
 namespace ml {
 
-bool GemmOperator::init(godot::RenderingDevice* rd) {
-    const String path = "shaders/gemm.glsl";
+bool Conv2DOperator::init(godot::RenderingDevice* rd) {
+    const String path = "shaders/conv2d.glsl";
     const String& shader_path = ml::Utils::get_project_relative_path(path);
     _shader = ml::Utils::load_shader(rd, shader_path);
 
     ERR_FAIL_COND_V_MSG(
         !_shader.is_valid(),
         false,
-        "Failed to load GEMM shader.");
+        "Failed to load Conv2D shader.");
 
     _pipeline = rd->compute_pipeline_create(_shader);
     return _shader.is_valid() && _pipeline.is_valid();
 }
 
-void ml::GemmOperator::dispatch(
+void ml::Conv2DOperator::dispatch(
     const ml::GraphNode& node,
     const OperatorContext& ctx) {
     // Resolve buffers
@@ -37,24 +37,28 @@ void ml::GemmOperator::dispatch(
     auto& in_shape = ctx.activations_tm->get_tensor_shape(node.inputs[0]);
     auto& w_shape = ctx.weights_tm->get_tensor_shape(node.inputs[1]);
 
-    uint32_t K, M;
+    // Check for 4D (Batch, Channel, Height, Width)
+    ERR_FAIL_COND_MSG(
+        in_shape.size() != 4 || w_shape.size() != 4,
+        "Conv2D requires 4D tensors (NCHW). Received input rank: " + itos(in_shape.size()));
+    auto& attrs = std::get<ConvAttributes>(node.attributes);
 
-    if (in_shape.size() == 2) {
-        M = in_shape[0]; // pixels
-        K = in_shape[1]; // channels
-    }
+    uint32_t in_batch_size = in_shape[0];
+    uint32_t in_channels = in_shape[1];
+    uint32_t in_height = in_shape[2];
+    uint32_t in_width = in_shape[3];
 
-    // Temporal fix for images.
-    else if (in_shape.size() == 4) {
-        K = in_shape[1];               // channels
-        M = in_shape[2] * in_shape[3]; // pixels
-    }
-    // N is the number of output features (rows of the weight matrix)
-    uint32_t N = static_cast<uint32_t>(w_shape[0]);
+    // Calculate output shape for buffer allocation
+    uint32_t out_h = (in_height + 2 * attrs.pads[0] - attrs.kernel_shape[0]) / attrs.strides[0] + 1;
+    uint32_t out_w = (in_width + 2 * attrs.pads[1] - attrs.kernel_shape[1]) / attrs.strides[1] + 1;
+    uint32_t out_channels = ctx.weights_tm->get_tensor_shape(node.inputs[1])[0]; // Takes out of bias
 
     RID out_buf = ctx.activations_tm->get_or_create(
         node.outputs[0],
-        {(int64_t)M, (int64_t)N});
+        {(int64_t)in_batch_size,
+         (int64_t)out_channels,
+         (int64_t)out_h,
+         (int64_t)out_w});
 
     // Uniforms
     auto make_uniform = [&](RID rid, int binding) {
@@ -79,8 +83,20 @@ void ml::GemmOperator::dispatch(
     });
 
     // Push constants
-    auto& gemm = std::get<GemmAttributes>(node.attributes);
-    PushConstants pc{M, N, K, gemm.alpha, gemm.beta};
+    auto& conv2d = std::get<ConvAttributes>(node.attributes);
+    PushConstants pc{
+        in_batch_size,
+        in_width,
+        in_height,
+        in_channels,
+        out_channels,
+        static_cast<uint32_t>(attrs.kernel_shape[0]),
+        static_cast<uint32_t>(attrs.pads[0]),
+        static_cast<uint32_t>(attrs.strides[0]),
+        static_cast<uint32_t>(attrs.strides[1]),
+        out_w,
+        out_h};
+
     PackedByteArray pc_bytes;
     pc_bytes.resize(sizeof(PushConstants));
     memcpy(pc_bytes.ptrw(), &pc, sizeof(PushConstants));
@@ -88,10 +104,10 @@ void ml::GemmOperator::dispatch(
     ctx.rd->compute_list_bind_compute_pipeline(ctx.compute_list, _pipeline);
     ctx.rd->compute_list_bind_uniform_set(ctx.compute_list, uniform_set_rid, 0);
     ctx.rd->compute_list_set_push_constant(ctx.compute_list, pc_bytes, pc_bytes.size());
-    ctx.rd->compute_list_dispatch(ctx.compute_list, (M + 63) / 64, 1, 1);
+    ctx.rd->compute_list_dispatch(ctx.compute_list, (out_w + 7) / 8, (out_h + 7) / 8, in_batch_size);
 }
 
-void ml::GemmOperator::destroy(godot::RenderingDevice* rd) {
+void ml::Conv2DOperator::destroy(godot::RenderingDevice* rd) {
     if (_pipeline.is_valid()) {
         rd->free_rid(_pipeline);
     }

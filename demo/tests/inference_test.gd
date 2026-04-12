@@ -5,13 +5,15 @@ extends Node
 class Test:
 	var name: String
 	var onnx_path: String
-	var input: PackedFloat32Array
+	var setup_callable: Callable
+	var pop_output_callable: Callable
 	var expected_output: PackedFloat32Array
 	
-	func _init(_name, path, test_input, test_output) -> void:
+	func _init(_name, path, setup_callable, pop_output_callable, test_output) -> void:
 		self.name = _name
 		self.onnx_path = path
-		self.input = PackedFloat32Array(test_input)
+		self.setup_callable = setup_callable
+		self.pop_output_callable = pop_output_callable
 		self.expected_output = PackedFloat32Array(test_output)
 
 var engine = MLInferenceEngine.new()
@@ -34,17 +36,71 @@ func _ready() -> void:
 func _setup_tests() -> Array[Test]:
 	var list: Array[Test] = []
 	
-	list.append(Test.new("Gemm Identity", "ml/tests/test_gemm.onnx", 
-		[1.0, 2.0, 3.0], [1.0, 2.0, 3.0]))
-		
-	list.append(Test.new("ReLU Basic", "ml/tests/test_relu.onnx", 
-		[-1.0, 0.0, 1.0], [0.0, 0.0, 1.0]))
+	list.append(
+		Test.new(
+			"Gemm Identity", 
+			"ml/tests/test_gemm.onnx", 
+			_setup_float_array_test.bind([1.0, 2.0, 3.0], [1, 3]),
+			_pop_float_array_result,
+			[1.0, 2.0, 3.0]
+			)
+	)
+	
+	list.append(
+		Test.new(
+			"ReLU Basic",
+			"ml/tests/test_relu.onnx",
+			_setup_float_array_test.bind([-1.0, 0.0, 1.0], [1, 3]),
+			_pop_float_array_result,
+			[0.0, 0.0, 1.0]
+		)
+	)
 	
 	var sig_in = [-1.0, 0.0, 1.0]
-	var sig_out = sig_in.map(func(x): return 1.0 / (1.0 + exp(-x)))
-	list.append(Test.new("Sigmoid", "ml/tests/test_sigmoid.onnx", sig_in, sig_out))
 	
+	list.append(
+		Test.new(
+			"Sigmoid",
+			"ml/tests/test_sigmoid.onnx",
+			_setup_float_array_test.bind(sig_in, [1, 3]),
+			_pop_float_array_result,
+			sig_in.map(func(x): return 1.0 / (1.0 + exp(-x)))
+		)
+	)
+	
+	var white_image_floats: PackedFloat32Array
+	white_image_floats.resize(3 * 3 * 3) # 3x3 RGB image
+	white_image_floats.fill(1.0)
+	
+	var expected_result: PackedFloat32Array
+	expected_result.resize(32)
+	expected_result.fill(12)
+	
+	list.append(
+		Test.new(
+			"Conv2D",
+			"ml/tests/test_conv2d_stride_2.onnx",
+			_setup_float_array_test.bind(
+				white_image_floats, 
+				[
+					1, # Batches
+					3, # Channels
+					3, # Height
+					3] # Width
+				),
+			_pop_float_array_result,
+			expected_result
+		)
+	)
 	return list
+
+func _setup_float_array_test(descriptor: InferenceDescriptor, data: PackedFloat32Array, shape: PackedFloat64Array):
+	descriptor.add_float_array_input("input", data, shape)
+	descriptor.add_float_array_output("output", "output_float_array")
+
+func _pop_float_array_result(task: InferenceTask) -> PackedFloat32Array:
+	var data = engine.get_task_output(task, "output_float_array")
+	return PackedFloat32Array(data) # Ensure it returns the expected type for assertion
 
 func _run_suite(tests: Array[Test]):
 	for test in tests:
@@ -60,15 +116,14 @@ func _run_suite(tests: Array[Test]):
 			
 		# Run Inference
 		var descriptor = InferenceDescriptor.new()
-		descriptor.add_float_array_input("input", test.input, [1, 3])
-		descriptor.add_float_array_output("output", "output_float_array")
+		test.setup_callable.call(descriptor)
 		var task = engine.queue_request(model_id, descriptor)
 
 		# Connect with binds so the callback knows wich test just finished
 		task.completed.connect(_on_test_completed.bind(test, task))
 
 func _on_test_completed(test: Test, task: InferenceTask):
-	var result = engine.get_task_output(task, "output_float_array")
+	var result = test.pop_output_callable.call(task)
 	engine.destroy_task(task)
 	assert_almost_equals(test.name, test.expected_output, result)
 

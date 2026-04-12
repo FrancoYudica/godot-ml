@@ -93,8 +93,10 @@ std::vector<int64_t> TextureInputHandlerCompute::upload(
     _texture_channels = texture_desc->channels;
 
     std::vector<int64_t> texture_shape = {
-        _texture_width * _texture_height,
-        _texture_channels};
+        1, // Batches
+        _texture_channels,
+        _texture_height,
+        _texture_width};
 
     RID tensor_rid = ctx.activations_tm->get_or_create(
         texture_desc->tensor_name,

@@ -1,5 +1,6 @@
 #include "operator_registry.hpp"
 
+#include "operators/conv2d_operator.hpp"
 #include "operators/element_wise_operator.hpp"
 #include "operators/gemm_operator.hpp"
 
@@ -18,6 +19,10 @@ bool OperatorRegistry::init(godot::RenderingDevice* rd) {
         !_register<SigmoidOperator>(NodeOperator::Sigmoid, rd),
         false,
         "OperatorRegistry: failed to register Sigmoid operator.");
+    ERR_FAIL_COND_V_MSG(
+        !_register<Conv2DOperator>(NodeOperator::Conv2D, rd),
+        false,
+        "OperatorRegistry: failed to register Conv2D operator.");
 
     return true;
 }

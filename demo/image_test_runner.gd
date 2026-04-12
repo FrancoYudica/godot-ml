@@ -11,6 +11,7 @@ func _ready() -> void:
 	engine = MLInferenceEngine.new()
 	engine.init()
 	model_id = engine.register_model("ml/invert_mlp.onnx")
+	engine.print_model(model_id)
 	
 	# Initialize the result texture
 	var rd = RenderingServer.get_rendering_device()
