@@ -66,12 +66,7 @@ void ElementwiseOperator::dispatch(
         total_floats *= static_cast<uint32_t>(dim);
     }
 
-    uint32_t local_size_x = 64;
-    uint32_t num_workgroups_x = 1024;
-    uint32_t num_workers = num_workgroups_x * local_size_x;
-    uint32_t chunk_size = (total_floats + num_workers - 1) / num_workers;
-
-    PushConstants pc{total_floats, chunk_size};
+    PushConstants pc{total_floats};
     PackedByteArray pc_bytes;
     pc_bytes.resize(sizeof(PushConstants));
     memcpy(pc_bytes.ptrw(), &pc, sizeof(PushConstants));
@@ -79,7 +74,9 @@ void ElementwiseOperator::dispatch(
     ctx.rd->compute_list_bind_compute_pipeline(ctx.compute_list, _pipeline);
     ctx.rd->compute_list_bind_uniform_set(ctx.compute_list, uniform_set_rid, 0);
     ctx.rd->compute_list_set_push_constant(ctx.compute_list, pc_bytes, pc_bytes.size());
-    ctx.rd->compute_list_dispatch(ctx.compute_list, num_workgroups_x, 1, 1);
+    uint32_t local_size_x = 64;
+    uint32_t total_workgroups_x = (total_floats + local_size_x - 1) / local_size_x;
+    ctx.rd->compute_list_dispatch(ctx.compute_list, total_workgroups_x, 1, 1);
 }
 
 void ElementwiseOperator::destroy(godot::RenderingDevice* rd) {

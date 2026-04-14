@@ -19,8 +19,7 @@ class ElementwiseOperator : public IOperator {
   private:
     struct PushConstants {
         uint32_t total;
-        uint32_t chunk_size;
-        float padding[2]; // Alignment to 16 bytes
+        float padding[3]; // Alignment to 16 bytes
     };
 
     godot::RID _shader;
