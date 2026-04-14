@@ -112,7 +112,11 @@ void ml::Conv2DOperator::dispatch(
     ctx.rd->compute_list_bind_compute_pipeline(ctx.compute_list, _pipeline);
     ctx.rd->compute_list_bind_uniform_set(ctx.compute_list, uniform_set_rid, 0);
     ctx.rd->compute_list_set_push_constant(ctx.compute_list, pc_bytes, pc_bytes.size());
-    ctx.rd->compute_list_dispatch(ctx.compute_list, (out_w + 7) / 8, (out_h + 7) / 8, in_batch_size);
+    ctx.rd->compute_list_dispatch(
+        ctx.compute_list,
+        (out_w + 7) / 8,
+        (out_h + 7) / 8,
+        in_batch_size);
 }
 
 void ml::Conv2DOperator::destroy(godot::RenderingDevice* rd) {

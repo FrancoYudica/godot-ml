@@ -1,18 +1,19 @@
 extends Node
 
-@export var viewport: SubViewport  # Better than just a Texture2D
+@export var input_texture_viewport: SubViewport
 @export var texture_rect: TextureRect
+@export var onnx_model_path: String
 
 var engine: MLInferenceEngine
 var model_id: int = 0
 var result_texture: Texture2D
 
-var image_size = 1024
+@export var image_size = 512
 
 func _ready() -> void:
 	engine = MLInferenceEngine.new()
 	engine.init()
-	model_id = engine.register_model("ml/sobel_filter.onnx")
+	model_id = engine.register_model(onnx_model_path)
 	engine.print_model(model_id)
 	
 	# Initialize the result texture
@@ -33,7 +34,7 @@ func _ready() -> void:
 	texture_rect.texture = result_texture
 
 func _process(_delta: float) -> void:
-	if not viewport or model_id == 0:
+	if not input_texture_viewport or model_id == 0:
 		return
 		
 	_dispatch_inference()
@@ -42,7 +43,7 @@ func _process(_delta: float) -> void:
 
 func _dispatch_inference() -> void:
 	var descriptor = InferenceDescriptor.new()
-	var tex = viewport.get_texture()
+	var tex = input_texture_viewport.get_texture()
 	descriptor.add_texture_input("input", tex, image_size, image_size)
 	descriptor.add_texture_output("output", result_texture)
 	var task = engine.queue_request(model_id, descriptor)
