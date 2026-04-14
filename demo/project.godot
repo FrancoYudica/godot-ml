@@ -13,3 +13,7 @@ config_version=5
 config/name="demo-cnn"
 config/features=PackedStringArray("4.5", "Forward Plus")
 config/icon="res://icon.svg"
+
+[display]
+
+window/vsync/vsync_mode=0
