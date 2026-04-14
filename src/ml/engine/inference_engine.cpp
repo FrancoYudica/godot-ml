@@ -247,7 +247,6 @@ void MLInferenceEngine::_process_task(Ref<InferenceTask> task) {
     // Processes the graph
     for (size_t i = 0; i < graph.nodes.size(); ++i) {
         const ml::GraphNode& node = graph.nodes[i];
-
         _run_node(node, compute_list, weights_tm, task->activations_tm);
         // Add a barrier (also for the last node for output dispatch)
         _rd->compute_list_add_barrier(compute_list);

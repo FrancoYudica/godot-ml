@@ -92,11 +92,13 @@ void TextureOutputHandlerCompute::dispatch(
         ctx.activations_tm->get_tensor_shape(texture_desc->tensor_name);
 
     const std::vector<int64_t> texture_shape = {
-        _texture_width * _texture_height,
-        _texture_channels};
+        1,
+        _texture_channels,
+        _texture_height,
+        _texture_width};
 
     ERR_FAIL_COND_MSG(
-        !Utils::tensor_shape_matches(tensor_shape, texture_shape),
+        tensor_shape.size() != texture_shape.size(),
         "InferenceEngine: Texture shape " +
             Utils::shape_to_str(texture_shape) +
             " does not match tensor shape " +

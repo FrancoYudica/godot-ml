@@ -23,6 +23,7 @@ bool Conv2DOperator::init(godot::RenderingDevice* rd) {
 void ml::Conv2DOperator::dispatch(
     const ml::GraphNode& node,
     const OperatorContext& ctx) {
+
     // Resolve buffers
     auto resolve = [&](const std::string& name) -> RID {
         RID rid = ctx.activations_tm->get_buffer_rid(name);
@@ -36,11 +37,17 @@ void ml::Conv2DOperator::dispatch(
 
     auto& in_shape = ctx.activations_tm->get_tensor_shape(node.inputs[0]);
     auto& w_shape = ctx.weights_tm->get_tensor_shape(node.inputs[1]);
+    auto& b_shape = ctx.weights_tm->get_tensor_shape(node.inputs[2]);
 
     // Check for 4D (Batch, Channel, Height, Width)
     ERR_FAIL_COND_MSG(
-        in_shape.size() != 4 || w_shape.size() != 4,
-        "Conv2D requires 4D tensors (NCHW). Received input rank: " + itos(in_shape.size()));
+        in_shape.size() != 4,
+        "Conv2D requires 4D tensors (NCHW). Received input dimension: " + itos(in_shape.size()));
+
+    ERR_FAIL_COND_MSG(
+        w_shape.size() != 4,
+        "Conv2D requires 4D tensors (NCHW). Received weight dimension: " + itos(w_shape.size()));
+
     auto& attrs = std::get<ConvAttributes>(node.attributes);
 
     uint32_t in_batch_size = in_shape[0];
@@ -53,12 +60,13 @@ void ml::Conv2DOperator::dispatch(
     uint32_t out_w = (in_width + 2 * attrs.pads[1] - attrs.kernel_shape[1]) / attrs.strides[1] + 1;
     uint32_t out_channels = ctx.weights_tm->get_tensor_shape(node.inputs[1])[0]; // Takes out of bias
 
-    RID out_buf = ctx.activations_tm->get_or_create(
-        node.outputs[0],
-        {(int64_t)in_batch_size,
-         (int64_t)out_channels,
-         (int64_t)out_h,
-         (int64_t)out_w});
+    std::vector<int64_t> out_shape = {
+        static_cast<int64_t>(in_batch_size),
+        static_cast<int64_t>(out_channels),
+        static_cast<int64_t>(out_h),
+        static_cast<int64_t>(out_w)};
+
+    RID out_buf = ctx.activations_tm->get_or_create(node.outputs[0], out_shape);
 
     // Uniforms
     auto make_uniform = [&](RID rid, int binding) {

@@ -18,8 +18,8 @@ class ElementwiseOperator : public IOperator {
 
   private:
     struct PushConstants {
-        uint32_t M;
-        uint32_t K;
+        uint32_t total;
+        uint32_t chunk_size;
         float padding[2]; // Alignment to 16 bytes
     };
 

@@ -132,12 +132,46 @@ static bool _parse_nodes(const onnx::GraphProto& proto, Graph& graph) {
                 }
             }
 
+            // Fallback: derive kernel_shape from weight tensor if attribute was absent
+            // Weight tensor layout: [out_channels, in_channels, kH, kW] for Conv
+            //                       [in_channels, out_channels, kH, kW] for ConvTranspose
+            if (conv.kernel_shape.empty() && node.input_size() > 1) {
+                const std::string& weight_name = node.input(1);
+                auto it = graph.initializers.find(weight_name);
+                if (it != graph.initializers.end()) {
+                    const auto& tensor = it->second;
+                    // dims are [out, in, kH, kW] — kernel shape is everything from dim 2 onward
+                    for (int i = 2; i < tensor.shape.size(); ++i)
+                        conv.kernel_shape.push_back(tensor.shape[i]);
+                }
+            }
+
+            // Fallback: strides default to 1 per ONNX spec if absent
+            if (conv.strides.empty()) {
+                int spatial_dims = conv.kernel_shape.size();
+                conv.strides.assign(spatial_dims, 1);
+            }
+
+            // Fallback: pads default to 0 per ONNX spec if absent
+            if (conv.pads.empty()) {
+                int spatial_dims = conv.kernel_shape.size();
+                conv.pads.assign(spatial_dims * 2, 0); // [x1_begin, x2_begin, x1_end, x2_end]
+            }
+
             ERR_FAIL_COND_V_MSG(
-                conv.kernel_shape.size() != 2 ||
-                    conv.pads.size() != 4 ||
-                    conv.strides.size() != 2,
+                conv.kernel_shape.size() != 2,
                 false,
-                "Parser: only 2D convolutions are supported. Make sure that the kernel shape, pads, and strides are correctly specified.");
+                "Parser: only 2D convolutions are supported. Expected kernel size of 2 dimensions. Got " + godot::String::num(conv.kernel_shape.size()));
+
+            ERR_FAIL_COND_V_MSG(
+                conv.pads.size() != 4,
+                false,
+                "Parser: only 2D convolutions are supported. Expected pads of 4 dimensions. Got " + godot::String::num(conv.pads.size()));
+
+            ERR_FAIL_COND_V_MSG(
+                conv.strides.size() != 2,
+                false,
+                "Parser: only 2D convolutions are supported. Expected strides of 2 dimensions. Got " + godot::String::num(conv.strides.size()));
 
             n.op = NodeOperator::Conv2D;
         }
