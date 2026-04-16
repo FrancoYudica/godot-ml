@@ -4,34 +4,43 @@
 #include "operators/element_wise_operator.hpp"
 #include "operators/gemm_operator.hpp"
 #include "operators/im2col_operator.hpp"
+#include "operators/reshape_operator.hpp"
 
 namespace ml {
 bool OperatorRegistry::init(godot::RenderingDevice* rd) {
     // Register all supported operators
     ERR_FAIL_COND_V_MSG(
-        !_register<GemmOperator>(NodeOperator::Gemm, rd),
+        !_register<GemmOperator>(PhysicalOp::Gemm, rd),
         false,
         "OperatorRegistry: failed to register Gemm operator.");
     ERR_FAIL_COND_V_MSG(
-        !_register<ReLUOperator>(NodeOperator::ReLU, rd),
+        !_register<ReLUOperator>(PhysicalOp::ReLU, rd),
         false,
         "OperatorRegistry: failed to register ReLU operator.");
     ERR_FAIL_COND_V_MSG(
-        !_register<SigmoidOperator>(NodeOperator::Sigmoid, rd),
+        !_register<SigmoidOperator>(PhysicalOp::Sigmoid, rd),
         false,
         "OperatorRegistry: failed to register Sigmoid operator.");
     ERR_FAIL_COND_V_MSG(
-        !_register<Conv2DOperator>(NodeOperator::Conv2D, rd),
+        !_register<Conv2DOperator>(PhysicalOp::Conv, rd),
         false,
         "OperatorRegistry: failed to register Conv2D operator.");
     ERR_FAIL_COND_V_MSG(
-        !_register<Im2ColOperator>(NodeOperator::Im2Col, rd),
+        !_register<Im2ColOperator>(PhysicalOp::Im2Col, rd),
         false,
         "OperatorRegistry: failed to register Im2Col operator.");
+    ERR_FAIL_COND_V_MSG(
+        !_register<Im2ColOperator>(PhysicalOp::Im2Col, rd),
+        false,
+        "OperatorRegistry: failed to register Im2Col operator.");
+    ERR_FAIL_COND_V_MSG(
+        !_register<ReshapeOperator>(PhysicalOp::Reshape, rd),
+        false,
+        "OperatorRegistry: failed to register Reshape operator.");
     return true;
 }
 
-IOperator* OperatorRegistry::get(NodeOperator op) const {
+IOperator* OperatorRegistry::get(PhysicalOp op) const {
     auto it = _operators.find(op);
     ERR_FAIL_COND_V_MSG(
         it == _operators.end(),
@@ -40,7 +49,7 @@ IOperator* OperatorRegistry::get(NodeOperator op) const {
     return it->second.get();
 }
 
-bool OperatorRegistry::supports(NodeOperator op) const {
+bool OperatorRegistry::supports(PhysicalOp op) const {
     return _operators.count(op) > 0;
 }
 

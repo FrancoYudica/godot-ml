@@ -21,7 +21,7 @@ bool Im2ColOperator::init(godot::RenderingDevice* rd) {
 }
 
 void ml::Im2ColOperator::dispatch(
-    const ml::GraphNode& node,
+    const ml::PhysicalNode& node,
     const OperatorContext& ctx) {
 
     // Resolve buffers
@@ -38,7 +38,7 @@ void ml::Im2ColOperator::dispatch(
     // Check for 4D (Batch, Channel, Height, Width)
     ERR_FAIL_COND_MSG(
         in_shape.size() != 4,
-        "Conv2D requires 4D tensors (NCHW). Received input dimension: " + itos(in_shape.size()));
+        "Conv2D requires 4D tensors (NCHW). Received input dimension: " + itos(in_shape.size()) + " Tensor name: " + node.inputs[0].c_str());
 
     auto& attrs = std::get<ConvAttributes>(node.attributes);
 
@@ -55,6 +55,16 @@ void ml::Im2ColOperator::dispatch(
     std::vector<int64_t> out_shape = {
         static_cast<int64_t>(out_h * out_w),
         static_cast<int64_t>(in_channels * kx * ky)};
+
+    // Sets sets reshape info shape, to make sure that data gets shaped back if there is a convolution
+    if (node.reshape_info.get() != nullptr) {
+        uint32_t out_channels = ctx.weights_tm->get_tensor_shape(node.inputs[1])[0]; // Takes out of bias
+        node.reshape_info->shape = {
+            static_cast<int64_t>(in_batch_size),
+            static_cast<int64_t>(out_channels),
+            static_cast<int64_t>(out_h),
+            static_cast<int64_t>(out_w)};
+    }
 
     RID out_buf = ctx.activations_tm->get_or_create(node.outputs[0], out_shape);
 

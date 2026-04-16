@@ -1,54 +1,40 @@
 #[compute]
 #version 450
 
-// BUFFERS
-
 layout(set = 0, binding = 0, std430) restrict readonly buffer InputBuffer {
-  float A[]; // (M, K)
+  float A[];
 };
-
 layout(set = 0, binding = 1, std430) restrict readonly buffer WeightBuffer {
-  float B[]; // (N, K)
+  float B[];
 };
-
 layout(set = 0, binding = 2, std430) restrict readonly buffer BiasBuffer {
-  float C[]; // (N,)
+  float C[];
 };
-
 layout(set = 0, binding = 3, std430) restrict writeonly buffer OutputBuffer {
-  float out_data[]; // (M, N)
+  float out_data[];
 };
 
-// PUSH CONSTANT
 layout(push_constant) uniform PushConstants {
-  uint M;      // number of rows in A    (pixels)
-  uint N;      // number of columns in B (output features)
-  uint K;      // inner dimension        (input features)
-  float alpha; // output scale
-  float beta;  // bias scale
+  uint M;
+  uint N;
+  uint K;
+  float alpha;
+  float beta;
 };
 
-layout(local_size_x = 64, local_size_y = 1, local_size_z = 1) in;
+layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
 
 void main() {
-  uint m = gl_GlobalInvocationID.x; // pixel index
+  uint m = gl_GlobalInvocationID.x;
+  uint n = gl_GlobalInvocationID.y;
 
-  // Guard against threads launched beyond the buffer size
-  if (m >= M)
+  if (m >= M || n >= N)
     return;
 
-  // Here we solve: alpha * A * B + beta * C
-
-  // For each output feature j
-  for (uint n = 0; n < N; n++) {
-
-    // Dot product: A[m, :] * B[n, :]
-    float sum = 0.0;
-    for (uint k = 0; k < K; k++) {
-      sum += A[m * K + k] * B[n * K + k];
-    }
-
-    // output = alpha * dot + beta * bias
-    out_data[m * N + n] = alpha * sum + beta * C[n];
+  float sum = 0.0;
+  for (uint k = 0; k < K; k++) {
+    sum += A[m * K + k] * B[n * K + k];
   }
+
+  out_data[m * N + n] = alpha * sum + beta * C[n];
 }

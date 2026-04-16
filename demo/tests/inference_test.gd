@@ -45,8 +45,8 @@ func _setup_tests() -> Array[Test]:
 			[1.0, 2.0, 3.0]
 			)
 	)
-	
-	list.append(
+	list.append
+	(
 		Test.new(
 			"ReLU Basic",
 			"ml/tests/test_relu.onnx",

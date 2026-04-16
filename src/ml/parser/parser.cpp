@@ -9,26 +9,17 @@
 
 namespace ml {
 
-enum class ParserOperatorType {
-    ReLu,
-    Sigmoid,
-    Gemm,
-    Conv,
-    Im2Col,
-    Unknown
-};
-
-static const std::unordered_map<std::string, ParserOperatorType> operator_names = {
-    {"Relu", ParserOperatorType::ReLu},
-    {"Sigmoid", ParserOperatorType::Sigmoid},
-    {"Gemm", ParserOperatorType::Gemm},
-    {"Conv", ParserOperatorType::Conv},
-    {"Im2Col", ParserOperatorType::Im2Col},
-    {"Unknown", ParserOperatorType::Unknown}};
+static const std::unordered_map<std::string, LogicalOp> operator_names = {
+    {"Relu", LogicalOp::ReLU},
+    {"Sigmoid", LogicalOp::Sigmoid},
+    {"Gemm", LogicalOp::Gemm},
+    {"Conv", LogicalOp::Conv},
+    {"Im2Col", LogicalOp::Im2Col},
+    {"Unknown", LogicalOp::Unknown}};
 
 // ── Parser
 // ───────────────────────────────────────────────────────────────────
-static void _parse_inputs(const onnx::GraphProto& proto, Graph& graph) {
+static void _parse_inputs(const onnx::GraphProto& proto, LogicalGraph& graph) {
     // First input that is NOT an initializer is the actual graph input
     const auto& init = proto.initializer();
     std::unordered_set<std::string> initializer_names;
@@ -46,7 +37,7 @@ static void _parse_inputs(const onnx::GraphProto& proto, Graph& graph) {
     }
 }
 
-static void _parse_initializers(const onnx::GraphProto& proto, Graph& graph) {
+static void _parse_initializers(const onnx::GraphProto& proto, LogicalGraph& graph) {
     for (const auto& tensor : proto.initializer()) {
         Tensor t;
         t.name = tensor.name();
@@ -65,32 +56,32 @@ static void _parse_initializers(const onnx::GraphProto& proto, Graph& graph) {
     }
 }
 
-static bool _parse_nodes(const onnx::GraphProto& proto, Graph& graph) {
+static bool _parse_nodes(const onnx::GraphProto& proto, LogicalGraph& graph) {
     for (const auto& node : proto.node()) {
-        GraphNode n;
+        LogicalNode n;
 
         ERR_FAIL_COND_V_MSG(
             operator_names.find(node.op_type()) == operator_names.end(),
             false,
             "Parser: unsupported operator: " + godot::String(node.op_type().c_str()));
 
-        ParserOperatorType operator_type = operator_names.at(node.op_type());
+        LogicalOp operator_type = operator_names.at(node.op_type());
 
         for (const auto& inp : node.input())
             n.inputs.push_back(inp);
         for (const auto& out : node.output())
             n.outputs.push_back(out);
 
-        if (operator_type == ParserOperatorType::ReLu) {
-            n.op = ml::NodeOperator::ReLU;
+        if (operator_type == LogicalOp::ReLU) {
+            n.op = LogicalOp::ReLU;
         }
 
-        else if (operator_type == ParserOperatorType::Sigmoid) {
-            n.op = ml::NodeOperator::Sigmoid;
+        else if (operator_type == LogicalOp::Sigmoid) {
+            n.op = LogicalOp::Sigmoid;
         }
 
         //  Parsing Gemm
-        else if (operator_type == ParserOperatorType::Gemm) {
+        else if (operator_type == LogicalOp::Gemm) {
             // Initialize the variant to GemmAttributes once
             n.attributes.emplace<GemmAttributes>();
             auto& gemm = std::get<GemmAttributes>(n.attributes);
@@ -106,11 +97,11 @@ static bool _parse_nodes(const onnx::GraphProto& proto, Graph& graph) {
                 false,
                 "Parser: only transB = 1 is supported for GEMM.");
 
-            n.op = ml::NodeOperator::Gemm;
+            n.op = LogicalOp::Gemm;
         }
 
         // Parsing Conv (currently any shape)
-        else if (operator_type == ParserOperatorType::Conv || operator_type == ParserOperatorType::Im2Col) {
+        else if (operator_type == LogicalOp::Conv || operator_type == LogicalOp::Im2Col) {
             // Initialize the variant to ConvAttributes once
             n.attributes.emplace<ConvAttributes>();
             auto& conv = std::get<ConvAttributes>(n.attributes);
@@ -159,29 +150,12 @@ static bool _parse_nodes(const onnx::GraphProto& proto, Graph& graph) {
                 int spatial_dims = conv.kernel_shape.size();
                 conv.pads.assign(spatial_dims * 2, 0); // [x1_begin, x2_begin, x1_end, x2_end]
             }
-
-            ERR_FAIL_COND_V_MSG(
-                conv.kernel_shape.size() != 2,
-                false,
-                "Parser: only 2D convolutions are supported. Expected kernel size of 2 dimensions. Got " + godot::String::num(conv.kernel_shape.size()));
-
-            ERR_FAIL_COND_V_MSG(
-                conv.pads.size() != 4,
-                false,
-                "Parser: only 2D convolutions are supported. Expected pads of 4 dimensions. Got " + godot::String::num(conv.pads.size()));
-
-            ERR_FAIL_COND_V_MSG(
-                conv.strides.size() != 2,
-                false,
-                "Parser: only 2D convolutions are supported. Expected strides of 2 dimensions. Got " + godot::String::num(conv.strides.size()));
-
-            if (operator_type == ParserOperatorType::Im2Col) {
-                n.op = NodeOperator::Im2Col;
+            if (operator_type == LogicalOp::Im2Col) {
+                n.op = LogicalOp::Im2Col;
             } else {
-                n.op = NodeOperator::Conv2D;
+                n.op = LogicalOp::Conv;
             }
         }
-
         graph.nodes.push_back(std::move(n));
     }
     return true;
@@ -189,7 +163,7 @@ static bool _parse_nodes(const onnx::GraphProto& proto, Graph& graph) {
 
 namespace Parser {
 
-bool parse(const std::string& path, Graph& graph) {
+bool parse(const std::string& path, LogicalGraph& graph) {
     // Convert res:// path to absolute filesystem path
     godot::String godot_path(path.c_str());
     godot::String global_path =

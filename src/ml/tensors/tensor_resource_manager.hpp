@@ -36,6 +36,10 @@ class TensorResourceManager : public RefCounted {
 
     PackedByteArray get_buffer(const std::string& name);
 
+    OperationResult reshape(const std::string& name, const std::vector<int64_t>& new_shape);
+
+    bool has(const std::string& name);
+
     const std::vector<int64_t> get_tensor_shape(const std::string& name);
 
   private:

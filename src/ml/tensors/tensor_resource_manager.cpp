@@ -56,6 +56,36 @@ PackedByteArray TensorResourceManager::get_buffer(const std::string& name) {
     return _rd->buffer_get_data(sb);
 }
 
+OperationResult TensorResourceManager::reshape(
+    const std::string& name,
+    const std::vector<int64_t>& new_shape) {
+
+    if (_tensors_data.find(name) == _tensors_data.end()) {
+        return {false, "Tensor not found"};
+    }
+
+    // Reshape is only allowed when their sizes are compatible
+
+    uint32_t actual_size = Utils::get_tensor_floats(_tensors_data[name].shape);
+    uint32_t required_size = Utils::get_tensor_floats(new_shape);
+
+    if (actual_size != required_size) {
+        return {
+            false,
+            "Incompatible tensor sizes: " +
+                std::to_string(actual_size) +
+                " != " +
+                std::to_string(required_size)};
+    }
+
+    _tensors_data[name].shape = new_shape;
+    return {true, {}};
+}
+
+bool TensorResourceManager::has(const std::string& name) {
+    return _tensors_data.find(name) != _tensors_data.end();
+}
+
 const std::vector<int64_t> TensorResourceManager::get_tensor_shape(
     const std::string& name) {
     if (_tensors_data.find(name) != _tensors_data.end()) {

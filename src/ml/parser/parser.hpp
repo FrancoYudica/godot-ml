@@ -5,7 +5,7 @@
 namespace ml {
 
 namespace Parser {
-bool parse(const std::string& path, Graph& graph);
+bool parse(const std::string& path, LogicalGraph& graph);
 }
 
 } // namespace ml

@@ -5,7 +5,7 @@ class Im2ColOperator : public IOperator {
   public:
     virtual bool init(godot::RenderingDevice* rd) override;
     virtual void dispatch(
-        const ml::GraphNode& node,
+        const ml::PhysicalNode& node,
         const OperatorContext& ctx) override;
     void destroy(godot::RenderingDevice* rd) override;
 

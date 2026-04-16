@@ -21,7 +21,7 @@ bool GemmOperator::init(godot::RenderingDevice* rd) {
 }
 
 void ml::GemmOperator::dispatch(
-    const ml::GraphNode& node,
+    const ml::PhysicalNode& node,
     const OperatorContext& ctx) {
     // Resolve buffers
     auto resolve = [&](const std::string& name) -> RID {
@@ -88,7 +88,15 @@ void ml::GemmOperator::dispatch(
     ctx.rd->compute_list_bind_compute_pipeline(ctx.compute_list, _pipeline);
     ctx.rd->compute_list_bind_uniform_set(ctx.compute_list, uniform_set_rid, 0);
     ctx.rd->compute_list_set_push_constant(ctx.compute_list, pc_bytes, pc_bytes.size());
-    ctx.rd->compute_list_dispatch(ctx.compute_list, (M + 63) / 64, 1, 1);
+
+    uint32_t workgroup_count_x = M / 7 + 8;
+    uint32_t workgroup_count_y = N / 7 + 8;
+
+    ctx.rd->compute_list_dispatch(
+        ctx.compute_list,
+        workgroup_count_x,
+        workgroup_count_y,
+        1);
 }
 
 void ml::GemmOperator::destroy(godot::RenderingDevice* rd) {

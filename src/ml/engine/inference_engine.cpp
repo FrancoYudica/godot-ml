@@ -1,5 +1,7 @@
 #include "inference_engine.hpp"
 
+#include "parser/lowering.hpp"
+
 #include <godot_cpp/classes/rd_shader_file.hpp>
 #include <godot_cpp/classes/rd_shader_spirv.hpp>
 #include <godot_cpp/classes/rendering_server.hpp>
@@ -83,16 +85,19 @@ uint32_t MLInferenceEngine::register_model(String model_path) {
 
     print_line("Loading ML inference engine with model: " + model_path);
 
-    GraphContext graph_context;
-
+    ml::LogicalGraph logical_graph;
     bool success = ml::Parser::parse(
         model_path.utf8().ptr(),
-        graph_context.graph);
+        logical_graph);
 
     ERR_FAIL_COND_V_MSG(!success, 0, "InferenceEngine: failed to parse model.");
 
-    UtilityFunctions::print("InferenceEngine: model parsed successfully.");
+    ml::PhysicalGraph physical_graph;
+    success = ml::Lowering::lower(logical_graph, physical_graph);
+    ERR_FAIL_COND_V_MSG(!success, 0, "InferenceEngine: failed to lower model.");
 
+    GraphContext graph_context;
+    graph_context.graph = std::move(physical_graph);
     graph_context.weights_tm.instantiate();
     graph_context.weights_tm->init(_rd);
 
@@ -214,7 +219,7 @@ void MLInferenceEngine::_process_task(Ref<InferenceTask> task) {
 
     ERR_FAIL_COND_MSG(it == _graphs.end(), "InferenceEngine: graph not found.");
 
-    const ml::Graph& graph = it->second.graph;
+    const ml::PhysicalGraph& graph = it->second.graph;
     Ref<ml::TensorResourceManager> weights_tm = it->second.weights_tm;
 
     // Loads inputs
@@ -246,7 +251,7 @@ void MLInferenceEngine::_process_task(Ref<InferenceTask> task) {
 
     // Processes the graph
     for (size_t i = 0; i < graph.nodes.size(); ++i) {
-        const ml::GraphNode& node = graph.nodes[i];
+        const ml::PhysicalNode& node = graph.nodes[i];
         _run_node(node, compute_list, weights_tm, task->activations_tm);
         // Add a barrier (also for the last node for output dispatch)
         _rd->compute_list_add_barrier(compute_list);
@@ -278,7 +283,7 @@ void MLInferenceEngine::_process_task(Ref<InferenceTask> task) {
 }
 
 void MLInferenceEngine::_run_node(
-    const ml::GraphNode& node,
+    const ml::PhysicalNode& node,
     int64_t compute_list,
     Ref<ml::TensorResourceManager> weights_tm,
     Ref<ml::TensorResourceManager> activations_tm) {

@@ -11,17 +11,17 @@ namespace Utils {
  */
 godot::String get_project_relative_path(const godot::String& path);
 
-godot::String node_operator_to_string(ml::NodeOperator op);
-
-const std::vector<ml::NodeOperator>& get_node_operators();
+godot::String node_operator_to_string(ml::PhysicalOp op);
 
 godot::RID load_shader(godot::RenderingDevice* rd, const godot::String& path);
 
-void print(const Graph& graph);
+void print(const PhysicalGraph& graph);
 
 bool tensor_shape_matches(const std::vector<int64_t>& shape1, const std::vector<int64_t>& shape2);
 
 godot::String shape_to_str(const std::vector<int64_t>& shape);
+
+uint32_t get_tensor_floats(const std::vector<int64_t>& shape);
 
 template <typename Iterator>
 godot::String get_iterator_str(Iterator begin, Iterator end, const godot::String separator = ", ") {

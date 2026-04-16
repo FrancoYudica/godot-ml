@@ -17,6 +17,7 @@ grow_vertical = 2
 
 [node name="SrcSizeSubViewport" type="SubViewport" parent="."]
 handle_input_locally = false
+size = Vector2i(32, 32)
 render_target_update_mode = 4
 
 [node name="ColorRect" type="ColorRect" parent="SrcSizeSubViewport"]
@@ -34,7 +35,7 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 rotation = -6.2831855
-pivot_offset = Vector2(256, 256)
+pivot_offset = Vector2(16, 16)
 size_flags_horizontal = 3
 size_flags_vertical = 3
 texture = ExtResource("1_x6gm0")
@@ -115,4 +116,5 @@ expand_mode = 3
 script = ExtResource("3_5bqun")
 input_texture_viewport = NodePath("../ScaleUpSubViewport")
 texture_rect = NodePath("../HBoxContainer/ResultSubViewportContainer/SubViewport/TextureRect")
-onnx_model_path = "ml/sobel_filter.onnx"
+onnx_model_path = "ml/super_resolution.onnx"
+image_size = 256

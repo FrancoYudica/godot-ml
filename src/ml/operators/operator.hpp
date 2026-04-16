@@ -18,7 +18,7 @@ class IOperator {
     virtual ~IOperator() = default;
     virtual bool init(godot::RenderingDevice* rd) = 0;
     virtual void dispatch(
-        const ml::GraphNode& node,
+        const ml::PhysicalNode& node,
         const OperatorContext& ctx) = 0;
     virtual void destroy(godot::RenderingDevice* rd) = 0;
 };

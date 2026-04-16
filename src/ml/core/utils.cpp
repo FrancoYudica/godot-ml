@@ -17,29 +17,22 @@ godot::String get_project_relative_path(
     return base_path + addon_relative_path;
 }
 
-godot::String node_operator_to_string(NodeOperator op) {
-    static const std::unordered_map<NodeOperator, std::string>
+godot::String node_operator_to_string(PhysicalOp op) {
+    static const std::unordered_map<PhysicalOp, std::string>
         operator_names = {
-            {NodeOperator::Unknown, "Unknown"},
-            {NodeOperator::Gemm, "Gemm"},
-            {NodeOperator::ReLU, "ReLU"},
-            {NodeOperator::Conv2D, "Conv2D"},
-            {NodeOperator::Sigmoid, "Sigmoid"},
-            {NodeOperator::Im2Col, "Im2Col"}};
+            {PhysicalOp::Unknown, "Unknown"},
+            {PhysicalOp::Gemm, "Gemm"},
+            {PhysicalOp::ReLU, "ReLU"},
+            {PhysicalOp::Conv, "Conv"},
+            {PhysicalOp::Sigmoid, "Sigmoid"},
+            {PhysicalOp::Im2Col, "Im2Col"},
+            {PhysicalOp::Reshape, "Reshape"},
+        };
     auto it = operator_names.find(op);
     if (it != operator_names.end()) {
         return godot::String(it->second.c_str());
     }
     return godot::String("Unknown");
-}
-
-const std::vector<ml::NodeOperator>& get_node_operators() {
-    static std::vector<ml::NodeOperator> operators = {
-        NodeOperator::Gemm,
-        NodeOperator::ReLU,
-        NodeOperator::Sigmoid};
-
-    return operators;
 }
 
 RID load_shader(RenderingDevice* rd, const godot::String& path) {
@@ -61,14 +54,17 @@ RID load_shader(RenderingDevice* rd, const godot::String& path) {
     return rd->shader_create_from_spirv(spirv);
 }
 
-void print(const Graph& graph) {
+void print(const PhysicalGraph& graph) {
     auto to_gstring = [](const std::string& s) {
         return String(s.c_str());
     };
 
     UtilityFunctions::print("Input names: " + get_iterator_str(graph.input_names.begin(), graph.input_names.end()));
     UtilityFunctions::print("Input shape: " + get_iterator_str(graph.input_shape.begin(), graph.input_shape.end()));
-
+    UtilityFunctions::print("Initializers:");
+    for (const auto& [name, tensor] : graph.initializers) {
+        UtilityFunctions::print(" " + to_gstring(name) + ": ", get_iterator_str(tensor.shape.begin(), tensor.shape.end()));
+    }
     for (const auto& node : graph.nodes) {
         UtilityFunctions::print("Node: ", node_operator_to_string(node.op));
         UtilityFunctions::print(" inputs: ", get_iterator_str(node.inputs.begin(), node.inputs.end()));
@@ -93,11 +89,6 @@ void print(const Graph& graph) {
             }
         },
                    node.attributes);
-
-        UtilityFunctions::print("Initializers:");
-        for (const auto& [name, tensor] : graph.initializers) {
-            UtilityFunctions::print(" " + to_gstring(name) + ": ", get_iterator_str(tensor.shape.begin(), tensor.shape.end()));
-        }
     }
 }
 bool tensor_shape_matches(
@@ -113,6 +104,15 @@ bool tensor_shape_matches(
     }
     return true;
 }
+
+uint32_t get_tensor_floats(const std::vector<int64_t>& shape) {
+    uint32_t floats = 1;
+    for (const auto& dim : shape) {
+        floats *= static_cast<uint32_t>(dim);
+    }
+    return floats;
+}
+
 String shape_to_str(const std::vector<int64_t>& shape) {
     String str = "[";
     for (size_t i = 0; i < shape.size(); ++i) {

@@ -16,7 +16,7 @@
 namespace godot {
 
 struct GraphContext {
-    ml::Graph graph;
+    ml::PhysicalGraph graph;
     Ref<ml::TensorResourceManager> weights_tm;
 };
 
@@ -45,7 +45,7 @@ class MLInferenceEngine : public RefCounted {
     void _process_pending_tasks();
     void _process_task(Ref<InferenceTask> task);
     void _run_node(
-        const ml::GraphNode& node,
+        const ml::PhysicalNode& node,
         int64_t compute_list,
         Ref<ml::TensorResourceManager> weights_tm,
         Ref<ml::TensorResourceManager> activations_tm);

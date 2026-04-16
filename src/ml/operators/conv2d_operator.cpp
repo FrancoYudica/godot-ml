@@ -21,7 +21,7 @@ bool Conv2DOperator::init(godot::RenderingDevice* rd) {
 }
 
 void ml::Conv2DOperator::dispatch(
-    const ml::GraphNode& node,
+    const ml::PhysicalNode& node,
     const OperatorContext& ctx) {
 
     // Resolve buffers
