@@ -14,6 +14,7 @@ enum class ParserOperatorType {
     Sigmoid,
     Gemm,
     Conv,
+    Im2Col,
     Unknown
 };
 
@@ -22,6 +23,7 @@ static const std::unordered_map<std::string, ParserOperatorType> operator_names 
     {"Sigmoid", ParserOperatorType::Sigmoid},
     {"Gemm", ParserOperatorType::Gemm},
     {"Conv", ParserOperatorType::Conv},
+    {"Im2Col", ParserOperatorType::Im2Col},
     {"Unknown", ParserOperatorType::Unknown}};
 
 // ── Parser
@@ -108,7 +110,7 @@ static bool _parse_nodes(const onnx::GraphProto& proto, Graph& graph) {
         }
 
         // Parsing Conv (currently any shape)
-        else if (operator_type == ParserOperatorType::Conv) {
+        else if (operator_type == ParserOperatorType::Conv || operator_type == ParserOperatorType::Im2Col) {
             // Initialize the variant to ConvAttributes once
             n.attributes.emplace<ConvAttributes>();
             auto& conv = std::get<ConvAttributes>(n.attributes);
@@ -173,7 +175,11 @@ static bool _parse_nodes(const onnx::GraphProto& proto, Graph& graph) {
                 false,
                 "Parser: only 2D convolutions are supported. Expected strides of 2 dimensions. Got " + godot::String::num(conv.strides.size()));
 
-            n.op = NodeOperator::Conv2D;
+            if (operator_type == ParserOperatorType::Im2Col) {
+                n.op = NodeOperator::Im2Col;
+            } else {
+                n.op = NodeOperator::Conv2D;
+            }
         }
 
         graph.nodes.push_back(std::move(n));

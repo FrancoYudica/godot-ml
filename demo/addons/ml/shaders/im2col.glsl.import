@@ -1,0 +1,14 @@
+[remap]
+
+importer="glsl"
+type="RDShaderFile"
+uid="uid://csjeqcn1pyphj"
+path="res://.godot/imported/im2col.glsl-7b7c524763a03b9a704e4777a4e6e22d.res"
+
+[deps]
+
+source_file="res://addons/ml/shaders/im2col.glsl"
+dest_files=["res://.godot/imported/im2col.glsl-7b7c524763a03b9a704e4777a4e6e22d.res"]
+
+[params]
+

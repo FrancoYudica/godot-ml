@@ -17,6 +17,7 @@ enum class NodeOperator : int {
     ReLU,
     Sigmoid,
     Conv2D,
+    Im2Col,
     Unknown
 };
 

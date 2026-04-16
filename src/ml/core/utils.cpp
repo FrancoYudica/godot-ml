@@ -24,7 +24,8 @@ godot::String node_operator_to_string(NodeOperator op) {
             {NodeOperator::Gemm, "Gemm"},
             {NodeOperator::ReLU, "ReLU"},
             {NodeOperator::Conv2D, "Conv2D"},
-            {NodeOperator::Sigmoid, "Sigmoid"}};
+            {NodeOperator::Sigmoid, "Sigmoid"},
+            {NodeOperator::Im2Col, "Im2Col"}};
     auto it = operator_names.find(op);
     if (it != operator_names.end()) {
         return godot::String(it->second.c_str());
@@ -80,12 +81,10 @@ void print(const Graph& graph) {
             using T = std::decay_t<decltype(attr)>;
 
             if constexpr (std::is_same_v<T, GemmAttributes>) {
-                UtilityFunctions::print("    Type: Gemm");
                 UtilityFunctions::print("    alpha: ", String::num_real(attr.alpha));
                 UtilityFunctions::print("    beta: ", String::num_real(attr.beta));
                 UtilityFunctions::print("    transB: ", attr.transB ? "true" : "false");
             } else if constexpr (std::is_same_v<T, ConvAttributes>) {
-                UtilityFunctions::print("    Type: Conv2D");
                 UtilityFunctions::print("    kernel_shape: ", get_iterator_str(attr.kernel_shape.begin(), attr.kernel_shape.end()));
                 UtilityFunctions::print("    pads: ", get_iterator_str(attr.pads.begin(), attr.pads.end()));
                 UtilityFunctions::print("    strides: ", get_iterator_str(attr.strides.begin(), attr.strides.end()));

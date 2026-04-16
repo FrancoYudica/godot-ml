@@ -35,7 +35,7 @@ func _ready() -> void:
 
 func _setup_tests() -> Array[Test]:
 	var list: Array[Test] = []
-	
+
 	list.append(
 		Test.new(
 			"Gemm Identity", 
@@ -92,6 +92,42 @@ func _setup_tests() -> Array[Test]:
 			expected_result
 		)
 	)
+	
+	var input_im = [
+		1, 2, 3,
+		4, 5, 6,
+		7, 8, 9
+	]
+	
+	list.append(
+		Test.new(
+			"Img2Col",
+			"ml/tests/test_im2col.onnx",
+			_setup_float_array_test.bind(
+				input_im, 
+				[
+					1, # Batches
+					1, # Channels
+					3, # Height
+					3
+				] # Width
+			),
+			_pop_float_array_result,
+			
+			# Expected output
+			[
+				0.0, 0.0, 0.0, 0.0, 1.0, 2.0, 0.0, 4.0, 5.0, # Patch 0
+				0.0, 0.0, 0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, # Patch 1
+				0.0, 0.0, 0.0, 2.0, 3.0, 0.0, 5.0, 6.0, 0.0, # Patch 2
+				0.0, 1.0, 2.0, 0.0, 4.0, 5.0, 0.0, 7.0, 8.0, # Patch 3
+				1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, # Patch 4
+				2.0, 3.0, 0.0, 5.0, 6.0, 0.0, 8.0, 9.0, 0.0, # Patch 5
+				0.0, 4.0, 5.0, 0.0, 7.0, 8.0, 0.0, 0.0, 0.0, # Patch 6
+				4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 0.0, 0.0, 0.0, # Patch 7
+				5.0, 6.0, 0.0, 8.0, 9.0, 0.0, 0.0, 0.0, 0.0  # Patch 8
+			]
+		)
+	)
 	return list
 
 func _setup_float_array_test(descriptor: InferenceDescriptor, data: PackedFloat32Array, shape: PackedFloat64Array):
@@ -131,6 +167,8 @@ func _on_test_completed(test: Test, task: InferenceTask):
 func assert_almost_equals(test_name, a: PackedFloat32Array, b: PackedFloat32Array, epsilon = 0.0001):
 	if a.size() != b.size():
 		push_error("Size mismatch")
+		print(a)
+		print(b)
 		return
 	for i in range(a.size()):
 		if abs(a[i] - b[i]) > epsilon:

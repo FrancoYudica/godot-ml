@@ -1,9 +1,9 @@
 torch
 torchvision
-onnx
 pillow
 numpy
 matplotlib
 ipykernel
 numpy
 onnx
+onnxruntime
