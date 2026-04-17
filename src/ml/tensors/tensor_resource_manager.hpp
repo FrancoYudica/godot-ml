@@ -1,5 +1,6 @@
 #pragma once
 #include "core/core.hpp"
+#include "storage_buffer_pool.hpp"
 
 #include <godot_cpp/classes/rd_uniform.hpp>
 #include <godot_cpp/classes/rendering_device.hpp>
@@ -11,12 +12,12 @@ namespace ml {
 struct _TensorBuffer {
     std::vector<int64_t> shape;
     uint32_t buffer_size = 0;
-    RID storage_buffer = RID();
+    StorageBufferHandle storage_buffer;
 };
 
 class TensorResourceManager : public RefCounted {
   public:
-    void init(RenderingDevice* rendering_device);
+    void init(RenderingDevice* rendering_device, StorageBufferPool* buffer_pool);
     void destroy();
     /**
      * Gets an existing storage buffer or creates a new one if it doesn't
@@ -50,6 +51,7 @@ class TensorResourceManager : public RefCounted {
 
   private:
     RenderingDevice* _rd;
+    StorageBufferPool* _pool;
     std::unordered_map<std::string, _TensorBuffer> _tensors_data;
 };
 } // namespace ml

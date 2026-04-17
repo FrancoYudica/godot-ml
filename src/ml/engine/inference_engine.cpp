@@ -59,6 +59,8 @@ void MLInferenceEngine::init() {
 
     _rd = RenderingServer::get_singleton()->get_rendering_device();
 
+    _sb_pool.init(_rd);
+
     ERR_FAIL_COND_MSG(!_rd, "InferenceEngine: Could not get RenderingDevice.");
 
     ERR_FAIL_COND_MSG(
@@ -99,7 +101,7 @@ uint32_t MLInferenceEngine::register_model(String model_path) {
     GraphContext graph_context;
     graph_context.graph = std::move(physical_graph);
     graph_context.weights_tm.instantiate();
-    graph_context.weights_tm->init(_rd);
+    graph_context.weights_tm->init(_rd, &_sb_pool);
 
     uint32_t graph_rid = _next_graph_id++;
     _graphs[graph_rid] = graph_context;
@@ -140,7 +142,7 @@ Ref<InferenceTask> MLInferenceEngine::queue_request(
 
     Ref<InferenceTask> task;
     task.instantiate();
-    task->init(model_rid, _rd, request);
+    task->init(model_rid, _rd, request, &_sb_pool);
     _pending_tasks.push_back(task);
     return task;
 }

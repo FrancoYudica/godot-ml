@@ -12,10 +12,11 @@ void godot::InferenceTask::_bind_methods() {
 void InferenceTask::init(
     uint32_t graph_id,
     RenderingDevice* rd,
-    Ref<InferenceDescriptor> descriptor) {
+    Ref<InferenceDescriptor> descriptor,
+    ml::StorageBufferPool* buffer_pool) {
     this->graph_id = graph_id;
     this->activations_tm.instantiate();
-    this->activations_tm->init(rd);
+    this->activations_tm->init(rd, buffer_pool);
     this->descriptor = descriptor;
 }
 

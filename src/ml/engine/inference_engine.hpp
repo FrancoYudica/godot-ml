@@ -55,6 +55,7 @@ class MLInferenceEngine : public RefCounted {
 
   private:
     RenderingDevice* _rd;
+    ml::StorageBufferPool _sb_pool;
     ml::OperatorRegistry _operator_registry;
     ml::InputHandlerRegistry _input_registry;
     ml::OutputHandlerRegistry _output_registry;

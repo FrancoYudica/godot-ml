@@ -2,40 +2,52 @@
 
 namespace ml {
 
-void TensorResourceManager::init(RenderingDevice* rendering_device) {
+void TensorResourceManager::init(
+    RenderingDevice* rendering_device,
+    StorageBufferPool* buffer_pool) {
     _rd = rendering_device;
+    _pool = buffer_pool;
 }
 
 void TensorResourceManager::destroy() {
+
+    // Releases all used buffers
     for (auto& [name, tensor] : _tensors_data) {
-        if (tensor.storage_buffer.is_valid()) {
-            _rd->free_rid(tensor.storage_buffer);
-        }
+        _pool->release(tensor.storage_buffer);
     }
+
     _tensors_data.clear();
 }
 
-RID TensorResourceManager::get_or_create(const std::string& name, const std::vector<int64_t>& shape, const std::vector<float>& data) {
+RID TensorResourceManager::get_or_create(
+    const std::string& name,
+    const std::vector<int64_t>& shape,
+    const std::vector<float>& data) {
+
     PackedByteArray bytes;
     bytes.resize(data.size() * sizeof(float));
     memcpy(bytes.ptrw(), data.data(), data.size() * sizeof(float));
     return get_or_create(name, shape, bytes);
 }
 
-RID TensorResourceManager::get_or_create(const std::string& name, const std::vector<int64_t>& shape, const PackedByteArray& data) {
+RID TensorResourceManager::get_or_create(
+    const std::string& name,
+    const std::vector<int64_t>& shape,
+    const PackedByteArray& data) {
+
     // If it doesn't exist, initialize the metadata
     if (_tensors_data.find(name) == _tensors_data.end()) {
         _TensorBuffer new_tensor;
         new_tensor.shape = shape; // This makes a DEEP COPY of the vector
         new_tensor.buffer_size = 0;
-        new_tensor.storage_buffer = RID();
+        new_tensor.storage_buffer = StorageBufferPool::INVALID_HANDLE;
         _tensors_data[name] = new_tensor;
     }
 
     // Now that we definitely have an entry, ensure the GPU buffer matches
     _update_gpu_buffer(name, data, shape);
 
-    return _tensors_data[name].storage_buffer;
+    return _pool->get_rid(_tensors_data[name].storage_buffer);
 }
 
 RID TensorResourceManager::get_buffer_rid(const std::string& name) {
@@ -43,7 +55,7 @@ RID TensorResourceManager::get_buffer_rid(const std::string& name) {
         return RID();
     }
 
-    return _tensors_data[name].storage_buffer;
+    return _pool->get_rid(_tensors_data[name].storage_buffer);
 }
 
 PackedByteArray TensorResourceManager::get_buffer(const std::string& name) {
@@ -106,25 +118,26 @@ void TensorResourceManager::_update_gpu_buffer(
 
     // Initialization
     if (required_size == 0) {
-        uint32_t elements = 1;
-        for (int64_t d : shape)
-            elements *= (uint32_t)d;
-        required_size = elements * sizeof(float);
+        required_size = Utils::get_tensor_floats(shape) * sizeof(float);
     }
 
     // Reallocate only if size grows or RID is null
-    if (tensor.storage_buffer == RID() ||
+    if (tensor.storage_buffer == StorageBufferPool::INVALID_HANDLE ||
         tensor.buffer_size < required_size) {
-        if (tensor.storage_buffer.is_valid()) {
-            _rd->free_rid(tensor.storage_buffer);
+
+        // It no longer fits, makes releases buffer
+        if (tensor.storage_buffer == StorageBufferPool::INVALID_HANDLE) {
+            _pool->release(tensor.storage_buffer);
         }
+
         tensor.buffer_size = required_size;
-        tensor.storage_buffer =
-            _rd->storage_buffer_create(tensor.buffer_size, data);
+        tensor.storage_buffer = _pool->get(tensor.buffer_size, data);
     }
     // Reuse existing buffer if it's big enough
     else if (data.size() > 0) {
-        _rd->buffer_update(tensor.storage_buffer, 0, data.size(), data);
+
+        RID buffer_rid = _pool->get_rid(tensor.storage_buffer);
+        _rd->buffer_update(buffer_rid, 0, data.size(), data);
     }
 }
 } // namespace ml
