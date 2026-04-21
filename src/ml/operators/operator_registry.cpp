@@ -1,5 +1,6 @@
 #include "operator_registry.hpp"
 
+#include "operators/col2im_operator.hpp"
 #include "operators/conv2d_operator.hpp"
 #include "operators/element_wise_operator.hpp"
 #include "operators/gemm_operator.hpp"
@@ -37,6 +38,11 @@ bool OperatorRegistry::init(godot::RenderingDevice* rd) {
         !_register<ReshapeOperator>(PhysicalOp::Reshape, rd),
         false,
         "OperatorRegistry: failed to register Reshape operator.");
+
+    ERR_FAIL_COND_V_MSG(
+        !_register<Col2ImOperator>(PhysicalOp::Col2Im, rd),
+        false,
+        "OperatorRegistry: failed to register Col2Im operator.");
     return true;
 }
 

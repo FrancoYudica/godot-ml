@@ -45,8 +45,7 @@ func _setup_tests() -> Array[Test]:
 			[1.0, 2.0, 3.0]
 			)
 	)
-	list.append
-	(
+	list.append(
 		Test.new(
 			"ReLU Basic",
 			"ml/tests/test_relu.onnx",
@@ -128,6 +127,31 @@ func _setup_tests() -> Array[Test]:
 			]
 		)
 	)
+	
+	list.append(
+		Test.new(
+			"Col2Im",
+			"ml/tests/test_conv_transpose.onnx",
+			_setup_float_array_test.bind(
+				[
+					1, 2, 
+					3, 4
+				], 
+				[
+					1, # Batches
+					1, # Channels
+					2, # Height
+					2  # Width
+				]
+			),
+			_pop_float_array_result,
+			# Expected output
+			[
+				10, 10,
+				10, 10
+			]
+		)
+	)
 	return list
 
 func _setup_float_array_test(descriptor: InferenceDescriptor, data: PackedFloat32Array, shape: PackedFloat64Array):
@@ -173,5 +197,7 @@ func assert_almost_equals(test_name, a: PackedFloat32Array, b: PackedFloat32Arra
 	for i in range(a.size()):
 		if abs(a[i] - b[i]) > epsilon:
 			push_error("Test %s failed at index %d. Expected %f, got %f" % [test_name, i, a[i], b[i]])
+			print(a)
+			print(b)
 			return
 	print("Success: %s. Got: %s" % [test_name, b])

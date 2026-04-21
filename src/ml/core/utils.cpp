@@ -26,6 +26,7 @@ godot::String node_operator_to_string(PhysicalOp op) {
             {PhysicalOp::Conv, "Conv"},
             {PhysicalOp::Sigmoid, "Sigmoid"},
             {PhysicalOp::Im2Col, "Im2Col"},
+            {PhysicalOp::Col2Im, "Col2Im"},
             {PhysicalOp::Reshape, "Reshape"},
         };
     auto it = operator_names.find(op);

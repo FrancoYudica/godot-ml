@@ -14,6 +14,7 @@ static const std::unordered_map<std::string, LogicalOp> operator_names = {
     {"Sigmoid", LogicalOp::Sigmoid},
     {"Gemm", LogicalOp::Gemm},
     {"Conv", LogicalOp::Conv},
+    {"ConvTranspose", LogicalOp::ConvTranspose},
     {"Im2Col", LogicalOp::Im2Col},
     {"Unknown", LogicalOp::Unknown}};
 
@@ -101,7 +102,9 @@ static bool _parse_nodes(const onnx::GraphProto& proto, LogicalGraph& graph) {
         }
 
         // Parsing Conv (currently any shape)
-        else if (operator_type == LogicalOp::Conv || operator_type == LogicalOp::Im2Col) {
+        else if (
+            operator_type == LogicalOp::Conv ||
+            operator_type == LogicalOp::Im2Col) {
             // Initialize the variant to ConvAttributes once
             n.attributes.emplace<ConvAttributes>();
             auto& conv = std::get<ConvAttributes>(n.attributes);
@@ -150,11 +153,46 @@ static bool _parse_nodes(const onnx::GraphProto& proto, LogicalGraph& graph) {
                 int spatial_dims = conv.kernel_shape.size();
                 conv.pads.assign(spatial_dims * 2, 0); // [x1_begin, x2_begin, x1_end, x2_end]
             }
-            if (operator_type == LogicalOp::Im2Col) {
-                n.op = LogicalOp::Im2Col;
-            } else {
-                n.op = LogicalOp::Conv;
+
+            n.op = operator_type;
+        }
+
+        else if (operator_type == LogicalOp::ConvTranspose) {
+            n.attributes.emplace<ConvTransposeAttributes>();
+            auto& conv = std::get<ConvTransposeAttributes>(n.attributes);
+
+            for (const auto& attr : node.attribute()) {
+                if (attr.name() == "kernel_shape")
+                    for (int i = 0; i < attr.ints_size(); ++i)
+                        conv.kernel_shape.push_back(attr.ints(i));
+                if (attr.name() == "pads")
+                    for (int i = 0; i < attr.ints_size(); ++i)
+                        conv.pads.push_back(attr.ints(i));
+                if (attr.name() == "strides")
+                    for (int i = 0; i < attr.ints_size(); ++i)
+                        conv.strides.push_back(attr.ints(i));
+                if (attr.name() == "output_padding")
+                    for (int i = 0; i < attr.ints_size(); ++i)
+                        conv.output_padding.push_back(attr.ints(i));
             }
+
+            // Same fallbacks as Conv
+            if (conv.kernel_shape.empty() && node.input_size() > 1) {
+                const std::string& weight_name = node.input(1);
+                auto it = graph.initializers.find(weight_name);
+                if (it != graph.initializers.end())
+                    // ConvTranspose weights: [in_C, out_C, kH, kW] - still dims 2 onward
+                    for (int i = 2; i < it->second.shape.size(); ++i)
+                        conv.kernel_shape.push_back(it->second.shape[i]);
+            }
+            if (conv.strides.empty())
+                conv.strides.assign(conv.kernel_shape.size(), 1);
+            if (conv.pads.empty())
+                conv.pads.assign(conv.kernel_shape.size() * 2, 0);
+            if (conv.output_padding.empty())
+                conv.output_padding.assign(conv.kernel_shape.size(), 0);
+
+            n.op = LogicalOp::ConvTranspose;
         }
         graph.nodes.push_back(std::move(n));
     }

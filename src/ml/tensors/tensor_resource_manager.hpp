@@ -15,6 +15,11 @@ struct _TensorBuffer {
     StorageBufferHandle storage_buffer;
 };
 
+struct _TensorAlias {
+    std::string source_name;    // points to _tensors_data entry
+    std::vector<int64_t> shape; // may differ from source
+};
+
 class TensorResourceManager : public RefCounted {
   public:
     void init(RenderingDevice* rendering_device, StorageBufferPool* buffer_pool);
@@ -43,15 +48,31 @@ class TensorResourceManager : public RefCounted {
 
     const std::vector<int64_t> get_tensor_shape(const std::string& name);
 
+    // Creates an alias: 'alias_name' points to the same GPU buffer as 'source_name'
+    // but can have a different shape. No data is copied.
+    OperationResult create_alias(
+        const std::string& source_name,
+        const std::string& alias_name,
+        const std::vector<int64_t>& alias_shape);
+
+    // Removes an alias without releasing the underlying buffer
+    void remove_alias(const std::string& alias_name);
+
+    bool is_alias(const std::string& name) const;
+
   private:
     void _update_gpu_buffer(
         const std::string& name,
         const PackedByteArray& data,
         const std::vector<int64_t>& shape);
+    // Resolves a name through aliases to the real _TensorBuffer
+    _TensorBuffer* _resolve(const std::string& name);
+    const _TensorBuffer* _resolve(const std::string& name) const;
 
   private:
     RenderingDevice* _rd;
     StorageBufferPool* _pool;
     std::unordered_map<std::string, _TensorBuffer> _tensors_data;
+    std::unordered_map<std::string, _TensorAlias> _aliases;
 };
 } // namespace ml

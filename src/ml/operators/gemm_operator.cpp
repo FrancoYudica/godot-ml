@@ -39,22 +39,17 @@ void ml::GemmOperator::dispatch(
 
     uint32_t K, M;
 
-    if (in_shape.size() == 2) {
-        M = in_shape[0]; // pixels
-        K = in_shape[1]; // channels
-    }
+    ERR_FAIL_COND_MSG(
+        in_shape.size() != 2,
+        "GEMM: Input tensor must be 2D.");
 
-    // Temporal fix for images.
-    else if (in_shape.size() == 4) {
-        K = in_shape[1];               // channels
-        M = in_shape[2] * in_shape[3]; // pixels
-    }
+    M = in_shape[0]; // pixels
+    K = in_shape[1]; // channels
+
     // N is the number of output features (rows of the weight matrix)
-    uint32_t N = static_cast<uint32_t>(w_shape[0]);
+    uint32_t N = Utils::get_tensor_floats(w_shape) / K;
 
-    RID out_buf = ctx.activations_tm->get_or_create(
-        node.outputs[0],
-        {(int64_t)M, (int64_t)N});
+    RID out_buf = ctx.activations_tm->get_or_create(node.outputs[0], {(int64_t)M, (int64_t)N});
 
     // Uniforms
     auto make_uniform = [&](RID rid, int binding) {

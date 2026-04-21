@@ -1,4 +1,5 @@
 #pragma once
+#include <godot_cpp/core/error_macros.hpp>
 #include <godot_cpp/godot.hpp>
 #include <godot_cpp/variant/string.hpp>
 #include <memory> // IWYU pragma: export
@@ -15,6 +16,7 @@ enum class LogicalOp {
     Sigmoid,
     Conv,
     Im2Col,
+    ConvTranspose,
     Unknown
 };
 
@@ -24,6 +26,7 @@ enum class PhysicalOp {
     Sigmoid,
     Conv,
     Im2Col,
+    Col2Im,
     Reshape,
     Unknown
 };
@@ -66,6 +69,10 @@ struct ConvAttributes {
             return {
                 false,
                 "only 2D convolutions supported, got kernel_shape dims: " + std::to_string(kernel_shape.size())};
+        if (kernel_shape[0] <= 0 || kernel_shape[1] <= 0)
+            return {
+                false,
+                "kernel dimensions must be positive"};
         if (pads.size() != 4)
             return {
                 false,
@@ -74,11 +81,91 @@ struct ConvAttributes {
             return {
                 false,
                 "expected 2 stride values, got: " + std::to_string(strides.size())};
+
+        return {true, {}};
+    }
+};
+
+struct Col2ImAttributes {
+    std::vector<int64_t> kernel_shape;
+    std::vector<int64_t> pads;
+    std::vector<int64_t> strides;
+    std::vector<int64_t> output_padding;
+    std::string source_activation; // name of the original [b, ic, ih, iw] tensor
+
+    OperationResult validate() const {
+        if (kernel_shape.size() != 2)
+            return {
+                false,
+                "only 2D convolutions supported, got kernel_shape dims: " + std::to_string(kernel_shape.size())};
         if (kernel_shape[0] <= 0 || kernel_shape[1] <= 0)
             return {
                 false,
                 "kernel dimensions must be positive"};
+        if (pads.size() != 4)
+            return {
+                false,
+                "expected 4 pad values, got: " + std::to_string(pads.size())};
+        if (strides.size() != 2)
+            return {
+                false,
+                "expected 2 stride values, got: " + std::to_string(strides.size())};
 
+        if (output_padding.size() != 2)
+            return {
+                false,
+                "expected 2 output padding values, got: " + std::to_string(output_padding.size())};
+        if (source_activation.empty())
+            return {
+                false,
+                "source activation name cannot be empty"};
+        return {true, {}};
+    }
+};
+
+enum class ReshapeMode {
+    // Flattens [b, c, h, w] -> [b*h*w, c]  (before Gemm in ConvTranspose)
+    ImageToGemm,
+    // Restores [b*h*w, oc] -> [b, oc, oh, ow]  (after Col2Im)
+    // Reads spatial dims from reshape_info written by Col2Im
+    GemmToImage,
+};
+
+struct ReshapeAttributes {
+    ReshapeMode mode;
+
+    OperationResult validate() const {
+        return {true, {}};
+    }
+};
+
+struct ConvTransposeAttributes {
+    std::vector<int64_t> kernel_shape;
+    std::vector<int64_t> pads;
+    std::vector<int64_t> strides;
+    std::vector<int64_t> output_padding;
+
+    OperationResult validate() const {
+        if (kernel_shape.size() != 2)
+            return {
+                false,
+                "only 2D convolutions supported, got kernel_shape dims: " + std::to_string(kernel_shape.size())};
+        if (kernel_shape[0] <= 0 || kernel_shape[1] <= 0)
+            return {
+                false,
+                "kernel dimensions must be positive"};
+        if (pads.size() != 4)
+            return {
+                false,
+                "expected 4 pad values, got: " + std::to_string(pads.size())};
+        if (strides.size() != 2)
+            return {
+                false,
+                "expected 2 stride values, got: " + std::to_string(strides.size())};
+        if (output_padding.size() != 2)
+            return {
+                false,
+                "expected 2 output padding values, got: " + std::to_string(output_padding.size())};
         return {true, {}};
     }
 };
@@ -109,7 +196,12 @@ struct LogicalNode {
     LogicalOp op;
     std::vector<std::string> inputs;
     std::vector<std::string> outputs;
-    std::variant<std::monostate, GemmAttributes, ConvAttributes> attributes;
+    std::variant<
+        std::monostate,
+        GemmAttributes,
+        ConvAttributes,
+        ConvTransposeAttributes>
+        attributes;
 };
 
 struct LogicalGraph {
@@ -137,7 +229,13 @@ struct PhysicalNode {
      */
     std::vector<std::string> outputs;
 
-    std::variant<std::monostate, GemmAttributes, ConvAttributes> attributes;
+    std::variant<
+        std::monostate,
+        GemmAttributes,
+        ConvAttributes,
+        Col2ImAttributes,
+        ReshapeAttributes>
+        attributes;
 
     std::shared_ptr<ReshapeInfo> reshape_info;
 };
