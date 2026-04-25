@@ -237,7 +237,7 @@ bool lower(ml::LogicalGraph& logical_graph, ml::PhysicalGraph& physical_graph) {
             success = low_gemm(logical_node, physical_graph);
             break;
         case LogicalOp::Conv:
-            low_conv(logical_node, physical_graph);
+            success = low_conv(logical_node, physical_graph);
             break;
         case LogicalOp::Im2Col:
             success = low_im2col(logical_node, physical_graph);

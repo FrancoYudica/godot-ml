@@ -31,10 +31,6 @@ bool OperatorRegistry::init(godot::RenderingDevice* rd) {
         false,
         "OperatorRegistry: failed to register Im2Col operator.");
     ERR_FAIL_COND_V_MSG(
-        !_register<Im2ColOperator>(PhysicalOp::Im2Col, rd),
-        false,
-        "OperatorRegistry: failed to register Im2Col operator.");
-    ERR_FAIL_COND_V_MSG(
         !_register<ReshapeOperator>(PhysicalOp::Reshape, rd),
         false,
         "OperatorRegistry: failed to register Reshape operator.");

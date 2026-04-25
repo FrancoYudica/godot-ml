@@ -52,7 +52,7 @@ struct GemmAttributes {
 
     OperationResult validate() const {
         if (!transB) {
-            return {true, "Unsupported transB value `false`"};
+            return {false, "Unsupported transB value `false`"};
         }
         return {true, {}};
     }

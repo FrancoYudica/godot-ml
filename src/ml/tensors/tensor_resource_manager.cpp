@@ -183,7 +183,7 @@ void TensorResourceManager::_update_gpu_buffer(
         tensor.buffer_size < required_size) {
 
         // It no longer fits, makes releases buffer
-        if (tensor.storage_buffer == StorageBufferPool::INVALID_HANDLE) {
+        if (tensor.storage_buffer != StorageBufferPool::INVALID_HANDLE) {
             _pool->release(tensor.storage_buffer);
         }
 
