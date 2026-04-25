@@ -141,18 +141,46 @@ static bool low_conv_transpose(
     pre_reshape.outputs = {flat_name};
     pre_reshape.attributes = pre_reshape_attrs;
 
-    // Gemm: [b*ih*iw, ic] x weights[ic, oc*kh*kw] -> [b*ih*iw, oc*kh*kw]
+    // ONNX ConvTranspose weights are [ic, oc, kH, kW]. The GEMM shader always
+    // computes A x B^T (accessing B as [N, K]), so transpose to [oc*kH*kW, ic]
+    // at load time to match that access pattern.
+    const std::string& weight_name = logical_node.inputs[1];
+    ERR_FAIL_COND_V_MSG(
+        physical_graph.initializers.find(weight_name) == physical_graph.initializers.end(),
+        false,
+        "ConvTranspose: weight tensor not found in initializers");
+
+    // CPU transposition
+    const std::string transposed_weight_name = weight_name + "__T";
+    {
+        const Tensor& w = physical_graph.initializers.at(weight_name);
+        const int64_t K = w.shape[0]; // in_channels
+        int64_t N = 1;
+        for (size_t i = 1; i < w.shape.size(); ++i)
+            N *= w.shape[i]; // out_channels * kH * kW
+
+        Tensor w_T;
+        w_T.name = transposed_weight_name;
+        w_T.shape = {N, K};
+        w_T.data.resize(static_cast<size_t>(N * K));
+        for (int64_t k = 0; k < K; ++k)
+            for (int64_t n = 0; n < N; ++n)
+                w_T.data[n * K + k] = w.data[k * N + n];
+        physical_graph.initializers[transposed_weight_name] = std::move(w_T);
+    }
+
+    // Gemm: [b*ih*iw, ic] x [oc*kh*kw, ic]^T -> [b*ih*iw, oc*kh*kw]
     GemmAttributes gemm_attrs{
         .alpha = 1.0,
         .beta = 1.0,
-        .transB = false};
+        .transB = true};
     result = gemm_attrs.validate();
     ERR_FAIL_COND_V_MSG(!result.success, false, result.error.c_str());
 
     PhysicalNode gemm_node;
     gemm_node.op = PhysicalOp::Gemm;
     gemm_node.inputs = {flat_name,
-                        logical_node.inputs[1],  // weights [ic, oc*kh*kw]
+                        transposed_weight_name,  // weights [oc*kh*kw, ic] (transposed)
                         logical_node.inputs[2]}; // bias [oc]
     gemm_node.outputs = {gemm_name};
     gemm_node.attributes = gemm_attrs;

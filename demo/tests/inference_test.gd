@@ -130,8 +130,8 @@ func _setup_tests() -> Array[Test]:
 	
 	list.append(
 		Test.new(
-			"Col2Im",
-			"ml/tests/test_conv_transpose.onnx",
+			"ConvTranspose2x2",
+			"ml/tests/test_conv_transpose_2x2.onnx",
 			_setup_float_array_test.bind(
 				[
 					1, 2, 
@@ -149,6 +149,35 @@ func _setup_tests() -> Array[Test]:
 			[
 				10, 10,
 				10, 10
+			]
+		)
+	)
+	list.append(
+		Test.new(
+			"ConvTranspose4x4",
+			"ml/tests/test_conv_transpose_4x4.onnx",
+			_setup_float_array_test.bind(
+				# 4x4 image channel count 4
+				[
+					1, 1, 1, 1, # Pixel 1
+					2, 2, 2, 2, # Pixel 2
+					3, 3, 3, 3, # Pixel 3
+					4, 4, 4, 4  # Pixel 4
+				], 
+				[
+					1, # Batches
+					4, # Channels per pixel
+					2, # Height
+					2  # Width
+				]
+			),
+			_pop_float_array_result,
+			# Expected output
+			[
+				40, 40, 40, 40, # Pixel 1
+				40, 40, 40, 40, # Pixel 2
+				40, 40, 40, 40, # Pixel 3
+				40, 40, 40, 40  # Pixel 4
 			]
 		)
 	)
@@ -190,14 +219,10 @@ func _on_test_completed(test: Test, task: InferenceTask):
 
 func assert_almost_equals(test_name, a: PackedFloat32Array, b: PackedFloat32Array, epsilon = 0.0001):
 	if a.size() != b.size():
-		push_error("Size mismatch")
-		print(a)
-		print(b)
+		push_error("Size mismatch\n - Expected: %s\n - Got: %s" % [a, b])
 		return
 	for i in range(a.size()):
 		if abs(a[i] - b[i]) > epsilon:
 			push_error("Test %s failed at index %d. Expected %f, got %f" % [test_name, i, a[i], b[i]])
-			print(a)
-			print(b)
 			return
 	print("Success: %s. Got: %s" % [test_name, b])
