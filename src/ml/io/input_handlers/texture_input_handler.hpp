@@ -5,7 +5,9 @@
 namespace ml {
 class TextureInputHandler : public IInputHandler {
   public:
-    std::vector<int64_t> upload(
+    std::vector<int64_t> get_shape(const std::unique_ptr<InputDesc::BaseData>& desc) const override;
+
+    bool upload(
         const std::unique_ptr<InputDesc::BaseData>& desc,
         const InputHandlerContext& ctx) override;
 

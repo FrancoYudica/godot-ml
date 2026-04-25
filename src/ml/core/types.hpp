@@ -10,6 +10,10 @@
 
 namespace ml {
 
+// Maps every tensor name (inputs, initializers, intermediates) to its concrete shape.
+// Populated by the shape inference pass before each inference call.
+using ShapeTable = std::unordered_map<std::string, std::vector<int64_t>>;
+
 enum class LogicalOp {
     Gemm,
     ReLU,
@@ -42,9 +46,8 @@ struct GemmAttributes {
      * output = alpha * (A @ B^T) + beta * C
      *
      * A = input activations, B = weights, C = bias
-     * transB = true means B is already stored transposed in the file,
-     * i.e. shape is [out_features, in_features] instead of [in_features,
-     * out_features]
+     * transB = true means B is stored as [out_features, in_features],
+     * which is what the shader always assumes.
      */
     float alpha = 1.0f;
     float beta = 1.0f;
@@ -91,7 +94,9 @@ struct Col2ImAttributes {
     std::vector<int64_t> pads;
     std::vector<int64_t> strides;
     std::vector<int64_t> output_padding;
-    std::string source_activation; // name of the original [b, ic, ih, iw] tensor
+    // Name of the original ConvTranspose input tensor [b, ic, ih, iw].
+    // Used by shape inference to compute output spatial dimensions.
+    std::string source_activation;
 
     OperationResult validate() const {
         if (kernel_shape.size() != 2)
@@ -126,13 +131,17 @@ struct Col2ImAttributes {
 enum class ReshapeMode {
     // Flattens [b, c, h, w] -> [b*h*w, c]  (before Gemm in ConvTranspose)
     ImageToGemm,
-    // Restores [b*h*w, oc] -> [b, oc, oh, ow]  (after Col2Im)
-    // Reads spatial dims from reshape_info written by Col2Im
+    // Restores [b*h*w, oc] -> [b, oc, oh, ow]  (after Col2Im / after GEMM in Conv)
+    // Reads the 4D target shape from ShapeTable using image_shape_ref.
     GemmToImage,
 };
 
 struct ReshapeAttributes {
     ReshapeMode mode;
+    // For GemmToImage: key in ShapeTable that holds the target [b, c, h, w].
+    // Written by Im2Col (Conv path) or Col2Im (ConvTranspose path) during shape inference.
+    // Format: <producer_output_name> + "__4d"
+    std::string image_shape_ref;
 
     OperationResult validate() const {
         return {true, {}};
@@ -170,19 +179,8 @@ struct ConvTransposeAttributes {
     }
 };
 
-struct ReshapeInfo {
-    std::vector<int64_t> shape;
-
-    OperationResult validate() const {
-        if (shape.size() == 0) {
-            return {false, "Reshape shape cannot be empty"};
-        }
-        return {true, {}};
-    }
-};
-
 /**
- * Tensor holds it's shape and weight data
+ * Tensor holds its shape and weight data
  */
 struct Tensor {
     std::string name;
@@ -214,7 +212,9 @@ struct LogicalGraph {
 // PHYSICAL NODE AND GRAPH. OBTAINED AFTER LOWERING AND OPTIMIZATION
 
 /**
- * PhysicalGraph node has an operation and it's tensor inputs and outputs
+ * PhysicalGraph node has an operation and its tensor inputs and outputs.
+ * Shapes are not stored here — they are computed per-inference by the
+ * shape inference pass and stored in a ShapeTable.
  */
 struct PhysicalNode {
     PhysicalOp op;
@@ -236,8 +236,6 @@ struct PhysicalNode {
         Col2ImAttributes,
         ReshapeAttributes>
         attributes;
-
-    std::shared_ptr<ReshapeInfo> reshape_info;
 };
 
 /**
@@ -253,8 +251,7 @@ struct PhysicalGraph {
     std::vector<PhysicalNode> nodes;
 
     /**
-     * Holds the trained weights and biases. The
-     * trained tensors
+     * Holds the trained weights and biases.
      */
     std::unordered_map<std::string, Tensor> initializers;
 };

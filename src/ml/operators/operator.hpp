@@ -11,6 +11,7 @@ struct OperatorContext {
     Ref<TensorResourceManager> activations_tm;
     int64_t compute_list;
     DeletionStack* frame_deletion_stack;
+    const ShapeTable* shape_table;
 };
 
 class IOperator {

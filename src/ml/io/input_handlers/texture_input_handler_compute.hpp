@@ -9,7 +9,9 @@ class TextureInputHandlerCompute : public IInputHandler {
 
     void destroy(godot::RenderingDevice* rd) override;
 
-    std::vector<int64_t> upload(
+    std::vector<int64_t> get_shape(const std::unique_ptr<InputDesc::BaseData>& desc) const override;
+
+    bool upload(
         const std::unique_ptr<InputDesc::BaseData>& desc,
         const InputHandlerContext& ctx) override;
 
@@ -20,7 +22,7 @@ class TextureInputHandlerCompute : public IInputHandler {
     godot::RID _pipeline_rid;
     godot::RID _shader_rid;
     std::vector<godot::Ref<godot::RDUniform>> _uniforms;
-    uint32_t _texture_width, _texture_height, _texture_channels;
+    std::string _tensor_name;
 };
 
 } // namespace ml

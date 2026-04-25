@@ -92,24 +92,26 @@ func _setup_tests() -> Array[Test]:
 		)
 	)
 	
-	var input_im = [
-		1, 2, 3,
-		4, 5, 6,
-		7, 8, 9
-	]
-	
 	list.append(
 		Test.new(
 			"Img2Col",
 			"ml/tests/test_im2col.onnx",
 			_setup_float_array_test.bind(
-				input_im, 
+				
+				# Input image
+				[
+					1, 2, 3,
+					4, 5, 6,
+					7, 8, 9
+				], 
+				
+				# Shape
 				[
 					1, # Batches
 					1, # Channels
 					3, # Height
-					3
-				] # Width
+					3  # Width
+				]
 			),
 			_pop_float_array_result,
 			

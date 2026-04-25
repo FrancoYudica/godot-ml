@@ -48,6 +48,11 @@ class MLInferenceEngine : public RefCounted {
         const ml::PhysicalNode& node,
         int64_t compute_list,
         Ref<ml::TensorResourceManager> weights_tm,
+        Ref<ml::TensorResourceManager> activations_tm,
+        const ml::ShapeTable& shape_table);
+    void _allocate_activations(
+        const ml::PhysicalGraph& graph,
+        const ml::ShapeTable& shape_table,
         Ref<ml::TensorResourceManager> activations_tm);
 
     void _free_all_resources();

@@ -67,9 +67,7 @@ void TextureInputHandlerCompute::destroy(RenderingDevice* rd) {
     rd->free_rid(_shader_rid);
 }
 
-std::vector<int64_t> TextureInputHandlerCompute::upload(
-    const std::unique_ptr<InputDesc::BaseData>& desc,
-    const InputHandlerContext& ctx) {
+std::vector<int64_t> TextureInputHandlerCompute::get_shape(const std::unique_ptr<InputDesc::BaseData>& desc) const {
     InputDesc::Texture* texture_desc = dynamic_cast<InputDesc::Texture*>(desc.get());
 
     ERR_FAIL_COND_V_MSG(
@@ -77,50 +75,57 @@ std::vector<int64_t> TextureInputHandlerCompute::upload(
         std::vector<int64_t>(),
         "InferenceEngine: Failed to cast InputDesc to Texture.");
 
-    RID texture_rid =
-        RenderingServer::get_singleton()->texture_get_rd_texture(texture_desc->texture->get_rid());
+    int64_t width = texture_desc->texture->get_width();
+    int64_t height = texture_desc->texture->get_height();
 
-    _texture_width = texture_desc->texture->get_width();
-    _texture_height = texture_desc->texture->get_height();
+    if (texture_desc->process_width_override > 0)
+        width = texture_desc->process_width_override;
+    if (texture_desc->process_height_override > 0)
+        height = texture_desc->process_height_override;
 
-    if (texture_desc->process_width_override > 0) {
-        _texture_width = texture_desc->process_width_override;
-    }
-    if (texture_desc->process_height_override > 0) {
-        _texture_height = texture_desc->process_height_override;
-    }
+    return {1, static_cast<int64_t>(texture_desc->channels), height, width};
+}
 
-    _texture_channels = texture_desc->channels;
+bool TextureInputHandlerCompute::upload(
+    const std::unique_ptr<InputDesc::BaseData>& desc,
+    const InputHandlerContext& ctx) {
+    InputDesc::Texture* texture_desc = dynamic_cast<InputDesc::Texture*>(desc.get());
 
-    std::vector<int64_t> texture_shape = {
-        1, // Batches
-        _texture_channels,
-        _texture_height,
-        _texture_width};
+    ERR_FAIL_COND_V_MSG(
+        !texture_desc,
+        false,
+        "InferenceEngine: Failed to cast InputDesc to Texture.");
+
+    _tensor_name = texture_desc->tensor_name;
 
     RID tensor_rid = ctx.activations_tm->get_or_create(
         texture_desc->tensor_name,
-        texture_shape);
+        get_shape(desc));
 
-    // Prepare uniforms for uniform set creation
+    RID texture_rid =
+        RenderingServer::get_singleton()->texture_get_rd_texture(texture_desc->texture->get_rid());
+
     _uniforms[0]->clear_ids();
     _uniforms[0]->add_id(_sampler_rid);
     _uniforms[0]->add_id(texture_rid);
     _uniforms[1]->clear_ids();
     _uniforms[1]->add_id(tensor_rid);
 
-    return texture_shape;
+    return true;
 }
+
 void TextureInputHandlerCompute::dispatch(const InputHandlerContext& ctx) {
+    const auto& shape = ctx.activations_tm->get_tensor_shape(_tensor_name);
+    uint32_t width = static_cast<uint32_t>(shape[3]);
+    uint32_t height = static_cast<uint32_t>(shape[2]);
+    uint32_t channels = static_cast<uint32_t>(shape[1]);
+
     RID uniform_set_rid = ctx.rd->uniform_set_create(
         {_uniforms[0], _uniforms[1]},
         _shader_rid,
         0);
 
-    PushConstants pc{
-        _texture_width,
-        _texture_height,
-        _texture_channels};
+    PushConstants pc{width, height, channels};
 
     PackedByteArray pc_bytes;
     pc_bytes.resize(sizeof(PushConstants));
@@ -130,13 +135,13 @@ void TextureInputHandlerCompute::dispatch(const InputHandlerContext& ctx) {
     ctx.rd->compute_list_bind_uniform_set(ctx.compute_list, uniform_set_rid, 0);
     ctx.rd->compute_list_set_push_constant(ctx.compute_list, pc_bytes, pc_bytes.size());
 
-    // Makes sure to dispatch in groups of 8x8
-    uint32_t x_groups = (_texture_width + 7) / 8;
-    uint32_t y_groups = (_texture_height + 7) / 8;
+    uint32_t x_groups = (width + 7) / 8;
+    uint32_t y_groups = (height + 7) / 8;
     ctx.rd->compute_list_dispatch(ctx.compute_list, x_groups, y_groups, 1);
 
     ctx.frame_deletion_stack->push([uniform_set_rid, rd = ctx.rd]() {
         if (rd->uniform_set_is_valid(uniform_set_rid)) rd->free_rid(uniform_set_rid);
     });
 }
+
 } // namespace ml

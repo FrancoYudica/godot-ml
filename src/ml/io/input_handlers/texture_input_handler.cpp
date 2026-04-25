@@ -4,7 +4,7 @@
 
 namespace ml {
 
-std::vector<int64_t> TextureInputHandler::upload(
+bool TextureInputHandler::upload(
     const std::unique_ptr<InputDesc::BaseData>& desc,
     const InputHandlerContext& ctx) {
     InputDesc::Texture* texture_desc =
@@ -12,12 +12,12 @@ std::vector<int64_t> TextureInputHandler::upload(
 
     ERR_FAIL_COND_V_MSG(
         !texture_desc,
-        {},
+        false,
         "InferenceEngine: Failed to cast InputDesc to Texture.");
 
     ERR_FAIL_COND_V_MSG(
         texture_desc->texture.is_null(),
-        {},
+        false,
         "Texture2DInputHandler: null texture.");
 
     Ref<Image> img = texture_desc->texture->get_image();
@@ -58,7 +58,28 @@ std::vector<int64_t> TextureInputHandler::upload(
         shape,
         floats);
 
-    return shape;
+    return true;
+}
+
+std::vector<int64_t> TextureInputHandler::get_shape(const std::unique_ptr<InputDesc::BaseData>& desc) const {
+    InputDesc::Texture* texture_desc =
+        dynamic_cast<InputDesc::Texture*>(desc.get());
+
+    ERR_FAIL_COND_V_MSG(
+        !texture_desc,
+        {},
+        "InferenceEngine: Failed to cast InputDesc to Texture.");
+
+    uint32_t w = texture_desc->texture->get_width();
+    uint32_t h = texture_desc->texture->get_height();
+    uint32_t channels = texture_desc->channels;
+
+    // (channels, height, width)
+    return {
+        1, // Batches
+        (int64_t)channels,
+        (int64_t)h,
+        (int64_t)w};
 }
 
 void TextureInputHandler::dispatch(const InputHandlerContext& ctx) {

@@ -19,77 +19,29 @@ bool Col2ImOperator::init(godot::RenderingDevice* rd) {
     _pipeline = rd->compute_pipeline_create(_shader);
     return _shader.is_valid() && _pipeline.is_valid();
 }
+
 void ml::Col2ImOperator::dispatch(
     const ml::PhysicalNode& node,
     const OperatorContext& ctx) {
 
-    auto resolve = [&](const std::string& name) -> RID {
-        RID rid = ctx.activations_tm->get_buffer_rid(name);
-        if (rid.is_valid()) return rid;
-        return ctx.weights_tm->get_buffer_rid(name);
-    };
+    ERR_FAIL_COND_MSG(node.outputs.size() != 1, "Col2Im: expected 1 output");
+    ERR_FAIL_COND_MSG(node.inputs.size() != 2, "Col2Im: expected 2 inputs");
 
-    auto resolve_shape = [&](const std::string& name) -> std::vector<int64_t> {
-        auto shape = ctx.activations_tm->get_tensor_shape(name);
-        if (!shape.empty()) return shape;
-        return ctx.weights_tm->get_tensor_shape(name);
-    };
+    RID input_sb = ctx.activations_tm->get_buffer_rid(node.inputs[0]);
+    RID out_buf = ctx.activations_tm->get_buffer_rid(node.outputs[0]);
 
-    ERR_FAIL_COND_MSG(
-        node.outputs.size() != 1,
-        "Col2Im: expected 1 output, got: " + itos(node.outputs.size()));
+    // All shapes come from the pre-computed ShapeTable.
+    // meta4d = [b, out_c, out_h, out_w] written by shape inference.
+    const auto& attrs = std::get<Col2ImAttributes>(node.attributes);
+    const auto& src = ctx.shape_table->at(attrs.source_activation);     // [b, ic, ih, iw]
+    const auto& meta4d = ctx.shape_table->at(node.outputs[0] + "__4d"); // [b, oc, oh, ow]
 
-    ERR_FAIL_COND_MSG(
-        node.inputs.size() != 2,
-        "Col2Im: expected 2 inputs, got: " + itos(node.inputs.size()));
-
-    RID input_sb = resolve(node.inputs[0]);
-    auto& in_shape = ctx.activations_tm->get_tensor_shape(node.inputs[0]);
-
-    ERR_FAIL_COND_MSG(
-        in_shape.size() != 2,
-        "Col2Im requires 2D input. Got: " + itos(in_shape.size()));
-
-    auto& attrs = std::get<Col2ImAttributes>(node.attributes);
-
-    auto source_activation_shape = resolve_shape(attrs.source_activation);
-
-    ERR_FAIL_COND_MSG(source_activation_shape.empty(), "Col2Im: Unable to find source activation shape.");
-    ERR_FAIL_COND_MSG(
-        source_activation_shape.size() != 4,
-        "Col2Im: Invalid source activation shape: " +
-            Utils::get_iterator_str(
-                source_activation_shape.begin(),
-                source_activation_shape.end()));
-
-    uint32_t in_batch_size = source_activation_shape[0];
-    uint32_t in_channels = source_activation_shape[1];
-    uint32_t in_height = source_activation_shape[2];
-    uint32_t in_width = source_activation_shape[3];
+    uint32_t in_width = src[3];
+    uint32_t in_height = src[2];
+    uint32_t out_w = meta4d[3];
+    uint32_t out_h = meta4d[2];
+    uint32_t out_channels = meta4d[1];
     uint32_t kH = attrs.kernel_shape[0];
-    uint32_t kW = attrs.kernel_shape[1];
-
-    // ConvTranspose weights: [in_C, out_C, kH, kW]
-    uint32_t out_channels = ctx.weights_tm->get_tensor_shape(node.inputs[1])[0];
-
-    // ConvTranspose output size formula
-    uint32_t out_h = (in_height - 1) * attrs.strides[0] - 2 * attrs.pads[0] + kH;
-    uint32_t out_w = (in_width - 1) * attrs.strides[1] - 2 * attrs.pads[1] + kW;
-
-    // Output is [H*W, out_C] — Reshape node restores spatial dims
-    std::vector<int64_t> out_shape = {
-        static_cast<int64_t>(out_h * out_w),
-        static_cast<int64_t>(out_channels)};
-
-    if (node.reshape_info != nullptr) {
-        node.reshape_info->shape = {
-            static_cast<int64_t>(in_batch_size),
-            static_cast<int64_t>(out_channels),
-            static_cast<int64_t>(out_h),
-            static_cast<int64_t>(out_w)};
-    }
-
-    RID out_buf = ctx.activations_tm->get_or_create(node.outputs[0], out_shape);
 
     auto make_uniform = [&](RID rid, int binding) {
         Ref<RDUniform> u;

@@ -65,13 +65,10 @@ static bool low_conv(
     // Transient tensor name
     const std::string col_name = logical_node.outputs[0] + "__col";
 
-    auto reshape_info = std::make_shared<ReshapeInfo>();
-
     PhysicalNode im2col_node;
-    im2col_node.inputs = {logical_node.inputs}; // Input activations
+    im2col_node.inputs = {logical_node.inputs}; // {activation, weights, bias}
     im2col_node.outputs = {col_name};
     im2col_node.attributes = attributes;
-    im2col_node.reshape_info = reshape_info;
     im2col_node.op = PhysicalOp::Im2Col;
 
     PhysicalNode gemm_node;
@@ -84,14 +81,17 @@ static bool low_conv(
     gemm_node.attributes = GemmAttributes{1.0f, 1.0f, true};
     gemm_node.op = PhysicalOp::Gemm;
 
-    ReshapeAttributes reshape_attrs{.mode = ReshapeMode::GemmToImage};
+    // GemmToImage reads its 4D target shape from ShapeTable[col_name + "__4d"],
+    // which the Im2Col shape inference rule writes.
+    ReshapeAttributes reshape_attrs{
+        .mode = ReshapeMode::GemmToImage,
+        .image_shape_ref = col_name + "__4d"};
     result = reshape_attrs.validate();
     ERR_FAIL_COND_V_MSG(!result.success, false, result.error.c_str());
 
     PhysicalNode reshape_node;
     reshape_node.inputs = logical_node.outputs;
     reshape_node.outputs = logical_node.outputs;
-    reshape_node.reshape_info = reshape_info;
     reshape_node.attributes = reshape_attrs;
     reshape_node.op = PhysicalOp::Reshape;
 
@@ -120,8 +120,6 @@ static bool low_conv_transpose(
     auto& attributes = std::get<ConvTransposeAttributes>(logical_node.attributes);
     auto result = attributes.validate();
     ERR_FAIL_COND_V_MSG(!result.success, false, result.error.c_str());
-
-    auto reshape_info = std::make_shared<ReshapeInfo>();
 
     const std::string flat_name = logical_node.inputs[0] + "__flat";
     const std::string gemm_name = logical_node.outputs[0] + "__gemm";
@@ -185,7 +183,7 @@ static bool low_conv_transpose(
     gemm_node.outputs = {gemm_name};
     gemm_node.attributes = gemm_attrs;
 
-    // Col2Im: [b*ih*iw, oc*kh*kw] -> writes [b, oc, oh, ow] into reshape_info
+    // Col2Im: [b*ih*iw, oc*kh*kw] -> [out_h*out_w, oc]; shape inference writes [b,oc,oh,ow] to ShapeTable
     Col2ImAttributes col2im_attrs;
     col2im_attrs.kernel_shape = attributes.kernel_shape;
     col2im_attrs.pads = attributes.pads;
@@ -203,22 +201,21 @@ static bool low_conv_transpose(
     };
     col2im_node.outputs = {col2im_name};
     col2im_node.attributes = col2im_attrs;
-    col2im_node.reshape_info = reshape_info; // Col2Im writes oh, ow, oc, b here
 
     // Reshape 2: [b*oh*ow, oc] -> [b, oc, oh, ow]
-    // GemmToImage mode reads shape from reshape_info written by Col2Im
-
-    ReshapeAttributes post_reshape_attrs;
-    post_reshape_attrs.mode = ReshapeMode::GemmToImage;
+    // GemmToImage reads the 4D target from ShapeTable[col2im_name + "__4d"],
+    // which the Col2Im shape inference rule writes.
+    ReshapeAttributes post_reshape_attrs{
+        .mode = ReshapeMode::GemmToImage,
+        .image_shape_ref = col2im_name + "__4d"};
     result = post_reshape_attrs.validate();
     ERR_FAIL_COND_V_MSG(!result.success, false, result.error.c_str());
 
     PhysicalNode post_reshape;
     post_reshape.op = PhysicalOp::Reshape;
     post_reshape.inputs = {col2im_name};
-    post_reshape.outputs = {logical_node.outputs[0]}; // original output name
+    post_reshape.outputs = {logical_node.outputs[0]};
     post_reshape.attributes = post_reshape_attrs;
-    post_reshape.reshape_info = reshape_info; // reads from what Col2Im wrote
 
     physical_graph.nodes.push_back(std::move(pre_reshape));
     physical_graph.nodes.push_back(std::move(gemm_node));
@@ -234,10 +231,12 @@ static bool low_im2col(
     auto& attributes = std::get<ConvAttributes>(logical_node.attributes);
     auto result = attributes.validate();
     ERR_FAIL_COND_V_MSG(!result.success, false, result.error.c_str());
+    ERR_FAIL_COND_V_MSG(logical_node.inputs.size() != 1, false, "Im2Col expects exactly one input");
+    ERR_FAIL_COND_V_MSG(logical_node.outputs.size() != 1, false, "Im2Col expects exactly one output");
 
     PhysicalNode physical_node;
-    physical_node.inputs = logical_node.inputs;
-    physical_node.outputs = logical_node.outputs;
+    physical_node.inputs = {logical_node.inputs[0]};
+    physical_node.outputs = {logical_node.outputs[0]};
     physical_node.attributes = attributes;
     physical_node.op = PhysicalOp::Im2Col;
     physical_graph.nodes.push_back(std::move(physical_node));

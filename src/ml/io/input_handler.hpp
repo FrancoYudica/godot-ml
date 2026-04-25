@@ -23,12 +23,15 @@ class IInputHandler {
 
     virtual void destroy(RenderingDevice* rd) {
     }
+
+    virtual std::vector<int64_t> get_shape(const std::unique_ptr<InputDesc::BaseData>& desc) const = 0;
+
     /**
      * Converts input data to a GPU storage buffer and registers it
      * in the activation manager under the given tensor name.
      * Returns the shape of the uploaded tensor.
      */
-    virtual std::vector<int64_t> upload(
+    virtual bool upload(
         const std::unique_ptr<InputDesc::BaseData>& desc,
         const InputHandlerContext& ctx) = 0;
 

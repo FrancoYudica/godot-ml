@@ -5,9 +5,11 @@
 namespace ml {
 class FloatArrayInputHandler : public IInputHandler {
   public:
-    std::vector<int64_t> upload(
+    bool upload(
         const std::unique_ptr<InputDesc::BaseData>& desc,
         const InputHandlerContext& ctx) override;
+
+    std::vector<int64_t> get_shape(const std::unique_ptr<InputDesc::BaseData>& desc) const override;
 };
 
 } // namespace ml

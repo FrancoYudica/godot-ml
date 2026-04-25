@@ -34,22 +34,16 @@ void ml::GemmOperator::dispatch(
     RID weight_sb = resolve(node.inputs[1]);
     RID bias_sb = resolve(node.inputs[2]);
 
-    auto& in_shape = ctx.activations_tm->get_tensor_shape(node.inputs[0]);
-    auto& w_shape = ctx.weights_tm->get_tensor_shape(node.inputs[1]);
+    const auto& in_shape = ctx.shape_table->at(node.inputs[0]);
 
-    uint32_t K, M;
+    ERR_FAIL_COND_MSG(in_shape.size() != 2, "GEMM: input tensor must be 2D");
 
-    ERR_FAIL_COND_MSG(
-        in_shape.size() != 2,
-        "GEMM: Input tensor must be 2D.");
+    uint32_t M = in_shape[0];
+    uint32_t K = in_shape[1];
+    const auto& out_shape = ctx.shape_table->at(node.outputs[0]);
+    uint32_t N = out_shape[1];
 
-    M = in_shape[0]; // pixels
-    K = in_shape[1]; // channels
-
-    // N is the number of output features (rows of the weight matrix)
-    uint32_t N = Utils::get_tensor_floats(w_shape) / K;
-
-    RID out_buf = ctx.activations_tm->get_or_create(node.outputs[0], {(int64_t)M, (int64_t)N});
+    RID out_buf = ctx.activations_tm->get_buffer_rid(node.outputs[0]);
 
     // Uniforms
     auto make_uniform = [&](RID rid, int binding) {

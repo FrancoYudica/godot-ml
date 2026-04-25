@@ -1,6 +1,7 @@
 #include "inference_engine.hpp"
 
 #include "parser/lowering.hpp"
+#include "passes/shape_inference.hpp"
 
 #include <godot_cpp/classes/rd_shader_file.hpp>
 #include <godot_cpp/classes/rd_shader_spirv.hpp>
@@ -218,48 +219,56 @@ void MLInferenceEngine::_process_pending_tasks() {
 
 void MLInferenceEngine::_process_task(Ref<InferenceTask> task) {
     auto it = _graphs.find(task->graph_id);
-
     ERR_FAIL_COND_MSG(it == _graphs.end(), "InferenceEngine: graph not found.");
 
     const ml::PhysicalGraph& graph = it->second.graph;
     Ref<ml::TensorResourceManager> weights_tm = it->second.weights_tm;
 
-    // Loads inputs
+    // 1. Collect input shapes from the descriptor
+    ml::ShapeTable input_shapes;
+    for (const auto& [name, descriptor] : task->descriptor->inputs) {
+        auto& handler = _input_registry.get(descriptor->type);
+        input_shapes[name] = handler->get_shape(descriptor);
+    }
+
+    // 2. Shape inference - forward pass to compute all intermediate tensor shapes.
+    auto infer_result = ml::passes::infer_shapes(graph, input_shapes);
+    ERR_FAIL_COND_MSG(
+        !infer_result.status.success,
+        ("MLInferenceEngine: shape inference failed: " + infer_result.status.error).c_str());
+    const ml::ShapeTable& shape_table = infer_result.shapes;
+
+    // 3. Pre-allocate all activation buffers before recording the compute list.
+    _allocate_activations(graph, shape_table, task->activations_tm);
+
+    // 4. Upload model inputs to GPU.
     ml::InputHandlerContext in_ctx = {
         .rd = _rd,
         .activations_tm = task->activations_tm,
         .compute_list = 0,
         .frame_deletion_stack = &_frame_deletion_stack};
 
-    // Uploads all the input handlers data
     for (auto& [tensor_name, descriptor] : task->descriptor->inputs) {
         auto& handler = _input_registry.get(descriptor->type);
         handler->upload(descriptor, in_ctx);
     }
 
-    // Creates compute list
+    // 5. Record and submit the compute list.
     int compute_list = _rd->compute_list_begin();
 
-    // Dispatches the input handlers parallelly, making sure that these are
-    // the first one on the compute list
     in_ctx.compute_list = compute_list;
     for (auto& [_, descriptor] : task->descriptor->inputs) {
         auto& handler = _input_registry.get(descriptor->type);
         handler->dispatch(in_ctx);
     }
 
-    // Make sure that all the inputs where loaded
     _rd->compute_list_add_barrier(compute_list);
 
-    // Processes the graph
-    for (size_t i = 0; i < graph.nodes.size(); ++i) {
-        const ml::PhysicalNode& node = graph.nodes[i];
-        _run_node(node, compute_list, weights_tm, task->activations_tm);
-        // Add a barrier (also for the last node for output dispatch)
+    for (const ml::PhysicalNode& node : graph.nodes) {
+        _run_node(node, compute_list, weights_tm, task->activations_tm, shape_table);
         _rd->compute_list_add_barrier(compute_list);
     }
 
-    // Dispatch outputs parallelly
     ml::OutputHandlerContext out_ctx = {
         .rd = _rd,
         .activations_tm = task->activations_tm,
@@ -273,14 +282,29 @@ void MLInferenceEngine::_process_task(Ref<InferenceTask> task) {
 
     _rd->compute_list_end();
 
-    // Downloads the outputs
+    // 6. Download outputs.
     for (auto& [output_name, descriptor] : task->descriptor->outputs) {
         auto& handler = _output_registry.get(descriptor->type);
-        auto result =
-            handler->download(descriptor, _rd, task->activations_tm);
-
+        auto result = handler->download(descriptor, _rd, task->activations_tm);
         if (result.get_type() != Variant::Type::NIL)
             task->outputs[output_name] = result;
+    }
+}
+
+void MLInferenceEngine::_allocate_activations(
+    const ml::PhysicalGraph& graph,
+    const ml::ShapeTable& shape_table,
+    Ref<ml::TensorResourceManager> activations_tm) {
+
+    for (const auto& node : graph.nodes) {
+        // Reshape nodes create zero-copy aliases, not real GPU buffers.
+        if (node.op == ml::PhysicalOp::Reshape) continue;
+        for (const auto& name : node.outputs) {
+            auto it = shape_table.find(name);
+            if (it != shape_table.end()) {
+                activations_tm->get_or_create(name, it->second);
+            }
+        }
     }
 }
 
@@ -288,14 +312,19 @@ void MLInferenceEngine::_run_node(
     const ml::PhysicalNode& node,
     int64_t compute_list,
     Ref<ml::TensorResourceManager> weights_tm,
-    Ref<ml::TensorResourceManager> activations_tm) {
+    Ref<ml::TensorResourceManager> activations_tm,
+    const ml::ShapeTable& shape_table) {
+
     auto op = _operator_registry.get(node.op);
+    ERR_FAIL_COND_MSG(op == nullptr, "MLInferenceEngine: unsupported operator, skipping node.");
 
-    ERR_FAIL_COND_MSG(
-        op == nullptr,
-        "MLInferenceEngine: unsupported operator, skipping node.");
-
-    ml::OperatorContext ctx{.rd = _rd, .weights_tm = weights_tm, .activations_tm = activations_tm, .compute_list = compute_list, .frame_deletion_stack = &_frame_deletion_stack};
+    ml::OperatorContext ctx{
+        .rd = _rd,
+        .weights_tm = weights_tm,
+        .activations_tm = activations_tm,
+        .compute_list = compute_list,
+        .frame_deletion_stack = &_frame_deletion_stack,
+        .shape_table = &shape_table};
 
     op->dispatch(node, ctx);
 }
