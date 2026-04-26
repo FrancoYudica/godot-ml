@@ -11,7 +11,9 @@ namespace Utils {
  */
 godot::String get_project_relative_path(const godot::String& path);
 
-godot::String node_operator_to_string(ml::PhysicalOp op);
+std::string op_name(PhysicalOp op);
+
+std::string op_name(LogicalOp op);
 
 godot::RID load_shader(godot::RenderingDevice* rd, const godot::String& path);
 

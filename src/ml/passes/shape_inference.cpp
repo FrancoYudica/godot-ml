@@ -55,7 +55,7 @@ static bool infer_gemm(const PhysicalNode& node, ShapeInferenceResult& result) {
     if (!in || !w) return false;
 
     int64_t M = (*in)[0];
-    int64_t N = (*w)[0]; // [N, K] layout — first dim is output features
+    int64_t N = (*w)[0]; // [N, K] layout - first dim is output features
     shapes[node.outputs[0]] = {M, N};
     return true;
 }

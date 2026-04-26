@@ -27,7 +27,7 @@ OperationResult TensorResourceManager::create_alias(
     if (_aliases.find(source_name) != _aliases.end()) {
         return OperationResult{
             false,
-            "create_alias: source '" + source_name + "' is itself an alias — chaining not supported"};
+            "create_alias: source '" + source_name + "' is itself an alias - chaining not supported"};
     }
 
     // Validate size compatibility

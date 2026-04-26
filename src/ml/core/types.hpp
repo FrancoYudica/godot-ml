@@ -52,41 +52,12 @@ struct GemmAttributes {
     float alpha = 1.0f;
     float beta = 1.0f;
     bool transB = false;
-
-    OperationResult validate() const {
-        if (!transB) {
-            return {false, "Unsupported transB value `false`"};
-        }
-        return {true, {}};
-    }
 };
 
 struct ConvAttributes {
-
     std::vector<int64_t> kernel_shape;
     std::vector<int64_t> pads;
     std::vector<int64_t> strides;
-
-    OperationResult validate() const {
-        if (kernel_shape.size() != 2)
-            return {
-                false,
-                "only 2D convolutions supported, got kernel_shape dims: " + std::to_string(kernel_shape.size())};
-        if (kernel_shape[0] <= 0 || kernel_shape[1] <= 0)
-            return {
-                false,
-                "kernel dimensions must be positive"};
-        if (pads.size() != 4)
-            return {
-                false,
-                "expected 4 pad values, got: " + std::to_string(pads.size())};
-        if (strides.size() != 2)
-            return {
-                false,
-                "expected 2 stride values, got: " + std::to_string(strides.size())};
-
-        return {true, {}};
-    }
 };
 
 struct Col2ImAttributes {
@@ -97,35 +68,6 @@ struct Col2ImAttributes {
     // Name of the original ConvTranspose input tensor [b, ic, ih, iw].
     // Used by shape inference to compute output spatial dimensions.
     std::string source_activation;
-
-    OperationResult validate() const {
-        if (kernel_shape.size() != 2)
-            return {
-                false,
-                "only 2D convolutions supported, got kernel_shape dims: " + std::to_string(kernel_shape.size())};
-        if (kernel_shape[0] <= 0 || kernel_shape[1] <= 0)
-            return {
-                false,
-                "kernel dimensions must be positive"};
-        if (pads.size() != 4)
-            return {
-                false,
-                "expected 4 pad values, got: " + std::to_string(pads.size())};
-        if (strides.size() != 2)
-            return {
-                false,
-                "expected 2 stride values, got: " + std::to_string(strides.size())};
-
-        if (output_padding.size() != 2)
-            return {
-                false,
-                "expected 2 output padding values, got: " + std::to_string(output_padding.size())};
-        if (source_activation.empty())
-            return {
-                false,
-                "source activation name cannot be empty"};
-        return {true, {}};
-    }
 };
 
 enum class ReshapeMode {
@@ -142,10 +84,6 @@ struct ReshapeAttributes {
     // Written by Im2Col (Conv path) or Col2Im (ConvTranspose path) during shape inference.
     // Format: <producer_output_name> + "__4d"
     std::string image_shape_ref;
-
-    OperationResult validate() const {
-        return {true, {}};
-    }
 };
 
 struct ConvTransposeAttributes {
@@ -153,30 +91,6 @@ struct ConvTransposeAttributes {
     std::vector<int64_t> pads;
     std::vector<int64_t> strides;
     std::vector<int64_t> output_padding;
-
-    OperationResult validate() const {
-        if (kernel_shape.size() != 2)
-            return {
-                false,
-                "only 2D convolutions supported, got kernel_shape dims: " + std::to_string(kernel_shape.size())};
-        if (kernel_shape[0] <= 0 || kernel_shape[1] <= 0)
-            return {
-                false,
-                "kernel dimensions must be positive"};
-        if (pads.size() != 4)
-            return {
-                false,
-                "expected 4 pad values, got: " + std::to_string(pads.size())};
-        if (strides.size() != 2)
-            return {
-                false,
-                "expected 2 stride values, got: " + std::to_string(strides.size())};
-        if (output_padding.size() != 2)
-            return {
-                false,
-                "expected 2 output padding values, got: " + std::to_string(output_padding.size())};
-        return {true, {}};
-    }
 };
 
 /**
@@ -213,7 +127,7 @@ struct LogicalGraph {
 
 /**
  * PhysicalGraph node has an operation and its tensor inputs and outputs.
- * Shapes are not stored here — they are computed per-inference by the
+ * Shapes are not stored here - they are computed per-inference by the
  * shape inference pass and stored in a ShapeTable.
  */
 struct PhysicalNode {

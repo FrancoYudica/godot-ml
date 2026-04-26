@@ -17,23 +17,44 @@ godot::String get_project_relative_path(
     return base_path + addon_relative_path;
 }
 
-godot::String node_operator_to_string(PhysicalOp op) {
-    static const std::unordered_map<PhysicalOp, std::string>
-        operator_names = {
-            {PhysicalOp::Unknown, "Unknown"},
-            {PhysicalOp::Gemm, "Gemm"},
-            {PhysicalOp::ReLU, "ReLU"},
-            {PhysicalOp::Conv, "Conv"},
-            {PhysicalOp::Sigmoid, "Sigmoid"},
-            {PhysicalOp::Im2Col, "Im2Col"},
-            {PhysicalOp::Col2Im, "Col2Im"},
-            {PhysicalOp::Reshape, "Reshape"},
-        };
-    auto it = operator_names.find(op);
-    if (it != operator_names.end()) {
-        return godot::String(it->second.c_str());
+std::string op_name(PhysicalOp op) {
+    switch (op) {
+    case PhysicalOp::Gemm:
+        return "Gemm";
+    case PhysicalOp::ReLU:
+        return "ReLU";
+    case PhysicalOp::Sigmoid:
+        return "Sigmoid";
+    case PhysicalOp::Conv:
+        return "Conv";
+    case PhysicalOp::Im2Col:
+        return "Im2Col";
+    case PhysicalOp::Col2Im:
+        return "Col2Im";
+    case PhysicalOp::Reshape:
+        return "Reshape";
+    default:
+        return "Unknown";
     }
-    return godot::String("Unknown");
+}
+
+std::string op_name(LogicalOp op) {
+    switch (op) {
+    case LogicalOp::Gemm:
+        return "Gemm";
+    case LogicalOp::ReLU:
+        return "ReLU";
+    case LogicalOp::Sigmoid:
+        return "Sigmoid";
+    case LogicalOp::Conv:
+        return "Conv";
+    case LogicalOp::Im2Col:
+        return "Im2Col";
+    case LogicalOp::ConvTranspose:
+        return "ConvTranspose";
+    default:
+        return "Unknown";
+    }
 }
 
 RID load_shader(RenderingDevice* rd, const godot::String& path) {
@@ -66,7 +87,7 @@ void print(const PhysicalGraph& graph) {
         UtilityFunctions::print(" " + to_gstring(name) + ": ", get_iterator_str(tensor.shape.begin(), tensor.shape.end()));
     }
     for (const auto& node : graph.nodes) {
-        UtilityFunctions::print("Node: ", node_operator_to_string(node.op));
+        UtilityFunctions::print("Node: ", String(Utils::op_name(node.op).c_str()));
         UtilityFunctions::print(" inputs: ", get_iterator_str(node.inputs.begin(), node.inputs.end()));
         UtilityFunctions::print(" outputs: ", get_iterator_str(node.outputs.begin(), node.outputs.end()));
 

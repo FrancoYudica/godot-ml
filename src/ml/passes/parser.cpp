@@ -54,8 +54,10 @@ static OperationResult _parse_nodes(const onnx::GraphProto& proto, LogicalGraph&
         LogicalOp operator_type = operator_names.at(node.op_type());
 
         LogicalNode n;
-        for (const auto& inp : node.input())  n.inputs.push_back(inp);
-        for (const auto& out : node.output()) n.outputs.push_back(out);
+        for (const auto& inp : node.input())
+            n.inputs.push_back(inp);
+        for (const auto& out : node.output())
+            n.outputs.push_back(out);
 
         if (operator_type == LogicalOp::ReLU) {
             n.op = LogicalOp::ReLU;
@@ -69,12 +71,10 @@ static OperationResult _parse_nodes(const onnx::GraphProto& proto, LogicalGraph&
             n.attributes.emplace<GemmAttributes>();
             auto& gemm = std::get<GemmAttributes>(n.attributes);
             for (const auto& attr : node.attribute()) {
-                if (attr.name() == "alpha")  gemm.alpha  = attr.f();
-                if (attr.name() == "beta")   gemm.beta   = attr.f();
+                if (attr.name() == "alpha") gemm.alpha = attr.f();
+                if (attr.name() == "beta") gemm.beta = attr.f();
                 if (attr.name() == "transB") gemm.transB = (attr.i() == 1);
             }
-            if (!gemm.transB)
-                return {false, "Gemm node '" + node.name() + "': only transB=1 is supported"};
             n.op = LogicalOp::Gemm;
         }
 
@@ -104,9 +104,6 @@ static OperationResult _parse_nodes(const onnx::GraphProto& proto, LogicalGraph&
             if (conv.pads.empty())
                 conv.pads.assign(conv.kernel_shape.size() * 2, 0);
 
-            auto vr = conv.validate();
-            if (!vr.success)
-                return {false, "Conv/Im2Col node '" + node.name() + "': " + vr.error};
             n.op = operator_type;
         }
 
@@ -140,9 +137,6 @@ static OperationResult _parse_nodes(const onnx::GraphProto& proto, LogicalGraph&
             if (conv.output_padding.empty())
                 conv.output_padding.assign(conv.kernel_shape.size(), 0);
 
-            auto vr = conv.validate();
-            if (!vr.success)
-                return {false, "ConvTranspose node '" + node.name() + "': " + vr.error};
             n.op = LogicalOp::ConvTranspose;
         }
 

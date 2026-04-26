@@ -93,11 +93,23 @@ uint32_t MLInferenceEngine::register_model(String model_path) {
         0,
         ("InferenceEngine: parse failed: " + parse_result.status.error).c_str());
 
+    auto logical_validation_result = ml::passes::validate(parse_result.graph);
+    ERR_FAIL_COND_V_MSG(
+        !logical_validation_result.status.success,
+        0,
+        ("InferenceEngine: logical graph validation failed: " + logical_validation_result.status.error).c_str());
+
     auto lower_result = ml::passes::lower(parse_result.graph);
     ERR_FAIL_COND_V_MSG(
         !lower_result.status.success,
         0,
         ("InferenceEngine: lowering failed: " + lower_result.status.error).c_str());
+
+    auto validation_result = ml::passes::validate(lower_result.graph);
+    ERR_FAIL_COND_V_MSG(
+        !validation_result.status.success,
+        0,
+        ("InferenceEngine: graph validation failed: " + validation_result.status.error).c_str());
 
     GraphContext graph_context;
     graph_context.graph = std::move(lower_result.graph);

@@ -22,8 +22,6 @@ static OperationResult low_sigmoid(const LogicalNode& node, PhysicalGraph& graph
 
 static OperationResult low_gemm(const LogicalNode& node, PhysicalGraph& graph) {
     const auto& attrs = std::get<GemmAttributes>(node.attributes);
-    auto vr = attrs.validate();
-    if (!vr.success) return vr;
 
     PhysicalNode n;
     n.inputs = node.inputs;
@@ -35,12 +33,7 @@ static OperationResult low_gemm(const LogicalNode& node, PhysicalGraph& graph) {
 }
 
 static OperationResult low_conv(const LogicalNode& node, PhysicalGraph& graph) {
-    if (node.inputs.size() < 3)
-        return {false, "Conv: expected at least 3 inputs (input, weights, bias), got: " + std::to_string(node.inputs.size())};
-
     const auto& attrs = std::get<ConvAttributes>(node.attributes);
-    auto vr = attrs.validate();
-    if (!vr.success) return vr;
 
     const std::string col_name = node.outputs[0] + "__col";
 
@@ -73,14 +66,7 @@ static OperationResult low_conv(const LogicalNode& node, PhysicalGraph& graph) {
 }
 
 static OperationResult low_im2col(const LogicalNode& node, PhysicalGraph& graph) {
-    if (node.inputs.size() != 1)
-        return {false, "Im2Col: expected exactly 1 input, got: " + std::to_string(node.inputs.size())};
-    if (node.outputs.size() != 1)
-        return {false, "Im2Col: expected exactly 1 output, got: " + std::to_string(node.outputs.size())};
-
     const auto& attrs = std::get<ConvAttributes>(node.attributes);
-    auto vr = attrs.validate();
-    if (!vr.success) return vr;
 
     PhysicalNode n;
     n.inputs = {node.inputs[0]};
@@ -92,14 +78,7 @@ static OperationResult low_im2col(const LogicalNode& node, PhysicalGraph& graph)
 }
 
 static OperationResult low_conv_transpose(const LogicalNode& node, PhysicalGraph& graph) {
-    if (node.inputs.size() < 3)
-        return {false, "ConvTranspose: expected at least 3 inputs, got: " + std::to_string(node.inputs.size())};
-    if (node.outputs.size() != 1)
-        return {false, "ConvTranspose: expected 1 output, got: " + std::to_string(node.outputs.size())};
-
     const auto& attrs = std::get<ConvTransposeAttributes>(node.attributes);
-    auto vr = attrs.validate();
-    if (!vr.success) return vr;
 
     const std::string flat_name = node.inputs[0] + "__flat";
     const std::string gemm_name = node.outputs[0] + "__gemm";
@@ -138,8 +117,6 @@ static OperationResult low_conv_transpose(const LogicalNode& node, PhysicalGraph
 
     // Gemm: [b*ih*iw, ic] x [oc*kh*kw, ic]^T -> [b*ih*iw, oc*kh*kw]
     GemmAttributes gemm_attrs{.alpha = 1.0f, .beta = 1.0f, .transB = true};
-    vr = gemm_attrs.validate();
-    if (!vr.success) return vr;
 
     PhysicalNode gemm;
     gemm.op = PhysicalOp::Gemm;
@@ -154,8 +131,6 @@ static OperationResult low_conv_transpose(const LogicalNode& node, PhysicalGraph
     col2im_attrs.strides = attrs.strides;
     col2im_attrs.output_padding = attrs.output_padding;
     col2im_attrs.source_activation = node.inputs[0];
-    vr = col2im_attrs.validate();
-    if (!vr.success) return vr;
 
     PhysicalNode col2im;
     col2im.op = PhysicalOp::Col2Im;
