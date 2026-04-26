@@ -1,4 +1,10 @@
 extends Node
 
+var _t = 0.0
+
 func _process(delta: float) -> void:
-	get_parent().rotation += delta
+	_t += delta
+	get_parent().position = Vector2(
+		cos(_t),
+		sin(_t)
+	) * 4

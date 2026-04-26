@@ -17,7 +17,7 @@ grow_vertical = 2
 
 [node name="SrcSizeSubViewport" type="SubViewport" parent="."]
 handle_input_locally = false
-size = Vector2i(32, 32)
+size = Vector2i(64, 64)
 render_target_update_mode = 4
 
 [node name="ColorRect" type="ColorRect" parent="SrcSizeSubViewport"]
@@ -29,6 +29,7 @@ grow_vertical = 2
 color = Color(0.1584723, 0.15847233, 0.1584723, 1)
 
 [node name="TextureRect" type="TextureRect" parent="SrcSizeSubViewport"]
+texture_filter = 2
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
@@ -44,18 +45,6 @@ expand_mode = 1
 [node name="RotateParent" type="Node" parent="SrcSizeSubViewport/TextureRect"]
 script = ExtResource("2_q3or8")
 
-[node name="ScaleUpSubViewport" type="SubViewport" parent="."]
-handle_input_locally = false
-render_target_update_mode = 4
-
-[node name="TextureRect" type="TextureRect" parent="ScaleUpSubViewport"]
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-texture = SubResource("ViewportTexture_evj8q")
-
 [node name="HBoxContainer" type="HBoxContainer" parent="."]
 layout_mode = 1
 anchors_preset = 15
@@ -65,6 +54,7 @@ grow_horizontal = 2
 grow_vertical = 2
 
 [node name="DisplaySourceSubViewportContainer" type="SubViewportContainer" parent="HBoxContainer"]
+texture_filter = 2
 layout_mode = 2
 size_flags_horizontal = 3
 stretch = true
@@ -75,6 +65,7 @@ size = Vector2i(574, 648)
 render_target_update_mode = 4
 
 [node name="TextureRect" type="TextureRect" parent="HBoxContainer/DisplaySourceSubViewportContainer/SubViewport"]
+texture_filter = 2
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
@@ -114,7 +105,7 @@ expand_mode = 3
 
 [node name="ImageTestRunner" type="Node" parent="." node_paths=PackedStringArray("input_texture_viewport", "texture_rect")]
 script = ExtResource("3_5bqun")
-input_texture_viewport = NodePath("../ScaleUpSubViewport")
+input_texture_viewport = NodePath("../SrcSizeSubViewport")
 texture_rect = NodePath("../HBoxContainer/ResultSubViewportContainer/SubViewport/TextureRect")
-onnx_model_path = "ml/super_resolution.onnx"
-image_size = 256
+onnx_model_path = "ml/super_resolution_4x.onnx"
+scale_factor = 4

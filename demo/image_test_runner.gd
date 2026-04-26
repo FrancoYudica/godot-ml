@@ -3,25 +3,28 @@ extends Node
 @export var input_texture_viewport: SubViewport
 @export var texture_rect: TextureRect
 @export var onnx_model_path: String
+@export var scale_factor: int
 
 var engine: MLInferenceEngine
 var model_id: int = 0
 var result_texture: Texture2D
-
-@export var image_size = 512
 
 func _ready() -> void:
 	engine = MLInferenceEngine.new()
 	engine.init()
 	model_id = engine.register_model(onnx_model_path)
 	engine.print_model(model_id)
-	
+	var input_texture = input_texture_viewport.get_texture()
+	var upscale_size = Vector2i(
+		input_texture.get_width() * scale_factor,
+		input_texture.get_height() * scale_factor
+	)
 	# Initialize the result texture
 	var rd = RenderingServer.get_rendering_device()
 	var format = RDTextureFormat.new()
 	format.format = RenderingDevice.DATA_FORMAT_R8G8B8A8_UNORM
-	format.width = image_size
-	format.height = image_size
+	format.width = upscale_size.x
+	format.height = upscale_size.y
 	format.texture_type = RenderingDevice.TEXTURE_TYPE_2D
 	format.usage_bits = RenderingDevice.TEXTURE_USAGE_SAMPLING_BIT \
 		| RenderingDevice.TEXTURE_USAGE_STORAGE_BIT \
@@ -44,7 +47,8 @@ func _process(_delta: float) -> void:
 func _dispatch_inference() -> void:
 	var descriptor = InferenceDescriptor.new()
 	var tex = input_texture_viewport.get_texture()
-	descriptor.add_texture_input("input", tex, image_size, image_size)
+	var input_texture = input_texture_viewport.get_texture()
+	descriptor.add_texture_input("input", tex, input_texture.get_width(), input_texture.get_height())
 	descriptor.add_texture_output("output", result_texture)
 	var task = engine.queue_request(model_id, descriptor)
 	if task == null:
