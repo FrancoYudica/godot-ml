@@ -7,7 +7,7 @@
 namespace ml {
 struct OperatorContext {
     RenderingDevice* rd;
-    Ref<TensorResourceManager> weights_tm;
+    Ref<TensorResourceManager> initializers_tm;
     Ref<TensorResourceManager> activations_tm;
     int64_t compute_list;
     DeletionStack* frame_deletion_stack;

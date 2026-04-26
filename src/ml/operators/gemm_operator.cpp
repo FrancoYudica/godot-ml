@@ -27,7 +27,7 @@ void ml::GemmOperator::dispatch(
     auto resolve = [&](const std::string& name) -> RID {
         RID rid = ctx.activations_tm->get_buffer_rid(name);
         if (rid.is_valid()) return rid;
-        return ctx.weights_tm->get_buffer_rid(name);
+        return ctx.initializers_tm->get_buffer_rid(name);
     };
 
     RID input_sb = resolve(node.inputs[0]);

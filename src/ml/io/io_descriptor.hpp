@@ -14,15 +14,13 @@
 namespace ml {
 
 enum class InputType {
-    Texture2D,     // GPU texture -> storage buffer
-    FloatArray,    // CPU float array -> storage buffer
-    StorageBuffer, // Already on GPU, just bind it directly
+    Texture2D,  // GPU texture -> storage buffer
+    FloatArray, // CPU float array -> storage buffer
 };
 
 enum class OutputType {
-    FloatArray,    // Read back to CPU
-    Texture2D,     // Write directly to a texture RID
-    StorageBuffer, // Leave on GPU, return RID
+    FloatArray, // Read back to CPU
+    Texture2D,  // Write directly to a texture RID
 };
 
 namespace InputDesc {
@@ -47,13 +45,6 @@ class FloatArray : public BaseData {
     godot::PackedFloat32Array data;
     std::vector<int64_t> shape;
 };
-
-class StorageBuffer : public BaseData {
-  public:
-    godot::RID buffer;
-    std::vector<int64_t> shape;
-};
-
 } // namespace InputDesc
 
 namespace OutputDesc {
@@ -70,8 +61,5 @@ class Texture : public BaseData {
   public:
     godot::RID target_texture;
 };
-
-class StorageBuffer : public BaseData {};
 } // namespace OutputDesc
-
 } // namespace ml

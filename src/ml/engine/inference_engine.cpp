@@ -101,15 +101,15 @@ uint32_t MLInferenceEngine::register_model(String model_path) {
 
     GraphContext graph_context;
     graph_context.graph = std::move(lower_result.graph);
-    graph_context.weights_tm.instantiate();
-    graph_context.weights_tm->init(_rd, &_sb_pool);
+    graph_context.initializers_tm.instantiate();
+    graph_context.initializers_tm->init(_rd, &_sb_pool);
 
     uint32_t graph_rid = _next_graph_id++;
     _graphs[graph_rid] = graph_context;
 
     // Makes sure that the graph initializers are loaded to the task tm
     for (const auto& [name, tensor] : graph_context.graph.initializers) {
-        graph_context.weights_tm->get_or_create(name, tensor.shape, tensor.data);
+        graph_context.initializers_tm->get_or_create(name, tensor.shape, tensor.data);
     }
 
     return graph_rid;
@@ -222,7 +222,7 @@ void MLInferenceEngine::_process_task(Ref<InferenceTask> task) {
     ERR_FAIL_COND_MSG(it == _graphs.end(), "InferenceEngine: graph not found.");
 
     const ml::PhysicalGraph& graph = it->second.graph;
-    Ref<ml::TensorResourceManager> weights_tm = it->second.weights_tm;
+    Ref<ml::TensorResourceManager> initializers_tm = it->second.initializers_tm;
 
     // 1. Collect input shapes from the descriptor
     ml::ShapeTable input_shapes;
@@ -265,7 +265,7 @@ void MLInferenceEngine::_process_task(Ref<InferenceTask> task) {
     _rd->compute_list_add_barrier(compute_list);
 
     for (const ml::PhysicalNode& node : graph.nodes) {
-        _run_node(node, compute_list, weights_tm, task->activations_tm, shape_table);
+        _run_node(node, compute_list, initializers_tm, task->activations_tm, shape_table);
         _rd->compute_list_add_barrier(compute_list);
     }
 
@@ -311,7 +311,7 @@ void MLInferenceEngine::_allocate_activations(
 void MLInferenceEngine::_run_node(
     const ml::PhysicalNode& node,
     int64_t compute_list,
-    Ref<ml::TensorResourceManager> weights_tm,
+    Ref<ml::TensorResourceManager> initializers_tm,
     Ref<ml::TensorResourceManager> activations_tm,
     const ml::ShapeTable& shape_table) {
 
@@ -320,7 +320,7 @@ void MLInferenceEngine::_run_node(
 
     ml::OperatorContext ctx{
         .rd = _rd,
-        .weights_tm = weights_tm,
+        .initializers_tm = initializers_tm,
         .activations_tm = activations_tm,
         .compute_list = compute_list,
         .frame_deletion_stack = &_frame_deletion_stack,
@@ -331,7 +331,7 @@ void MLInferenceEngine::_run_node(
 
 void MLInferenceEngine::_free_all_resources() {
     for (auto& [_, graph_context] : _graphs) {
-        graph_context.weights_tm->destroy();
+        graph_context.initializers_tm->destroy();
     }
     _operator_registry.destroy(_rd);
     _input_registry.destroy(_rd);
