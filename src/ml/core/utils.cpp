@@ -61,7 +61,6 @@ void print(const PhysicalGraph& graph) {
     };
 
     UtilityFunctions::print("Input names: " + get_iterator_str(graph.input_names.begin(), graph.input_names.end()));
-    UtilityFunctions::print("Input shape: " + get_iterator_str(graph.input_shape.begin(), graph.input_shape.end()));
     UtilityFunctions::print("Initializers:");
     for (const auto& [name, tensor] : graph.initializers) {
         UtilityFunctions::print(" " + to_gstring(name) + ": ", get_iterator_str(tensor.shape.begin(), tensor.shape.end()));

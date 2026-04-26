@@ -5,7 +5,7 @@
 #include "inference_task.hpp"
 #include "io/io.hpp"
 #include "operators/operators.hpp"
-#include "parser/parser.hpp"
+#include "passes/parser.hpp"
 #include "tensors/tensors.hpp"
 
 #include <godot_cpp/classes/node.hpp>

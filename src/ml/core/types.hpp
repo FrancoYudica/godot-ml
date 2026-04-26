@@ -243,7 +243,6 @@ struct PhysicalNode {
  */
 struct PhysicalGraph {
     std::vector<std::string> input_names;
-    std::vector<int64_t> input_shape;
 
     /**
      * Nodes to process in topological order

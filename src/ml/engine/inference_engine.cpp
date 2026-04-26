@@ -1,7 +1,6 @@
 #include "inference_engine.hpp"
 
-#include "parser/lowering.hpp"
-#include "passes/shape_inference.hpp"
+#include "passes/passes.hpp"
 
 #include <godot_cpp/classes/rd_shader_file.hpp>
 #include <godot_cpp/classes/rd_shader_spirv.hpp>
@@ -88,19 +87,20 @@ uint32_t MLInferenceEngine::register_model(String model_path) {
 
     print_line("Loading ML inference engine with model: " + model_path);
 
-    ml::LogicalGraph logical_graph;
-    bool success = ml::Parser::parse(
-        model_path.utf8().ptr(),
-        logical_graph);
+    auto parse_result = ml::passes::parse(model_path.utf8().ptr());
+    ERR_FAIL_COND_V_MSG(
+        !parse_result.status.success,
+        0,
+        ("InferenceEngine: parse failed: " + parse_result.status.error).c_str());
 
-    ERR_FAIL_COND_V_MSG(!success, 0, "InferenceEngine: failed to parse model.");
-
-    ml::PhysicalGraph physical_graph;
-    success = ml::Lowering::lower(logical_graph, physical_graph);
-    ERR_FAIL_COND_V_MSG(!success, 0, "InferenceEngine: failed to lower model.");
+    auto lower_result = ml::passes::lower(parse_result.graph);
+    ERR_FAIL_COND_V_MSG(
+        !lower_result.status.success,
+        0,
+        ("InferenceEngine: lowering failed: " + lower_result.status.error).c_str());
 
     GraphContext graph_context;
-    graph_context.graph = std::move(physical_graph);
+    graph_context.graph = std::move(lower_result.graph);
     graph_context.weights_tm.instantiate();
     graph_context.weights_tm->init(_rd, &_sb_pool);
 
