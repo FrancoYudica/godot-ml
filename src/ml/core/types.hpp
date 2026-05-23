@@ -21,6 +21,7 @@ enum class LogicalOp {
     Conv,
     Im2Col,
     ConvTranspose,
+    MaxPool2D,
     Unknown
 };
 
@@ -31,6 +32,7 @@ enum class PhysicalOp {
     Conv,
     Im2Col,
     Col2Im,
+    MaxPool2D,
     Reshape,
     Unknown
 };
@@ -93,6 +95,12 @@ struct ConvTransposeAttributes {
     std::vector<int64_t> output_padding;
 };
 
+struct MaxPool2DAttributes {
+    std::vector<int64_t> kernel_shape;
+    std::vector<int64_t> pads;
+    std::vector<int64_t> strides;
+};
+
 /**
  * Tensor holds its shape and weight data
  */
@@ -112,7 +120,8 @@ struct LogicalNode {
         std::monostate,
         GemmAttributes,
         ConvAttributes,
-        ConvTransposeAttributes>
+        ConvTransposeAttributes,
+        MaxPool2DAttributes>
         attributes;
 };
 
@@ -148,7 +157,8 @@ struct PhysicalNode {
         GemmAttributes,
         ConvAttributes,
         Col2ImAttributes,
-        ReshapeAttributes>
+        ReshapeAttributes,
+        MaxPool2DAttributes>
         attributes;
 };
 

@@ -142,6 +142,23 @@ static bool infer_conv2d(const PhysicalNode& node, ShapeInferenceResult& result)
     return true;
 }
 
+// MaxPool2D: [b, c, h, w] -> [b, c, out_h, out_w]
+static bool infer_max_pool_2d(const PhysicalNode& node, ShapeInferenceResult& result) {
+    auto& shapes = result.shapes;
+
+    const auto* in = require(node.inputs[0], shapes, result);
+    if (!in) return false;
+
+    const auto& attrs = std::get<MaxPool2DAttributes>(node.attributes);
+    int64_t b = (*in)[0], h = (*in)[2], w = (*in)[3];
+    int64_t kH = attrs.kernel_shape[0], kW = attrs.kernel_shape[1];
+    int64_t out_h = (h + 2 * attrs.pads[0] - kH) / attrs.strides[0] + 1;
+    int64_t out_w = (w + 2 * attrs.pads[1] - kW) / attrs.strides[1] + 1;
+
+    shapes[node.outputs[0]] = {b, (*in)[1], out_h, out_w};
+    return true;
+}
+
 ShapeInferenceResult infer_shapes(
     const PhysicalGraph& graph,
     const ShapeTable& input_shapes) {
@@ -180,6 +197,10 @@ ShapeInferenceResult infer_shapes(
             break;
         case PhysicalOp::Conv:
             ok = infer_conv2d(node, result);
+            break;
+
+        case PhysicalOp::MaxPool2D:
+            ok = infer_max_pool_2d(node, result);
             break;
         default:
             result.status = {false, "shape_inference: unhandled op"};

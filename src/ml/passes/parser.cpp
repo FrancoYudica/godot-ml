@@ -14,6 +14,7 @@ static const std::unordered_map<std::string, LogicalOp> operator_names = {
     {"Conv", LogicalOp::Conv},
     {"ConvTranspose", LogicalOp::ConvTranspose},
     {"Im2Col", LogicalOp::Im2Col},
+    {"MaxPool", LogicalOp::MaxPool2D},
     {"Unknown", LogicalOp::Unknown}};
 
 static void _parse_inputs(const onnx::GraphProto& proto, LogicalGraph& graph) {
@@ -138,6 +139,28 @@ static OperationResult _parse_nodes(const onnx::GraphProto& proto, LogicalGraph&
                 conv.output_padding.assign(conv.kernel_shape.size(), 0);
 
             n.op = LogicalOp::ConvTranspose;
+        }
+
+        else if (operator_type == LogicalOp::MaxPool2D) {
+            n.attributes.emplace<MaxPool2DAttributes>();
+            auto& max_pool = std::get<MaxPool2DAttributes>(n.attributes);
+            for (const auto& attr : node.attribute()) {
+                if (attr.name() == "kernel_shape")
+                    for (int i = 0; i < attr.ints_size(); ++i)
+                        max_pool.kernel_shape.push_back(attr.ints(i));
+                if (attr.name() == "pads")
+                    for (int i = 0; i < attr.ints_size(); ++i)
+                        max_pool.pads.push_back(attr.ints(i));
+                if (attr.name() == "strides")
+                    for (int i = 0; i < attr.ints_size(); ++i)
+                        max_pool.strides.push_back(attr.ints(i));
+            }
+            if (max_pool.strides.empty())
+                max_pool.strides.assign(max_pool.kernel_shape.size(), 1);
+            if (max_pool.pads.empty())
+                max_pool.pads.assign(max_pool.kernel_shape.size() * 2, 0);
+
+            n.op = operator_type;
         }
 
         graph.nodes.push_back(std::move(n));

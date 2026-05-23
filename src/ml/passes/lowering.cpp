@@ -154,6 +154,19 @@ static OperationResult low_conv_transpose(const LogicalNode& node, PhysicalGraph
     return {true, {}};
 }
 
+static OperationResult low_max_pool_2d(const LogicalNode& node, PhysicalGraph& graph) {
+    const auto& attrs = std::get<MaxPool2DAttributes>(node.attributes);
+
+    PhysicalNode max_pool;
+    max_pool.op = PhysicalOp::MaxPool2D;
+    max_pool.inputs = {node.inputs[0]};
+    max_pool.outputs = {node.outputs[0]};
+    max_pool.attributes = attrs;
+
+    graph.nodes.push_back(std::move(max_pool));
+    return {true, {}};
+}
+
 LoweringResult lower(const LogicalGraph& logical_graph) {
     LoweringResult result;
     result.status = {true, {}};
@@ -183,6 +196,9 @@ LoweringResult lower(const LogicalGraph& logical_graph) {
             break;
         case LogicalOp::ConvTranspose:
             op_result = low_conv_transpose(node, graph);
+            break;
+        case LogicalOp::MaxPool2D:
+            op_result = low_max_pool_2d(node, graph);
             break;
         case LogicalOp::Unknown:
             result.status = {false, "lowering: encountered unknown op"};

@@ -62,6 +62,7 @@ static OperationResult check_node_arity(size_t idx, const PhysicalNode& node) {
     case PhysicalOp::Reshape:
     case PhysicalOp::ReLU:
     case PhysicalOp::Sigmoid:
+    case PhysicalOp::MaxPool2D:
         if (node.inputs.size() != 1)
             return {false, ctx + "expected 1 input, got " + std::to_string(node.inputs.size())};
         if (node.outputs.size() != 1)
@@ -73,7 +74,7 @@ static OperationResult check_node_arity(size_t idx, const PhysicalNode& node) {
     return {true, {}};
 }
 
-static OperationResult check_conv_kernel_pads_strides(
+static OperationResult check_kernel_pads_strides(
     const std::string& ctx,
     const std::vector<int64_t>& kernel_shape,
     const std::vector<int64_t>& pads,
@@ -112,7 +113,7 @@ static OperationResult check_node_attributes(
             return {false, ctx + "expected ConvAttributes variant"};
         {
             const auto& attrs = std::get<ConvAttributes>(node.attributes);
-            auto vr = check_conv_kernel_pads_strides(ctx, attrs.kernel_shape, attrs.pads, attrs.strides);
+            auto vr = check_kernel_pads_strides(ctx, attrs.kernel_shape, attrs.pads, attrs.strides);
             if (!vr.success) return vr;
         }
         break;
@@ -129,7 +130,7 @@ static OperationResult check_node_attributes(
             return {false, ctx + "expected Col2ImAttributes variant"};
         {
             const auto& attrs = std::get<Col2ImAttributes>(node.attributes);
-            auto vr = check_conv_kernel_pads_strides(ctx, attrs.kernel_shape, attrs.pads, attrs.strides);
+            auto vr = check_kernel_pads_strides(ctx, attrs.kernel_shape, attrs.pads, attrs.strides);
             if (!vr.success) return vr;
             if (attrs.output_padding.size() != 2)
                 return {false, ctx + "expected 2 output padding values, got: " + std::to_string(attrs.output_padding.size())};
@@ -147,6 +148,16 @@ static OperationResult check_node_attributes(
             const auto& attrs = std::get<ReshapeAttributes>(node.attributes);
             if (attrs.mode == ReshapeMode::GemmToImage && attrs.image_shape_ref.empty())
                 return {false, ctx + "GemmToImage mode requires non-empty image_shape_ref"};
+        }
+        break;
+
+    case ml::PhysicalOp::MaxPool2D:
+        if (!std::holds_alternative<MaxPool2DAttributes>(node.attributes))
+            return {false, ctx + "expected MaxPool2DAttributes variant"};
+        {
+            const auto& attrs = std::get<MaxPool2DAttributes>(node.attributes);
+            auto vr = check_kernel_pads_strides(ctx, attrs.kernel_shape, attrs.pads, attrs.strides);
+            if (!vr.success) return vr;
         }
         break;
 
@@ -190,11 +201,13 @@ static OperationResult check_logical_node_arity(size_t idx, const LogicalNode& n
         break;
     case LogicalOp::ReLU:
     case LogicalOp::Sigmoid:
+    case LogicalOp::MaxPool2D:
         if (node.inputs.size() != 1)
             return {false, ctx + "expected 1 input, got " + std::to_string(node.inputs.size())};
         if (node.outputs.size() != 1)
             return {false, ctx + "expected 1 output, got " + std::to_string(node.outputs.size())};
         break;
+
     case LogicalOp::Unknown:
         return {false, ctx + "op is Unknown"};
     }
@@ -222,7 +235,7 @@ ValidationResult validate(const LogicalGraph& graph) {
             if (!std::holds_alternative<ConvAttributes>(node.attributes))
                 return {{false, ctx + "expected ConvAttributes variant"}};
             const auto& attrs = std::get<ConvAttributes>(node.attributes);
-            auto vr = check_conv_kernel_pads_strides(ctx, attrs.kernel_shape, attrs.pads, attrs.strides);
+            auto vr = check_kernel_pads_strides(ctx, attrs.kernel_shape, attrs.pads, attrs.strides);
             if (!vr.success) return {vr};
             break;
         }
@@ -231,12 +244,22 @@ ValidationResult validate(const LogicalGraph& graph) {
             if (!std::holds_alternative<ConvTransposeAttributes>(node.attributes))
                 return {{false, ctx + "expected ConvTransposeAttributes variant"}};
             const auto& attrs = std::get<ConvTransposeAttributes>(node.attributes);
-            auto vr = check_conv_kernel_pads_strides(ctx, attrs.kernel_shape, attrs.pads, attrs.strides);
+            auto vr = check_kernel_pads_strides(ctx, attrs.kernel_shape, attrs.pads, attrs.strides);
             if (!vr.success) return {vr};
             if (attrs.output_padding.size() != 2)
                 return {{false, ctx + "expected 2 output padding values, got: " + std::to_string(attrs.output_padding.size())}};
             break;
         }
+
+        case LogicalOp::MaxPool2D:
+            if (!std::holds_alternative<MaxPool2DAttributes>(node.attributes))
+                return {false, ctx + "expected MaxPool2DAttributes variant"};
+            {
+                const auto& attrs = std::get<MaxPool2DAttributes>(node.attributes);
+                auto vr = check_kernel_pads_strides(ctx, attrs.kernel_shape, attrs.pads, attrs.strides);
+                if (!vr.success) return {vr};
+            }
+            break;
 
         case LogicalOp::ReLU:
         case LogicalOp::Sigmoid:

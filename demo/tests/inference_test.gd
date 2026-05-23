@@ -183,6 +183,35 @@ func _setup_tests() -> Array[Test]:
 			]
 		)
 	)
+
+	var max_pool_in_floats := PackedFloat32Array()
+	for i in range(48):
+		max_pool_in_floats.append(1 + i)
+	
+	list.append(
+		Test.new(
+			"MaxPool2D",
+			"ml/tests/test_max_pool_2d.onnx",
+			_setup_float_array_test.bind(
+				# 1x3x4x4 input
+				max_pool_in_floats,
+				[
+					1, # Batches
+					3, # Channels
+					4, # Height
+					4] # Width
+				),
+			_pop_float_array_result,
+			
+			# 1x3x2x2 output
+			[
+				6, 8, 14, 16,
+				22, 24, 30, 32,
+				38, 40, 46, 48
+			]
+		)
+	)
+
 	return list
 
 func _setup_float_array_test(descriptor: InferenceDescriptor, data: PackedFloat32Array, shape: PackedFloat64Array):

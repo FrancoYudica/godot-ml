@@ -33,6 +33,8 @@ std::string op_name(PhysicalOp op) {
         return "Col2Im";
     case PhysicalOp::Reshape:
         return "Reshape";
+    case PhysicalOp::MaxPool2D:
+        return "MaxPool2D";
     default:
         return "Unknown";
     }
@@ -52,6 +54,8 @@ std::string op_name(LogicalOp op) {
         return "Im2Col";
     case LogicalOp::ConvTranspose:
         return "ConvTranspose";
+    case LogicalOp::MaxPool2D:
+        return "MaxPool2D";
     default:
         return "Unknown";
     }
