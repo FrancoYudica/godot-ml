@@ -36,13 +36,18 @@ func _ready() -> void:
 	result_texture.texture_rd_rid = texture_rid
 	texture_rect.texture = result_texture
 
+var _t = 0
+
 func _process(_delta: float) -> void:
 	if not input_texture_viewport or model_id == 0:
 		return
 		
 	_dispatch_inference()
+	_t += _delta
 	
-	print("FPS: %s" % (1.0 / _delta))
+	if _t >= 1.0:
+		print("FPS: %s" % (1.0 / _delta))
+		_t = 0
 
 func _dispatch_inference() -> void:
 	var descriptor = InferenceDescriptor.new()

@@ -1,11 +1,16 @@
-[gd_scene load_steps=5 format=3 uid="uid://kvx7gqpvpgw0"]
+[gd_scene load_steps=8 format=3 uid="uid://kvx7gqpvpgw0"]
 
-[ext_resource type="Texture2D" uid="uid://2aaci7qapndj" path="res://icon.svg" id="1_x6gm0"]
-[ext_resource type="Script" uid="uid://b4gqpqq56d7ym" path="res://rotate_parent.gd" id="2_q3or8"]
+[ext_resource type="Texture2D" uid="uid://bif6ceo2bhp7d" path="res://textures/test_img_0.png" id="1_x6gm0"]
+[ext_resource type="Texture2D" uid="uid://2aaci7qapndj" path="res://icon.svg" id="3_0rjo6"]
 [ext_resource type="Script" uid="uid://c5ip6kwl0d1ik" path="res://image_test_runner.gd" id="3_5bqun"]
+[ext_resource type="Script" uid="uid://bh2l1jjfspdvw" path="res://test_scenes/move_parent.gd" id="3_q3or8"]
+[ext_resource type="Script" uid="uid://2tmtsrbjcifv" path="res://test_scenes/parent_controller.gd" id="4_5bqun"]
+
+[sub_resource type="ViewportTexture" id="ViewportTexture_q3or8"]
+viewport_path = NodePath("SrcSizeSubViewport")
 
 [sub_resource type="ViewportTexture" id="ViewportTexture_evj8q"]
-viewport_path = NodePath("SrcSizeSubViewport")
+viewport_path = NodePath("DownsampledSubViewport")
 
 [node name="TestEdgeDetection" type="Control"]
 layout_mode = 3
@@ -17,7 +22,9 @@ grow_vertical = 2
 
 [node name="SrcSizeSubViewport" type="SubViewport" parent="."]
 handle_input_locally = false
-size = Vector2i(64, 64)
+snap_2d_transforms_to_pixel = true
+snap_2d_vertices_to_pixel = true
+size = Vector2i(256, 256)
 render_target_update_mode = 4
 
 [node name="ColorRect" type="ColorRect" parent="SrcSizeSubViewport"]
@@ -26,7 +33,7 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-color = Color(0.1584723, 0.15847233, 0.1584723, 1)
+color = Color(0.18916011, 0.17341283, 0.020786589, 1)
 
 [node name="TextureRect" type="TextureRect" parent="SrcSizeSubViewport"]
 texture_filter = 2
@@ -35,15 +42,49 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-rotation = -6.2831855
 pivot_offset = Vector2(16, 16)
 size_flags_horizontal = 3
 size_flags_vertical = 3
 texture = ExtResource("1_x6gm0")
-expand_mode = 1
+expand_mode = 3
+stretch_mode = 5
 
-[node name="RotateParent" type="Node" parent="SrcSizeSubViewport/TextureRect"]
-script = ExtResource("2_q3or8")
+[node name="MoveParent" type="Node" parent="SrcSizeSubViewport/TextureRect"]
+script = ExtResource("3_q3or8")
+
+[node name="ColorRect2" type="ColorRect" parent="SrcSizeSubViewport"]
+offset_left = 45.245
+offset_top = 22.665
+offset_right = 55.245014
+offset_bottom = 32.664997
+pivot_offset = Vector2(10, 10)
+
+[node name="ColorRect3" type="ColorRect" parent="SrcSizeSubViewport"]
+offset_left = 45.245
+offset_top = 22.665
+offset_right = 77.244995
+offset_bottom = 54.665
+pivot_offset = Vector2(10, 10)
+
+[node name="ParentController" type="Node" parent="SrcSizeSubViewport/ColorRect3"]
+script = ExtResource("4_5bqun")
+
+[node name="CharacterSprite2D" type="Sprite2D" parent="SrcSizeSubViewport"]
+visible = false
+texture = ExtResource("3_0rjo6")
+
+[node name="DownsampledSubViewport" type="SubViewport" parent="."]
+size = Vector2i(100, 100)
+
+[node name="TextureRect" type="TextureRect" parent="DownsampledSubViewport"]
+texture_filter = 4
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+texture = SubResource("ViewportTexture_q3or8")
+expand_mode = 1
 
 [node name="HBoxContainer" type="HBoxContainer" parent="."]
 layout_mode = 1
@@ -54,7 +95,6 @@ grow_horizontal = 2
 grow_vertical = 2
 
 [node name="DisplaySourceSubViewportContainer" type="SubViewportContainer" parent="HBoxContainer"]
-texture_filter = 2
 layout_mode = 2
 size_flags_horizontal = 3
 stretch = true
@@ -65,7 +105,7 @@ size = Vector2i(574, 648)
 render_target_update_mode = 4
 
 [node name="TextureRect" type="TextureRect" parent="HBoxContainer/DisplaySourceSubViewportContainer/SubViewport"]
-texture_filter = 2
+texture_filter = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
@@ -95,7 +135,6 @@ grow_vertical = 2
 color = Color(0.1584723, 0.15847233, 0.1584723, 1)
 
 [node name="TextureRect" type="TextureRect" parent="HBoxContainer/ResultSubViewportContainer/SubViewport"]
-texture_filter = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
@@ -105,7 +144,7 @@ expand_mode = 3
 
 [node name="ImageTestRunner" type="Node" parent="." node_paths=PackedStringArray("input_texture_viewport", "texture_rect")]
 script = ExtResource("3_5bqun")
-input_texture_viewport = NodePath("../SrcSizeSubViewport")
+input_texture_viewport = NodePath("../DownsampledSubViewport")
 texture_rect = NodePath("../HBoxContainer/ResultSubViewportContainer/SubViewport/TextureRect")
 onnx_model_path = "ml/super_resolution_4x.onnx"
 scale_factor = 4
