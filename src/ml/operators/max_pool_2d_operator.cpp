@@ -21,7 +21,7 @@ bool MaxPool2DOperator::init(godot::RenderingDevice* rd) {
 }
 
 void ml::MaxPool2DOperator::dispatch(
-    const ml::PhysicalNode& node,
+    const ml::Physical::Node& node,
     const OperatorContext& ctx) {
 
     // Resolve buffers
@@ -38,7 +38,7 @@ void ml::MaxPool2DOperator::dispatch(
 
     ERR_FAIL_COND_MSG(in_shape.size() != 4, "MaxPool2D: input must be 4D (NCHW)");
 
-    const auto& attrs = std::get<MaxPool2DAttributes>(node.attributes);
+    const auto& attrs = std::get<Physical::MaxPool2DAttrs>(node.attributes);
 
     uint32_t batch_size = in_shape[0];
     uint32_t channels = in_shape[1];

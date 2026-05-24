@@ -1,5 +1,7 @@
 #pragma once
-#include "types.hpp"
+#include "core_types.hpp"
+#include "logical_types.hpp"
+#include "physical_types.hpp"
 
 #include <godot_cpp/classes/rendering_device.hpp>
 #include <godot_cpp/variant/typed_array.hpp>
@@ -11,13 +13,13 @@ namespace Utils {
  */
 godot::String get_project_relative_path(const godot::String& path);
 
-std::string op_name(PhysicalOp op);
+std::string op_name(Physical::Operator op);
 
-std::string op_name(LogicalOp op);
+std::string op_name(Logical::Operator op);
 
 godot::RID load_shader(godot::RenderingDevice* rd, const godot::String& path);
 
-void print(const PhysicalGraph& graph);
+void print(const Physical::Graph& graph);
 
 bool tensor_shape_matches(const std::vector<int64_t>& shape1, const std::vector<int64_t>& shape2);
 

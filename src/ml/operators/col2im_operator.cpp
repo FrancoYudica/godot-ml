@@ -21,7 +21,7 @@ bool Col2ImOperator::init(godot::RenderingDevice* rd) {
 }
 
 void ml::Col2ImOperator::dispatch(
-    const ml::PhysicalNode& node,
+    const ml::Physical::Node& node,
     const OperatorContext& ctx) {
 
     ERR_FAIL_COND_MSG(node.outputs.size() != 1, "Col2Im: expected 1 output");
@@ -32,7 +32,7 @@ void ml::Col2ImOperator::dispatch(
 
     // All shapes come from the pre-computed ShapeTable.
     // meta4d = [b, out_c, out_h, out_w] written by shape inference.
-    const auto& attrs = std::get<Col2ImAttributes>(node.attributes);
+    const auto& attrs = std::get<Physical::Col2ImAttrs>(node.attributes);
     const auto& src = ctx.shape_table->at(attrs.source_activation);     // [b, ic, ih, iw]
     const auto& meta4d = ctx.shape_table->at(node.outputs[0] + "__4d"); // [b, oc, oh, ow]
 

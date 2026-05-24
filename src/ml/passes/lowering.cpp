@@ -2,62 +2,75 @@
 
 namespace ml::passes {
 
-static OperationResult low_relu(const LogicalNode& node, PhysicalGraph& graph) {
-    PhysicalNode n;
+static OperationResult low_relu(const Logical::Node& node, Physical::Graph& graph) {
+    Physical::Node n;
     n.inputs = node.inputs;
     n.outputs = node.outputs;
-    n.op = PhysicalOp::ReLU;
+    n.op = Physical::Operator::ReLU;
     graph.nodes.push_back(std::move(n));
     return {true, {}};
 }
 
-static OperationResult low_sigmoid(const LogicalNode& node, PhysicalGraph& graph) {
-    PhysicalNode n;
+static OperationResult low_sigmoid(const Logical::Node& node, Physical::Graph& graph) {
+    Physical::Node n;
     n.inputs = node.inputs;
     n.outputs = node.outputs;
-    n.op = PhysicalOp::Sigmoid;
+    n.op = Physical::Operator::Sigmoid;
     graph.nodes.push_back(std::move(n));
     return {true, {}};
 }
 
-static OperationResult low_gemm(const LogicalNode& node, PhysicalGraph& graph) {
-    const auto& attrs = std::get<GemmAttributes>(node.attributes);
+static OperationResult low_gemm(const Logical::Node& node, Physical::Graph& graph) {
+    const auto& l_attrs = std::get<Logical::GemmAttrs>(node.attributes);
 
-    PhysicalNode n;
+    Physical::Node n;
     n.inputs = node.inputs;
     n.outputs = node.outputs;
+
+    Physical::GemmAttrs attrs;
+    attrs.alpha = l_attrs.alpha;
+    attrs.beta = l_attrs.beta;
+    attrs.transB = l_attrs.transB;
     n.attributes = attrs;
-    n.op = PhysicalOp::Gemm;
+
+    n.op = Physical::Operator::Gemm;
     graph.nodes.push_back(std::move(n));
     return {true, {}};
 }
 
-static OperationResult low_conv(const LogicalNode& node, PhysicalGraph& graph) {
-    const auto& attrs = std::get<ConvAttributes>(node.attributes);
+static OperationResult low_conv(const Logical::Node& node, Physical::Graph& graph) {
+    const auto& l_attrs = std::get<Logical::ConvAttrs>(node.attributes);
 
     const std::string col_name = node.outputs[0] + "__col";
 
-    PhysicalNode im2col;
+    Physical::Node im2col;
     im2col.inputs = {node.inputs}; // {activation, weights, bias}
     im2col.outputs = {col_name};
-    im2col.attributes = attrs;
-    im2col.op = PhysicalOp::Im2Col;
 
-    PhysicalNode gemm;
+    Physical::ConvAttrs attrs;
+    attrs.kernel_shape = l_attrs.kernel_shape;
+    attrs.pads = l_attrs.pads;
+    attrs.strides = l_attrs.strides;
+    attrs.dilations = l_attrs.dilations;
+    im2col.attributes = attrs;
+
+    im2col.op = Physical::Operator::Im2Col;
+
+    Physical::Node gemm;
     gemm.inputs = {col_name, node.inputs[1], node.inputs[2]};
     gemm.outputs = node.outputs;
-    gemm.attributes = GemmAttributes{1.0f, 1.0f, true};
-    gemm.op = PhysicalOp::Gemm;
+    gemm.attributes = Physical::GemmAttrs{1.0f, 1.0f, true};
+    gemm.op = Physical::Operator::Gemm;
 
-    ReshapeAttributes reshape_attrs{
-        .mode = ReshapeMode::GemmToImage,
+    Physical::ReshapeAttrs reshape_attrs{
+        .mode = Physical::ReshapeMode::GemmToImage,
         .image_shape_ref = col_name + "__4d"};
 
-    PhysicalNode reshape;
+    Physical::Node reshape;
     reshape.inputs = node.outputs;
     reshape.outputs = node.outputs;
     reshape.attributes = reshape_attrs;
-    reshape.op = PhysicalOp::Reshape;
+    reshape.op = Physical::Operator::Reshape;
 
     graph.nodes.push_back(std::move(im2col));
     graph.nodes.push_back(std::move(gemm));
@@ -65,31 +78,38 @@ static OperationResult low_conv(const LogicalNode& node, PhysicalGraph& graph) {
     return {true, {}};
 }
 
-static OperationResult low_im2col(const LogicalNode& node, PhysicalGraph& graph) {
-    const auto& attrs = std::get<ConvAttributes>(node.attributes);
+static OperationResult low_im2col(const Logical::Node& node, Physical::Graph& graph) {
+    const auto& l_attrs = std::get<Logical::ConvAttrs>(node.attributes);
 
-    PhysicalNode n;
+    Physical::Node n;
     n.inputs = {node.inputs[0]};
     n.outputs = {node.outputs[0]};
+
+    Physical::ConvAttrs attrs;
+    attrs.kernel_shape = l_attrs.kernel_shape;
+    attrs.pads = l_attrs.pads;
+    attrs.strides = l_attrs.strides;
+    attrs.dilations = l_attrs.dilations;
+
     n.attributes = attrs;
-    n.op = PhysicalOp::Im2Col;
+    n.op = Physical::Operator::Im2Col;
     graph.nodes.push_back(std::move(n));
     return {true, {}};
 }
 
-static OperationResult low_conv_transpose(const LogicalNode& node, PhysicalGraph& graph) {
-    const auto& attrs = std::get<ConvTransposeAttributes>(node.attributes);
+static OperationResult low_conv_transpose(const Logical::Node& node, Physical::Graph& graph) {
+    const auto& l_attrs = std::get<Logical::ConvTransposeAttrs>(node.attributes);
 
     const std::string flat_name = node.inputs[0] + "__flat";
     const std::string gemm_name = node.outputs[0] + "__gemm";
     const std::string col2im_name = node.outputs[0] + "__col2im";
 
     // Reshape 1: [b, ic, ih, iw] -> [b*ih*iw, ic]
-    PhysicalNode pre_reshape;
-    pre_reshape.op = PhysicalOp::Reshape;
+    Physical::Node pre_reshape;
+    pre_reshape.op = Physical::Operator::Reshape;
     pre_reshape.inputs = {node.inputs[0]};
     pre_reshape.outputs = {flat_name};
-    pre_reshape.attributes = ReshapeAttributes{.mode = ReshapeMode::ImageToGemm};
+    pre_reshape.attributes = Physical::ReshapeAttrs{.mode = Physical::ReshapeMode::ImageToGemm};
 
     // ONNX ConvTranspose weights are [ic, oc, kH, kW]. The GEMM shader always
     // computes A x B^T, so transpose to [oc*kH*kW, ic] at load time.
@@ -116,36 +136,36 @@ static OperationResult low_conv_transpose(const LogicalNode& node, PhysicalGraph
     }
 
     // Gemm: [b*ih*iw, ic] x [oc*kh*kw, ic]^T -> [b*ih*iw, oc*kh*kw]
-    GemmAttributes gemm_attrs{.alpha = 1.0f, .beta = 1.0f, .transB = true};
+    Physical::GemmAttrs gemm_attrs{.alpha = 1.0f, .beta = 1.0f, .transB = true};
 
-    PhysicalNode gemm;
-    gemm.op = PhysicalOp::Gemm;
+    Physical::Node gemm;
+    gemm.op = Physical::Operator::Gemm;
     gemm.inputs = {flat_name, transposed_weight_name, node.inputs[2]};
     gemm.outputs = {gemm_name};
     gemm.attributes = gemm_attrs;
 
     // Col2Im: [b*ih*iw, oc*kh*kw] -> [out_h*out_w, oc]
-    Col2ImAttributes col2im_attrs;
-    col2im_attrs.kernel_shape = attrs.kernel_shape;
-    col2im_attrs.pads = attrs.pads;
-    col2im_attrs.strides = attrs.strides;
-    col2im_attrs.output_padding = attrs.output_padding;
-    col2im_attrs.dilations = attrs.dilations;
+    Physical::Col2ImAttrs col2im_attrs;
+    col2im_attrs.kernel_shape = l_attrs.kernel_shape;
+    col2im_attrs.pads = l_attrs.pads;
+    col2im_attrs.strides = l_attrs.strides;
+    col2im_attrs.output_padding = l_attrs.output_padding;
+    col2im_attrs.dilations = l_attrs.dilations;
     col2im_attrs.source_activation = node.inputs[0];
 
-    PhysicalNode col2im;
-    col2im.op = PhysicalOp::Col2Im;
+    Physical::Node col2im;
+    col2im.op = Physical::Operator::Col2Im;
     col2im.inputs = {gemm_name, node.inputs[2]};
     col2im.outputs = {col2im_name};
     col2im.attributes = col2im_attrs;
 
     // Reshape 2: [b*oh*ow, oc] -> [b, oc, oh, ow]
-    PhysicalNode post_reshape;
-    post_reshape.op = PhysicalOp::Reshape;
+    Physical::Node post_reshape;
+    post_reshape.op = Physical::Operator::Reshape;
     post_reshape.inputs = {col2im_name};
     post_reshape.outputs = {node.outputs[0]};
-    post_reshape.attributes = ReshapeAttributes{
-        .mode = ReshapeMode::GemmToImage,
+    post_reshape.attributes = Physical::ReshapeAttrs{
+        .mode = Physical::ReshapeMode::GemmToImage,
         .image_shape_ref = col2im_name + "__4d"};
 
     graph.nodes.push_back(std::move(pre_reshape));
@@ -155,20 +175,25 @@ static OperationResult low_conv_transpose(const LogicalNode& node, PhysicalGraph
     return {true, {}};
 }
 
-static OperationResult low_max_pool_2d(const LogicalNode& node, PhysicalGraph& graph) {
-    const auto& attrs = std::get<MaxPool2DAttributes>(node.attributes);
+static OperationResult low_max_pool_2d(const Logical::Node& node, Physical::Graph& graph) {
+    const auto& l_attrs = std::get<Logical::MaxPool2DAttrs>(node.attributes);
 
-    PhysicalNode max_pool;
-    max_pool.op = PhysicalOp::MaxPool2D;
+    Physical::Node max_pool;
+    max_pool.op = Physical::Operator::MaxPool2D;
     max_pool.inputs = {node.inputs[0]};
     max_pool.outputs = {node.outputs[0]};
-    max_pool.attributes = attrs;
+
+    max_pool.attributes = Physical::MaxPool2DAttrs{
+        .kernel_shape = l_attrs.kernel_shape,
+        .pads = l_attrs.pads,
+        .strides = l_attrs.strides,
+        .dilations = l_attrs.dilations};
 
     graph.nodes.push_back(std::move(max_pool));
     return {true, {}};
 }
 
-LoweringResult lower(const LogicalGraph& logical_graph) {
+LoweringResult lower(const Logical::Graph& logical_graph) {
     LoweringResult result;
     result.status = {true, {}};
     auto& graph = result.graph;
@@ -180,28 +205,28 @@ LoweringResult lower(const LogicalGraph& logical_graph) {
         OperationResult op_result;
 
         switch (node.op) {
-        case LogicalOp::ReLU:
+        case Logical::Operator::ReLU:
             op_result = low_relu(node, graph);
             break;
-        case LogicalOp::Sigmoid:
+        case Logical::Operator::Sigmoid:
             op_result = low_sigmoid(node, graph);
             break;
-        case LogicalOp::Gemm:
+        case Logical::Operator::Gemm:
             op_result = low_gemm(node, graph);
             break;
-        case LogicalOp::Conv:
+        case Logical::Operator::Conv:
             op_result = low_conv(node, graph);
             break;
-        case LogicalOp::Im2Col:
+        case Logical::Operator::Im2Col:
             op_result = low_im2col(node, graph);
             break;
-        case LogicalOp::ConvTranspose:
+        case Logical::Operator::ConvTranspose:
             op_result = low_conv_transpose(node, graph);
             break;
-        case LogicalOp::MaxPool2D:
+        case Logical::Operator::MaxPool2D:
             op_result = low_max_pool_2d(node, graph);
             break;
-        case LogicalOp::Unknown:
+        case Logical::Operator::Unknown:
             result.status = {false, "lowering: encountered unknown op"};
             return result;
         }

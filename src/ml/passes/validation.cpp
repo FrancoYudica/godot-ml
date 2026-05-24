@@ -1,16 +1,14 @@
 #include "validation.hpp"
 
-#include "core/utils.hpp"
-
 #include <unordered_set>
 
 namespace ml::passes {
 
-static std::string node_ctx(size_t idx, PhysicalOp op) {
+static std::string node_ctx(size_t idx, Physical::Operator op) {
     return "[node " + std::to_string(idx) + " (" + Utils::op_name(op) + ")] ";
 }
 
-static OperationResult check_connectivity(const PhysicalGraph& graph) {
+static OperationResult check_connectivity(const Physical::Graph& graph) {
     std::unordered_set<std::string> defined;
 
     for (const auto& name : graph.input_names)
@@ -28,7 +26,7 @@ static OperationResult check_connectivity(const PhysicalGraph& graph) {
         }
 
         for (const auto& output : node.outputs) {
-            if (node.op != PhysicalOp::Reshape && defined.count(output))
+            if (node.op != Physical::Operator::Reshape && defined.count(output))
                 return {false, ctx + "output tensor '" + output + "' already defined (duplicate output)"};
             defined.insert(output);
         }
@@ -36,39 +34,39 @@ static OperationResult check_connectivity(const PhysicalGraph& graph) {
     return {true, {}};
 }
 
-static OperationResult check_node_arity(size_t idx, const PhysicalNode& node) {
+static OperationResult check_node_arity(size_t idx, const Physical::Node& node) {
     const std::string ctx = node_ctx(idx, node.op);
 
     switch (node.op) {
-    case PhysicalOp::Im2Col:
+    case Physical::Operator::Im2Col:
         if (node.inputs.empty())
             return {false, ctx + "expected at least 1 input, got 0"};
         if (node.outputs.size() != 1)
             return {false, ctx + "expected 1 output, got " + std::to_string(node.outputs.size())};
         break;
-    case PhysicalOp::Gemm:
-    case PhysicalOp::Conv:
+    case Physical::Operator::Gemm:
+    case Physical::Operator::Conv:
         if (node.inputs.size() != 3)
             return {false, ctx + "expected 3 inputs, got " + std::to_string(node.inputs.size())};
         if (node.outputs.size() != 1)
             return {false, ctx + "expected 1 output, got " + std::to_string(node.outputs.size())};
         break;
-    case PhysicalOp::Col2Im:
+    case Physical::Operator::Col2Im:
         if (node.inputs.size() != 2)
             return {false, ctx + "expected 2 inputs, got " + std::to_string(node.inputs.size())};
         if (node.outputs.size() != 1)
             return {false, ctx + "expected 1 output, got " + std::to_string(node.outputs.size())};
         break;
-    case PhysicalOp::Reshape:
-    case PhysicalOp::ReLU:
-    case PhysicalOp::Sigmoid:
-    case PhysicalOp::MaxPool2D:
+    case Physical::Operator::Reshape:
+    case Physical::Operator::ReLU:
+    case Physical::Operator::Sigmoid:
+    case Physical::Operator::MaxPool2D:
         if (node.inputs.size() != 1)
             return {false, ctx + "expected 1 input, got " + std::to_string(node.inputs.size())};
         if (node.outputs.size() != 1)
             return {false, ctx + "expected 1 output, got " + std::to_string(node.outputs.size())};
         break;
-    case PhysicalOp::Unknown:
+    case Physical::Operator::Unknown:
         return {false, ctx + "op is Unknown - node cannot be dispatched"};
     }
     return {true, {}};
@@ -105,35 +103,35 @@ static OperationResult check_kernel_pads_strides_dilations(
 
 static OperationResult check_node_attributes(
     size_t idx,
-    const PhysicalNode& node,
+    const Physical::Node& node,
     const std::unordered_set<std::string>& defined) {
 
     const std::string ctx = node_ctx(idx, node.op);
 
     switch (node.op) {
-    case PhysicalOp::Im2Col:
-    case PhysicalOp::Conv:
-        if (!std::holds_alternative<ConvAttributes>(node.attributes))
+    case Physical::Operator::Im2Col:
+    case Physical::Operator::Conv:
+        if (!std::holds_alternative<Physical::ConvAttrs>(node.attributes))
             return {false, ctx + "expected ConvAttributes variant"};
         {
-            const auto& attrs = std::get<ConvAttributes>(node.attributes);
+            const auto& attrs = std::get<Physical::ConvAttrs>(node.attributes);
             auto vr = check_kernel_pads_strides_dilations(ctx, attrs.kernel_shape, attrs.pads, attrs.strides, attrs.dilations);
             if (!vr.success) return vr;
         }
         break;
 
-    case PhysicalOp::Gemm:
-        if (!std::holds_alternative<GemmAttributes>(node.attributes))
+    case Physical::Operator::Gemm:
+        if (!std::holds_alternative<Physical::GemmAttrs>(node.attributes))
             return {false, ctx + "expected GemmAttributes variant"};
-        if (!std::get<GemmAttributes>(node.attributes).transB)
+        if (!std::get<Physical::GemmAttrs>(node.attributes).transB)
             return {false, ctx + "unsupported transB value `false`"};
         break;
 
-    case PhysicalOp::Col2Im:
-        if (!std::holds_alternative<Col2ImAttributes>(node.attributes))
+    case Physical::Operator::Col2Im:
+        if (!std::holds_alternative<Physical::Col2ImAttrs>(node.attributes))
             return {false, ctx + "expected Col2ImAttributes variant"};
         {
-            const auto& attrs = std::get<Col2ImAttributes>(node.attributes);
+            const auto& attrs = std::get<Physical::Col2ImAttrs>(node.attributes);
             auto vr = check_kernel_pads_strides_dilations(ctx, attrs.kernel_shape, attrs.pads, attrs.strides, attrs.dilations);
             if (!vr.success) return vr;
             if (attrs.output_padding.size() != 2)
@@ -145,80 +143,80 @@ static OperationResult check_node_attributes(
         }
         break;
 
-    case PhysicalOp::Reshape:
-        if (!std::holds_alternative<ReshapeAttributes>(node.attributes))
+    case Physical::Operator::Reshape:
+        if (!std::holds_alternative<Physical::ReshapeAttrs>(node.attributes))
             return {false, ctx + "expected ReshapeAttributes variant"};
         {
-            const auto& attrs = std::get<ReshapeAttributes>(node.attributes);
-            if (attrs.mode == ReshapeMode::GemmToImage && attrs.image_shape_ref.empty())
+            const auto& attrs = std::get<Physical::ReshapeAttrs>(node.attributes);
+            if (attrs.mode == Physical::ReshapeMode::GemmToImage && attrs.image_shape_ref.empty())
                 return {false, ctx + "GemmToImage mode requires non-empty image_shape_ref"};
         }
         break;
 
-    case ml::PhysicalOp::MaxPool2D:
-        if (!std::holds_alternative<MaxPool2DAttributes>(node.attributes))
+    case ml::Physical::Operator::MaxPool2D:
+        if (!std::holds_alternative<Physical::MaxPool2DAttrs>(node.attributes))
             return {false, ctx + "expected MaxPool2DAttributes variant"};
         {
-            const auto& attrs = std::get<MaxPool2DAttributes>(node.attributes);
+            const auto& attrs = std::get<Physical::MaxPool2DAttrs>(node.attributes);
             auto vr = check_kernel_pads_strides_dilations(ctx, attrs.kernel_shape, attrs.pads, attrs.strides, attrs.dilations);
             if (!vr.success) return vr;
         }
         break;
 
-    case PhysicalOp::ReLU:
-    case PhysicalOp::Sigmoid:
+    case Physical::Operator::ReLU:
+    case Physical::Operator::Sigmoid:
         break;
 
-    case PhysicalOp::Unknown:
+    case Physical::Operator::Unknown:
         return {false, ctx + "op is Unknown"};
     }
 
     return {true, {}};
 }
 
-static std::string logical_node_ctx(size_t idx, LogicalOp op) {
+static std::string logical_node_ctx(size_t idx, Logical::Operator op) {
     return "[node " + std::to_string(idx) + " (" + Utils::op_name(op) + ")] ";
 }
 
-static OperationResult check_logical_node_arity(size_t idx, const LogicalNode& node) {
+static OperationResult check_logical_node_arity(size_t idx, const Logical::Node& node) {
     const std::string ctx = logical_node_ctx(idx, node.op);
 
     switch (node.op) {
-    case LogicalOp::Conv:
-    case LogicalOp::ConvTranspose:
+    case Logical::Operator::Conv:
+    case Logical::Operator::ConvTranspose:
         if (node.inputs.size() < 3)
             return {false, ctx + "expected at least 3 inputs (activation, weights, bias), got " + std::to_string(node.inputs.size())};
         if (node.outputs.size() != 1)
             return {false, ctx + "expected 1 output, got " + std::to_string(node.outputs.size())};
         break;
-    case LogicalOp::Gemm:
+    case Logical::Operator::Gemm:
         if (node.inputs.size() != 3)
             return {false, ctx + "expected 3 inputs, got " + std::to_string(node.inputs.size())};
         if (node.outputs.size() != 1)
             return {false, ctx + "expected 1 output, got " + std::to_string(node.outputs.size())};
         break;
-    case LogicalOp::Im2Col:
+    case Logical::Operator::Im2Col:
         if (node.inputs.size() != 1)
             return {false, ctx + "expected 1 input, got " + std::to_string(node.inputs.size())};
         if (node.outputs.size() != 1)
             return {false, ctx + "expected 1 output, got " + std::to_string(node.outputs.size())};
         break;
-    case LogicalOp::ReLU:
-    case LogicalOp::Sigmoid:
-    case LogicalOp::MaxPool2D:
+    case Logical::Operator::ReLU:
+    case Logical::Operator::Sigmoid:
+    case Logical::Operator::MaxPool2D:
         if (node.inputs.size() != 1)
             return {false, ctx + "expected 1 input, got " + std::to_string(node.inputs.size())};
         if (node.outputs.size() != 1)
             return {false, ctx + "expected 1 output, got " + std::to_string(node.outputs.size())};
         break;
 
-    case LogicalOp::Unknown:
+    case Logical::Operator::Unknown:
         return {false, ctx + "op is Unknown"};
     }
     return {true, {}};
 }
 
-ValidationResult validate(const LogicalGraph& graph) {
+ValidationResult validate(const Logical::Graph& graph) {
     for (size_t i = 0; i < graph.nodes.size(); ++i) {
         const auto& node = graph.nodes[i];
         const std::string ctx = logical_node_ctx(i, node.op);
@@ -227,18 +225,18 @@ ValidationResult validate(const LogicalGraph& graph) {
         if (!arity.success) return {arity};
 
         switch (node.op) {
-        case LogicalOp::Gemm:
-            if (!std::holds_alternative<GemmAttributes>(node.attributes))
+        case Logical::Operator::Gemm:
+            if (!std::holds_alternative<Logical::GemmAttrs>(node.attributes))
                 return {{false, ctx + "expected GemmAttributes variant"}};
-            if (!std::get<GemmAttributes>(node.attributes).transB)
+            if (!std::get<Logical::GemmAttrs>(node.attributes).transB)
                 return {{false, ctx + "unsupported transB value `false`"}};
             break;
 
-        case LogicalOp::Conv:
-        case LogicalOp::Im2Col: {
-            if (!std::holds_alternative<ConvAttributes>(node.attributes))
+        case Logical::Operator::Conv:
+        case Logical::Operator::Im2Col: {
+            if (!std::holds_alternative<Logical::ConvAttrs>(node.attributes))
                 return {{false, ctx + "expected ConvAttributes variant"}};
-            const auto& attrs = std::get<ConvAttributes>(node.attributes);
+            const auto& attrs = std::get<Logical::ConvAttrs>(node.attributes);
             auto vr = check_kernel_pads_strides_dilations(ctx, attrs.kernel_shape, attrs.pads, attrs.strides, attrs.dilations);
             if (!vr.success) return {vr};
 
@@ -248,10 +246,10 @@ ValidationResult validate(const LogicalGraph& graph) {
             break;
         }
 
-        case LogicalOp::ConvTranspose: {
-            if (!std::holds_alternative<ConvTransposeAttributes>(node.attributes))
+        case Logical::Operator::ConvTranspose: {
+            if (!std::holds_alternative<Logical::ConvTransposeAttrs>(node.attributes))
                 return {{false, ctx + "expected ConvTransposeAttributes variant"}};
-            const auto& attrs = std::get<ConvTransposeAttributes>(node.attributes);
+            const auto& attrs = std::get<Logical::ConvTransposeAttrs>(node.attributes);
             auto vr = check_kernel_pads_strides_dilations(ctx, attrs.kernel_shape, attrs.pads, attrs.strides, attrs.dilations);
             if (!vr.success) return {vr};
             if (attrs.output_padding.size() != 2)
@@ -263,28 +261,28 @@ ValidationResult validate(const LogicalGraph& graph) {
             break;
         }
 
-        case LogicalOp::MaxPool2D:
-            if (!std::holds_alternative<MaxPool2DAttributes>(node.attributes))
+        case Logical::Operator::MaxPool2D:
+            if (!std::holds_alternative<Logical::MaxPool2DAttrs>(node.attributes))
                 return {false, ctx + "expected MaxPool2DAttributes variant"};
             {
-                const auto& attrs = std::get<MaxPool2DAttributes>(node.attributes);
+                const auto& attrs = std::get<Logical::MaxPool2DAttrs>(node.attributes);
                 auto vr = check_kernel_pads_strides_dilations(ctx, attrs.kernel_shape, attrs.pads, attrs.strides, attrs.dilations);
                 if (!vr.success) return {vr};
             }
             break;
 
-        case LogicalOp::ReLU:
-        case LogicalOp::Sigmoid:
+        case Logical::Operator::ReLU:
+        case Logical::Operator::Sigmoid:
             break;
 
-        case LogicalOp::Unknown:
+        case Logical::Operator::Unknown:
             return {{false, ctx + "op is Unknown"}};
         }
     }
     return {{true, {}}};
 }
 
-ValidationResult validate(const PhysicalGraph& graph) {
+ValidationResult validate(const Physical::Graph& graph) {
     auto conn = check_connectivity(graph);
     if (!conn.success)
         return {{false, conn.error}};

@@ -21,14 +21,14 @@ bool Im2ColOperator::init(godot::RenderingDevice* rd) {
 }
 
 void ml::Im2ColOperator::dispatch(
-    const ml::PhysicalNode& node,
+    const ml::Physical::Node& node,
     const OperatorContext& ctx) {
 
     RID input_sb = ctx.activations_tm->get_buffer_rid(node.inputs[0]);
     RID out_buf = ctx.activations_tm->get_buffer_rid(node.outputs[0]);
 
     const auto& in_shape = ctx.shape_table->at(node.inputs[0]);
-    const auto& attrs = std::get<ConvAttributes>(node.attributes);
+    const auto& attrs = std::get<Physical::ConvAttrs>(node.attributes);
 
     uint32_t in_channels = in_shape[1];
     uint32_t in_height = in_shape[2];

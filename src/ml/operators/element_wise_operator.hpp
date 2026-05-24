@@ -8,7 +8,7 @@ class ElementwiseOperator : public IOperator {
   public:
     bool init(godot::RenderingDevice* rd) override;
     void dispatch(
-        const PhysicalNode& node,
+        const Physical::Node& node,
         const OperatorContext& ctx) override;
     void destroy(godot::RenderingDevice* rd) override;
 

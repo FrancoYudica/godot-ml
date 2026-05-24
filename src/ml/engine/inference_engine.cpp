@@ -233,7 +233,7 @@ void MLInferenceEngine::_process_task(Ref<InferenceTask> task) {
     auto it = _graphs.find(task->graph_id);
     ERR_FAIL_COND_MSG(it == _graphs.end(), "InferenceEngine: graph not found.");
 
-    const ml::PhysicalGraph& graph = it->second.graph;
+    const ml::Physical::Graph& graph = it->second.graph;
     Ref<ml::TensorResourceManager> initializers_tm = it->second.initializers_tm;
 
     // 1. Collect input shapes from the descriptor
@@ -276,7 +276,7 @@ void MLInferenceEngine::_process_task(Ref<InferenceTask> task) {
 
     _rd->compute_list_add_barrier(compute_list);
 
-    for (const ml::PhysicalNode& node : graph.nodes) {
+    for (const ml::Physical::Node& node : graph.nodes) {
         _run_node(node, compute_list, initializers_tm, task->activations_tm, shape_table);
         _rd->compute_list_add_barrier(compute_list);
     }
@@ -304,13 +304,13 @@ void MLInferenceEngine::_process_task(Ref<InferenceTask> task) {
 }
 
 void MLInferenceEngine::_allocate_activations(
-    const ml::PhysicalGraph& graph,
+    const ml::Physical::Graph& graph,
     const ml::ShapeTable& shape_table,
     Ref<ml::TensorResourceManager> activations_tm) {
 
     for (const auto& node : graph.nodes) {
         // Reshape nodes create zero-copy aliases, not real GPU buffers.
-        if (node.op == ml::PhysicalOp::Reshape) continue;
+        if (node.op == ml::Physical::Operator::Reshape) continue;
         for (const auto& name : node.outputs) {
             auto it = shape_table.find(name);
             if (it != shape_table.end()) {
@@ -321,7 +321,7 @@ void MLInferenceEngine::_allocate_activations(
 }
 
 void MLInferenceEngine::_run_node(
-    const ml::PhysicalNode& node,
+    const ml::Physical::Node& node,
     int64_t compute_list,
     Ref<ml::TensorResourceManager> initializers_tm,
     Ref<ml::TensorResourceManager> activations_tm,

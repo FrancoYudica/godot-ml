@@ -7,17 +7,18 @@
 
 namespace ml {
 
-static const std::unordered_map<std::string, LogicalOp> operator_names = {
-    {"Relu", LogicalOp::ReLU},
-    {"Sigmoid", LogicalOp::Sigmoid},
-    {"Gemm", LogicalOp::Gemm},
-    {"Conv", LogicalOp::Conv},
-    {"ConvTranspose", LogicalOp::ConvTranspose},
-    {"Im2Col", LogicalOp::Im2Col},
-    {"MaxPool", LogicalOp::MaxPool2D},
-    {"Unknown", LogicalOp::Unknown}};
+namespace Logical {
+static const std::unordered_map<std::string, Operator> operator_names = {
+    {"Relu", Operator::ReLU},
+    {"Sigmoid", Operator::Sigmoid},
+    {"Gemm", Operator::Gemm},
+    {"Conv", Operator::Conv},
+    {"ConvTranspose", Operator::ConvTranspose},
+    {"Im2Col", Operator::Im2Col},
+    {"MaxPool", Operator::MaxPool2D},
+    {"Unknown", Operator::Unknown}};
 
-static void _parse_inputs(const onnx::GraphProto& proto, LogicalGraph& graph) {
+static void _parse_inputs(const onnx::GraphProto& proto, Graph& graph) {
     const auto& init = proto.initializer();
     std::unordered_set<std::string> initializer_names;
     for (const auto& t : init)
@@ -31,7 +32,7 @@ static void _parse_inputs(const onnx::GraphProto& proto, LogicalGraph& graph) {
     }
 }
 
-static void _parse_initializers(const onnx::GraphProto& proto, LogicalGraph& graph) {
+static void _parse_initializers(const onnx::GraphProto& proto, Graph& graph) {
     for (const auto& tensor : proto.initializer()) {
         Tensor t;
         t.name = tensor.name();
@@ -47,41 +48,41 @@ static void _parse_initializers(const onnx::GraphProto& proto, LogicalGraph& gra
     }
 }
 
-static OperationResult _parse_nodes(const onnx::GraphProto& proto, LogicalGraph& graph) {
+static OperationResult _parse_nodes(const onnx::GraphProto& proto, Graph& graph) {
     for (const auto& node : proto.node()) {
         if (operator_names.find(node.op_type()) == operator_names.end())
             return {false, "unsupported operator '" + node.op_type() + "'"};
 
-        LogicalOp operator_type = operator_names.at(node.op_type());
+        Operator operator_type = operator_names.at(node.op_type());
 
-        LogicalNode n;
+        Node n;
         for (const auto& inp : node.input())
             n.inputs.push_back(inp);
         for (const auto& out : node.output())
             n.outputs.push_back(out);
 
-        if (operator_type == LogicalOp::ReLU) {
-            n.op = LogicalOp::ReLU;
+        if (operator_type == Operator::ReLU) {
+            n.op = Operator::ReLU;
         }
 
-        else if (operator_type == LogicalOp::Sigmoid) {
-            n.op = LogicalOp::Sigmoid;
+        else if (operator_type == Operator::Sigmoid) {
+            n.op = Operator::Sigmoid;
         }
 
-        else if (operator_type == LogicalOp::Gemm) {
-            n.attributes.emplace<GemmAttributes>();
-            auto& gemm = std::get<GemmAttributes>(n.attributes);
+        else if (operator_type == Operator::Gemm) {
+            n.attributes.emplace<GemmAttrs>();
+            auto& gemm = std::get<GemmAttrs>(n.attributes);
             for (const auto& attr : node.attribute()) {
                 if (attr.name() == "alpha") gemm.alpha = attr.f();
                 if (attr.name() == "beta") gemm.beta = attr.f();
                 if (attr.name() == "transB") gemm.transB = (attr.i() == 1);
             }
-            n.op = LogicalOp::Gemm;
+            n.op = Operator::Gemm;
         }
 
-        else if (operator_type == LogicalOp::Conv || operator_type == LogicalOp::Im2Col) {
-            n.attributes.emplace<ConvAttributes>();
-            auto& conv = std::get<ConvAttributes>(n.attributes);
+        else if (operator_type == Operator::Conv || operator_type == Operator::Im2Col) {
+            n.attributes.emplace<ConvAttrs>();
+            auto& conv = std::get<ConvAttrs>(n.attributes);
             for (const auto& attr : node.attribute()) {
                 if (attr.name() == "kernel_shape")
                     for (int i = 0; i < attr.ints_size(); ++i)
@@ -112,9 +113,9 @@ static OperationResult _parse_nodes(const onnx::GraphProto& proto, LogicalGraph&
             n.op = operator_type;
         }
 
-        else if (operator_type == LogicalOp::ConvTranspose) {
-            n.attributes.emplace<ConvTransposeAttributes>();
-            auto& conv = std::get<ConvTransposeAttributes>(n.attributes);
+        else if (operator_type == Operator::ConvTranspose) {
+            n.attributes.emplace<ConvTransposeAttrs>();
+            auto& conv = std::get<ConvTransposeAttrs>(n.attributes);
             for (const auto& attr : node.attribute()) {
                 if (attr.name() == "kernel_shape")
                     for (int i = 0; i < attr.ints_size(); ++i)
@@ -147,12 +148,12 @@ static OperationResult _parse_nodes(const onnx::GraphProto& proto, LogicalGraph&
             if (conv.dilations.empty())
                 conv.dilations.assign(conv.kernel_shape.size(), 1);
 
-            n.op = LogicalOp::ConvTranspose;
+            n.op = Operator::ConvTranspose;
         }
 
-        else if (operator_type == LogicalOp::MaxPool2D) {
-            n.attributes.emplace<MaxPool2DAttributes>();
-            auto& max_pool = std::get<MaxPool2DAttributes>(n.attributes);
+        else if (operator_type == Operator::MaxPool2D) {
+            n.attributes.emplace<MaxPool2DAttrs>();
+            auto& max_pool = std::get<MaxPool2DAttrs>(n.attributes);
             for (const auto& attr : node.attribute()) {
                 if (attr.name() == "kernel_shape")
                     for (int i = 0; i < attr.ints_size(); ++i)
@@ -184,7 +185,7 @@ static OperationResult _parse_nodes(const onnx::GraphProto& proto, LogicalGraph&
     }
     return {true, {}};
 }
-
+} // namespace Logical
 namespace passes {
 
 ParseResult parse(const std::string& path) {
@@ -201,7 +202,7 @@ ParseResult parse(const std::string& path) {
         return {{}, {false, "failed to deserialize ONNX protobuf: " + absolute_path}};
 
     const onnx::GraphProto& proto = model.graph();
-    LogicalGraph graph;
+    Logical::Graph graph;
     _parse_inputs(proto, graph);
     _parse_initializers(proto, graph);
 

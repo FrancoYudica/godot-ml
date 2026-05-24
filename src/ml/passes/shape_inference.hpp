@@ -1,5 +1,5 @@
 #pragma once
-#include "core/types.hpp"
+#include "core/core.hpp"
 
 namespace ml::passes {
 
@@ -15,7 +15,7 @@ struct ShapeInferenceResult {
 // nodes in topological order applying per-operator shape rules.
 //
 ShapeInferenceResult infer_shapes(
-    const PhysicalGraph& graph,
+    const Physical::Graph& graph,
     const ShapeTable& input_shapes);
 
 } // namespace ml::passes

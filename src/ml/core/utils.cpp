@@ -17,44 +17,44 @@ godot::String get_project_relative_path(
     return base_path + addon_relative_path;
 }
 
-std::string op_name(PhysicalOp op) {
+std::string op_name(Physical::Operator op) {
     switch (op) {
-    case PhysicalOp::Gemm:
+    case Physical::Operator::Gemm:
         return "Gemm";
-    case PhysicalOp::ReLU:
+    case Physical::Operator::ReLU:
         return "ReLU";
-    case PhysicalOp::Sigmoid:
+    case Physical::Operator::Sigmoid:
         return "Sigmoid";
-    case PhysicalOp::Conv:
+    case Physical::Operator::Conv:
         return "Conv";
-    case PhysicalOp::Im2Col:
+    case Physical::Operator::Im2Col:
         return "Im2Col";
-    case PhysicalOp::Col2Im:
+    case Physical::Operator::Col2Im:
         return "Col2Im";
-    case PhysicalOp::Reshape:
+    case Physical::Operator::Reshape:
         return "Reshape";
-    case PhysicalOp::MaxPool2D:
+    case Physical::Operator::MaxPool2D:
         return "MaxPool2D";
     default:
         return "Unknown";
     }
 }
 
-std::string op_name(LogicalOp op) {
+std::string op_name(Logical::Operator op) {
     switch (op) {
-    case LogicalOp::Gemm:
+    case Logical::Operator::Gemm:
         return "Gemm";
-    case LogicalOp::ReLU:
+    case Logical::Operator::ReLU:
         return "ReLU";
-    case LogicalOp::Sigmoid:
+    case Logical::Operator::Sigmoid:
         return "Sigmoid";
-    case LogicalOp::Conv:
+    case Logical::Operator::Conv:
         return "Conv";
-    case LogicalOp::Im2Col:
+    case Logical::Operator::Im2Col:
         return "Im2Col";
-    case LogicalOp::ConvTranspose:
+    case Logical::Operator::ConvTranspose:
         return "ConvTranspose";
-    case LogicalOp::MaxPool2D:
+    case Logical::Operator::MaxPool2D:
         return "MaxPool2D";
     default:
         return "Unknown";
@@ -80,7 +80,7 @@ RID load_shader(RenderingDevice* rd, const godot::String& path) {
     return rd->shader_create_from_spirv(spirv);
 }
 
-void print(const PhysicalGraph& graph) {
+void print(const Physical::Graph& graph) {
     auto to_gstring = [](const std::string& s) {
         return String(s.c_str());
     };
@@ -101,11 +101,11 @@ void print(const PhysicalGraph& graph) {
             // Get the type of the current attribute set
             using T = std::decay_t<decltype(attr)>;
 
-            if constexpr (std::is_same_v<T, GemmAttributes>) {
+            if constexpr (std::is_same_v<T, Physical::GemmAttrs>) {
                 UtilityFunctions::print("    alpha: ", String::num_real(attr.alpha));
                 UtilityFunctions::print("    beta: ", String::num_real(attr.beta));
                 UtilityFunctions::print("    transB: ", attr.transB ? "true" : "false");
-            } else if constexpr (std::is_same_v<T, ConvAttributes>) {
+            } else if constexpr (std::is_same_v<T, Physical::ConvAttrs>) {
                 UtilityFunctions::print("    kernel_shape: ", get_iterator_str(attr.kernel_shape.begin(), attr.kernel_shape.end()));
                 UtilityFunctions::print("    pads: ", get_iterator_str(attr.pads.begin(), attr.pads.end()));
                 UtilityFunctions::print("    strides: ", get_iterator_str(attr.strides.begin(), attr.strides.end()));

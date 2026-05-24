@@ -21,7 +21,7 @@ bool GemmOperator::init(godot::RenderingDevice* rd) {
 }
 
 void ml::GemmOperator::dispatch(
-    const ml::PhysicalNode& node,
+    const ml::Physical::Node& node,
     const OperatorContext& ctx) {
     // Resolve buffers
     auto resolve = [&](const std::string& name) -> RID {
@@ -68,7 +68,7 @@ void ml::GemmOperator::dispatch(
     });
 
     // Push constants
-    auto& gemm = std::get<GemmAttributes>(node.attributes);
+    auto& gemm = std::get<Physical::GemmAttrs>(node.attributes);
     PushConstants pc{M, N, K, gemm.alpha, gemm.beta};
     PackedByteArray pc_bytes;
     pc_bytes.resize(sizeof(PushConstants));

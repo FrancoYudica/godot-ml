@@ -7,14 +7,14 @@ bool ReshapeOperator::init(godot::RenderingDevice* rd) {
 }
 
 void ReshapeOperator::dispatch(
-    const PhysicalNode& node,
+    const Physical::Node& node,
     const OperatorContext& ctx) {
 
-    const auto& attrs = std::get<ReshapeAttributes>(node.attributes);
+    const auto& attrs = std::get<Physical::ReshapeAttrs>(node.attributes);
 
     switch (attrs.mode) {
 
-    case ReshapeMode::ImageToGemm: {
+    case Physical::ReshapeMode::ImageToGemm: {
         ERR_FAIL_COND_MSG(node.inputs.size() != 1, "ImageToGemm: expected 1 input");
         ERR_FAIL_COND_MSG(node.outputs.size() != 1, "ImageToGemm: expected 1 output");
 
@@ -36,7 +36,7 @@ void ReshapeOperator::dispatch(
         break;
     }
 
-    case ReshapeMode::GemmToImage: {
+    case Physical::ReshapeMode::GemmToImage: {
         ERR_FAIL_COND_MSG(attrs.image_shape_ref.empty(), "GemmToImage: image_shape_ref is empty");
         ERR_FAIL_COND_MSG(node.inputs.size() != 1, "GemmToImage: expected 1 input");
         ERR_FAIL_COND_MSG(node.outputs.size() != 1, "GemmToImage: expected 1 output");

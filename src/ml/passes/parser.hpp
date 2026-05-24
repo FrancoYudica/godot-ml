@@ -1,10 +1,10 @@
 #pragma once
-#include "core/types.hpp" // IWYU pragma: export
+#include "core/core.hpp" // IWYU pragma: export
 
 namespace ml::passes {
 
 struct ParseResult {
-    LogicalGraph graph;
+    Logical::Graph graph;
     OperationResult status;
 };
 

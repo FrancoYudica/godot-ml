@@ -21,7 +21,7 @@ bool Conv2DOperator::init(godot::RenderingDevice* rd) {
 }
 
 void ml::Conv2DOperator::dispatch(
-    const ml::PhysicalNode& node,
+    const ml::Physical::Node& node,
     const OperatorContext& ctx) {
 
     // Resolve buffers
@@ -42,7 +42,7 @@ void ml::Conv2DOperator::dispatch(
     ERR_FAIL_COND_MSG(in_shape.size() != 4, "Conv2D: input must be 4D (NCHW)");
     ERR_FAIL_COND_MSG(w_shape.size() != 4, "Conv2D: weights must be 4D");
 
-    const auto& attrs = std::get<ConvAttributes>(node.attributes);
+    const auto& attrs = std::get<Physical::ConvAttrs>(node.attributes);
 
     uint32_t in_batch_size = in_shape[0];
     uint32_t in_channels = in_shape[1];

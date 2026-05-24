@@ -17,7 +17,7 @@ bool ElementwiseOperator::init(godot::RenderingDevice* rd) {
 }
 
 void ElementwiseOperator::dispatch(
-    const PhysicalNode& node,
+    const Physical::Node& node,
     const OperatorContext& ctx) {
 
     auto resolve = [&](const std::string& name) -> RID {

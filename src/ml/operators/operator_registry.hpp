@@ -8,15 +8,15 @@ class OperatorRegistry {
   public:
     bool init(godot::RenderingDevice* rd);
 
-    IOperator* get(PhysicalOp op) const;
+    IOperator* get(Physical::Operator op) const;
 
-    bool supports(PhysicalOp op) const;
+    bool supports(Physical::Operator op) const;
 
     void destroy(godot::RenderingDevice* rd);
 
   private:
     template <typename T>
-    bool _register(PhysicalOp op, godot::RenderingDevice* rd) {
+    bool _register(Physical::Operator op, godot::RenderingDevice* rd) {
         auto impl = std::make_unique<T>();
         if (impl->init(rd)) {
             _operators[op] = std::move(impl);
@@ -24,7 +24,7 @@ class OperatorRegistry {
         }
         return false;
     }
-    std::unordered_map<PhysicalOp, std::unique_ptr<IOperator>> _operators;
+    std::unordered_map<Physical::Operator, std::unique_ptr<IOperator>> _operators;
 };
 
 } // namespace ml
