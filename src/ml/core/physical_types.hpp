@@ -32,10 +32,16 @@ struct GemmAttrs {
 };
 
 struct ConvAttrs {
-    std::vector<int64_t> kernel_shape;
-    std::vector<int64_t> pads;
-    std::vector<int64_t> strides;
-    std::vector<int64_t> dilations;
+    uint32_t kernel_w;
+    uint32_t kernel_h;
+    uint32_t padding_left;
+    uint32_t padding_top;
+    uint32_t padding_right;
+    uint32_t padding_bottom;
+    uint32_t stride_x;
+    uint32_t stride_y;
+    uint32_t dilation_x;
+    uint32_t dilation_y;
 };
 
 struct Col2ImAttrs {
@@ -49,10 +55,16 @@ struct Col2ImAttrs {
 };
 
 struct MaxPool2DAttrs {
-    std::vector<int64_t> kernel_shape;
-    std::vector<int64_t> pads;
-    std::vector<int64_t> strides;
-    std::vector<int64_t> dilations;
+    uint32_t kernel_w;
+    uint32_t kernel_h;
+    uint32_t padding_left;
+    uint32_t padding_top;
+    uint32_t padding_right;
+    uint32_t padding_bottom;
+    uint32_t stride_x;
+    uint32_t stride_y;
+    uint32_t dilation_x;
+    uint32_t dilation_y;
 };
 
 enum class ReshapeMode {

@@ -113,11 +113,6 @@ static OperationResult check_node_attributes(
     case Physical::Operator::Conv:
         if (!std::holds_alternative<Physical::ConvAttrs>(node.attributes))
             return {false, ctx + "expected ConvAttributes variant"};
-        {
-            const auto& attrs = std::get<Physical::ConvAttrs>(node.attributes);
-            auto vr = check_kernel_pads_strides_dilations(ctx, attrs.kernel_shape, attrs.pads, attrs.strides, attrs.dilations);
-            if (!vr.success) return vr;
-        }
         break;
 
     case Physical::Operator::Gemm:
@@ -156,11 +151,6 @@ static OperationResult check_node_attributes(
     case ml::Physical::Operator::MaxPool2D:
         if (!std::holds_alternative<Physical::MaxPool2DAttrs>(node.attributes))
             return {false, ctx + "expected MaxPool2DAttributes variant"};
-        {
-            const auto& attrs = std::get<Physical::MaxPool2DAttrs>(node.attributes);
-            auto vr = check_kernel_pads_strides_dilations(ctx, attrs.kernel_shape, attrs.pads, attrs.strides, attrs.dilations);
-            if (!vr.success) return vr;
-        }
         break;
 
     case Physical::Operator::ReLU:

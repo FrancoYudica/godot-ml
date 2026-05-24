@@ -27,26 +27,32 @@ static bool infer_im2col(const Node& node, ShapeInferenceResult& result) {
     const auto* in = require(node.inputs[0], shapes, result);
     if (!in) return false;
 
-    const auto& attrs = std::get<ConvAttrs>(node.attributes);
+    auto& attrs = std::get<ConvAttrs>(node.attributes);
     int64_t b = (*in)[0], c = (*in)[1], h = (*in)[2], w = (*in)[3];
-    int64_t kH = attrs.kernel_shape[0], kW = attrs.kernel_shape[1];
-    int64_t out_h = (h + 2 * attrs.pads[0] - kH) / attrs.strides[0] + 1;
-    int64_t out_w = (w + 2 * attrs.pads[1] - kW) / attrs.strides[1] + 1;
+    int64_t kH = attrs.kernel_h, kW = attrs.kernel_w;
+
+    int64_t kh_effective = (kH - 1) * attrs.dilation_y + 1;
+    int64_t kw_effective = (kW - 1) * attrs.dilation_x + 1;
+
+    int64_t pad_horizontal = attrs.padding_left + attrs.padding_right;
+    int64_t pad_vertical = attrs.padding_top + attrs.padding_bottom;
+
+    int64_t out_h = (h + pad_vertical - kh_effective) / attrs.stride_y + 1;
+    int64_t out_w = (w + pad_horizontal - kw_effective) / attrs.stride_x + 1;
 
     shapes[node.outputs[0]] = {out_h * out_w, c * kH * kW};
 
     // Write 4D meta-shape for the downstream GemmToImage reshape.
     // weights are inputs[1] when lowered from Conv (shape [out_c, c, kH, kW]).
     if (node.inputs.size() > 1) {
-        const auto* w = require(node.inputs[1], shapes, result);
-        if (!w) return false;
-        int64_t out_c = (*w)[0];
+        const auto* weight_shape = require(node.inputs[1], shapes, result);
+        if (!weight_shape) return false;
+        int64_t out_c = (*weight_shape)[0];
         shapes[node.outputs[0] + "__4d"] = {b, out_c, out_h, out_w};
     }
 
     return true;
 }
-
 // Gemm: [M, K] x [N, K]^T -> [M, N]
 // Weights are always stored as [N, K] (transB=true).
 static bool infer_gemm(const Node& node, ShapeInferenceResult& result) {
@@ -134,16 +140,26 @@ static bool infer_conv2d(const Node& node, ShapeInferenceResult& result) {
     if (!in || !w) return false;
 
     const auto& attrs = std::get<ConvAttrs>(node.attributes);
-    int64_t b = (*in)[0], h = (*in)[2], iw = (*in)[3];
+    int64_t b = (*in)[0];
+    int64_t h = (*in)[2];
+    int64_t iw = (*in)[3];
     int64_t out_c = (*w)[0];
-    int64_t kH = attrs.kernel_shape[0], kW = attrs.kernel_shape[1];
-    int64_t out_h = (h + 2 * attrs.pads[0] - kH) / attrs.strides[0] + 1;
-    int64_t out_w = (iw + 2 * attrs.pads[1] - kW) / attrs.strides[1] + 1;
+
+    int64_t kH = attrs.kernel_h;
+    int64_t kW = attrs.kernel_w;
+
+    int64_t kh_effective = (kH - 1) * attrs.dilation_y + 1;
+    int64_t kw_effective = (kW - 1) * attrs.dilation_x + 1;
+
+    int64_t pad_horizontal = attrs.padding_left + attrs.padding_right;
+    int64_t pad_vertical = attrs.padding_top + attrs.padding_bottom;
+
+    int64_t out_h = (h + pad_vertical - kh_effective) / attrs.stride_y + 1;
+    int64_t out_w = (iw + pad_horizontal - kw_effective) / attrs.stride_x + 1;
 
     shapes[node.outputs[0]] = {b, out_c, out_h, out_w};
     return true;
 }
-
 // MaxPool2D: [b, c, h, w] -> [b, c, out_h, out_w]
 static bool infer_max_pool_2d(const Node& node, ShapeInferenceResult& result) {
     auto& shapes = result.shapes;
@@ -157,22 +173,17 @@ static bool infer_max_pool_2d(const Node& node, ShapeInferenceResult& result) {
     int64_t h = (*in)[2]; // Height
     int64_t w = (*in)[3]; // Width
 
-    int64_t kh = attrs.kernel_shape[0];
-    int64_t kw = attrs.kernel_shape[1];
+    int64_t kh = attrs.kernel_h;
+    int64_t kw = attrs.kernel_w;
 
-    int64_t kh_effective = (kh - 1) * attrs.dilations[0] + 1;
-    int64_t kw_effective = (kw - 1) * attrs.dilations[1] + 1;
+    int64_t kh_effective = (kh - 1) * attrs.dilation_y + 1;
+    int64_t kw_effective = (kw - 1) * attrs.dilation_x + 1;
 
-    int64_t pad_left = attrs.pads[0];
-    int64_t pad_top = attrs.pads[1];
-    int64_t pad_right = attrs.pads[2];
-    int64_t pad_bottom = attrs.pads[3];
+    int64_t pad_horizontal = attrs.padding_left + attrs.padding_right;
+    int64_t pad_vertical = attrs.padding_top + attrs.padding_bottom;
 
-    int64_t pad_horizontal = pad_left + pad_right;
-    int64_t pad_vertical = pad_top + pad_bottom;
-
-    int64_t out_h = (h + 2 * pad_vertical - kh_effective) / attrs.strides[0] + 1;
-    int64_t out_w = (w + 2 * pad_horizontal - kw_effective) / attrs.strides[1] + 1;
+    int64_t out_h = (h + pad_vertical - kh_effective) / attrs.stride_y + 1;
+    int64_t out_w = (w + pad_horizontal - kw_effective) / attrs.stride_x + 1;
 
     shapes[node.outputs[0]] = {b, c, out_h, out_w};
     return true;

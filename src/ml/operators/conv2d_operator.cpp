@@ -76,17 +76,18 @@ void ml::Conv2DOperator::dispatch(
             rd->free_rid(uniform_set_rid);
     });
 
-    // Push constants
     PushConstants pc{
         in_batch_size,
         in_width,
         in_height,
         in_channels,
         out_channels,
-        static_cast<uint32_t>(attrs.kernel_shape[0]),
-        static_cast<uint32_t>(attrs.pads[0]),
-        static_cast<uint32_t>(attrs.strides[0]),
-        static_cast<uint32_t>(attrs.strides[1]),
+        attrs.kernel_w,
+        attrs.kernel_h,
+        attrs.padding_left,
+        attrs.padding_top,
+        attrs.stride_x,
+        attrs.stride_y,
         out_w,
         out_h};
 

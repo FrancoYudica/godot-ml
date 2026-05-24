@@ -77,13 +77,14 @@ void ml::MaxPool2DOperator::dispatch(
         in_height,
         out_w,
         out_h,
-        static_cast<uint32_t>(attrs.kernel_shape[0]),
-        static_cast<uint32_t>(attrs.strides[0]),
-        static_cast<uint32_t>(attrs.strides[1]),
-        static_cast<uint32_t>(attrs.pads[0]),
-        static_cast<uint32_t>(attrs.pads[1]),
-        static_cast<uint32_t>(attrs.dilations[0]),
-        static_cast<uint32_t>(attrs.dilations[1])};
+        attrs.kernel_w,
+        attrs.kernel_h,
+        attrs.stride_x,
+        attrs.stride_y,
+        attrs.padding_left,
+        attrs.padding_top,
+        attrs.dilation_x,
+        attrs.dilation_y};
 
     PackedByteArray pc_bytes;
     pc_bytes.resize(sizeof(PushConstants));

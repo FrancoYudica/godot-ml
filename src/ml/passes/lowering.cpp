@@ -47,12 +47,17 @@ static OperationResult low_conv(const Logical::Node& node, Physical::Graph& grap
     im2col.inputs = {node.inputs}; // {activation, weights, bias}
     im2col.outputs = {col_name};
 
-    Physical::ConvAttrs attrs;
-    attrs.kernel_shape = l_attrs.kernel_shape;
-    attrs.pads = l_attrs.pads;
-    attrs.strides = l_attrs.strides;
-    attrs.dilations = l_attrs.dilations;
-    im2col.attributes = attrs;
+    im2col.attributes = Physical::ConvAttrs{
+        .kernel_w = static_cast<uint32_t>(l_attrs.kernel_shape[0]),
+        .kernel_h = static_cast<uint32_t>(l_attrs.kernel_shape[1]),
+        .padding_left = static_cast<uint32_t>(l_attrs.pads[0]),
+        .padding_top = static_cast<uint32_t>(l_attrs.pads[1]),
+        .padding_right = static_cast<uint32_t>(l_attrs.pads[2]),
+        .padding_bottom = static_cast<uint32_t>(l_attrs.pads[3]),
+        .stride_x = static_cast<uint32_t>(l_attrs.strides[0]),
+        .stride_y = static_cast<uint32_t>(l_attrs.strides[1]),
+        .dilation_x = static_cast<uint32_t>(l_attrs.dilations[0]),
+        .dilation_y = static_cast<uint32_t>(l_attrs.dilations[1])};
 
     im2col.op = Physical::Operator::Im2Col;
 
@@ -85,13 +90,18 @@ static OperationResult low_im2col(const Logical::Node& node, Physical::Graph& gr
     n.inputs = {node.inputs[0]};
     n.outputs = {node.outputs[0]};
 
-    Physical::ConvAttrs attrs;
-    attrs.kernel_shape = l_attrs.kernel_shape;
-    attrs.pads = l_attrs.pads;
-    attrs.strides = l_attrs.strides;
-    attrs.dilations = l_attrs.dilations;
+    n.attributes = Physical::ConvAttrs{
+        .kernel_w = static_cast<uint32_t>(l_attrs.kernel_shape[0]),
+        .kernel_h = static_cast<uint32_t>(l_attrs.kernel_shape[1]),
+        .padding_left = static_cast<uint32_t>(l_attrs.pads[0]),
+        .padding_top = static_cast<uint32_t>(l_attrs.pads[1]),
+        .padding_right = static_cast<uint32_t>(l_attrs.pads[2]),
+        .padding_bottom = static_cast<uint32_t>(l_attrs.pads[3]),
+        .stride_x = static_cast<uint32_t>(l_attrs.strides[0]),
+        .stride_y = static_cast<uint32_t>(l_attrs.strides[1]),
+        .dilation_x = static_cast<uint32_t>(l_attrs.dilations[0]),
+        .dilation_y = static_cast<uint32_t>(l_attrs.dilations[1])};
 
-    n.attributes = attrs;
     n.op = Physical::Operator::Im2Col;
     graph.nodes.push_back(std::move(n));
     return {true, {}};
@@ -184,10 +194,16 @@ static OperationResult low_max_pool_2d(const Logical::Node& node, Physical::Grap
     max_pool.outputs = {node.outputs[0]};
 
     max_pool.attributes = Physical::MaxPool2DAttrs{
-        .kernel_shape = l_attrs.kernel_shape,
-        .pads = l_attrs.pads,
-        .strides = l_attrs.strides,
-        .dilations = l_attrs.dilations};
+        .kernel_w = static_cast<uint32_t>(l_attrs.kernel_shape[0]),
+        .kernel_h = static_cast<uint32_t>(l_attrs.kernel_shape[1]),
+        .padding_left = static_cast<uint32_t>(l_attrs.pads[0]),
+        .padding_top = static_cast<uint32_t>(l_attrs.pads[1]),
+        .padding_right = static_cast<uint32_t>(l_attrs.pads[2]),
+        .padding_bottom = static_cast<uint32_t>(l_attrs.pads[3]),
+        .stride_x = static_cast<uint32_t>(l_attrs.strides[0]),
+        .stride_y = static_cast<uint32_t>(l_attrs.strides[1]),
+        .dilation_x = static_cast<uint32_t>(l_attrs.dilations[0]),
+        .dilation_y = static_cast<uint32_t>(l_attrs.dilations[1])};
 
     graph.nodes.push_back(std::move(max_pool));
     return {true, {}};

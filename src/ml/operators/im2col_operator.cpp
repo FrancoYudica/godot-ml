@@ -28,18 +28,22 @@ void ml::Im2ColOperator::dispatch(
     RID out_buf = ctx.activations_tm->get_buffer_rid(node.outputs[0]);
 
     const auto& in_shape = ctx.shape_table->at(node.inputs[0]);
+    const auto& out_shape = ctx.shape_table->at(node.outputs[0]);
+
     const auto& attrs = std::get<Physical::ConvAttrs>(node.attributes);
 
-    uint32_t in_channels = in_shape[1];
+    uint32_t batch_size = in_shape[0];
+    uint32_t channels = in_shape[1];
     uint32_t in_height = in_shape[2];
     uint32_t in_width = in_shape[3];
-    uint32_t kx = attrs.kernel_shape[0];
-    uint32_t ky = attrs.kernel_shape[1];
 
-    // Compute spatial output dims from the standard conv formula.
-    // Works for both standalone Im2Col and the Conv-lowered path.
-    uint32_t out_h = (in_height + 2 * attrs.pads[0] - kx) / attrs.strides[0] + 1;
-    uint32_t out_w = (in_width + 2 * attrs.pads[1] - ky) / attrs.strides[1] + 1;
+    // Compute out_h and out_w based on the input shape and convolution attributes
+    int64_t kh_effective = (attrs.kernel_h - 1) * attrs.dilation_y + 1;
+    int64_t kw_effective = (attrs.kernel_w - 1) * attrs.dilation_x + 1;
+    int64_t pad_horizontal = attrs.padding_left + attrs.padding_right;
+    int64_t pad_vertical = attrs.padding_top + attrs.padding_bottom;
+    int64_t out_h = (in_height + pad_vertical - kh_effective) / attrs.stride_y + 1;
+    int64_t out_w = (in_width + pad_horizontal - kw_effective) / attrs.stride_x + 1;
 
     auto make_uniform = [&](RID rid, int binding) {
         Ref<RDUniform> u;
@@ -63,13 +67,15 @@ void ml::Im2ColOperator::dispatch(
     PushConstants pc{
         in_width,
         in_height,
-        in_channels,
-        static_cast<uint32_t>(kx),
-        static_cast<uint32_t>(attrs.pads[0]),
-        static_cast<uint32_t>(attrs.strides[0]),
-        static_cast<uint32_t>(attrs.strides[1]),
-        out_w,
-        out_h};
+        channels,
+        attrs.kernel_w,
+        attrs.kernel_h,
+        attrs.padding_left,
+        attrs.padding_top,
+        attrs.stride_x,
+        attrs.stride_y,
+        static_cast<uint32_t>(out_w),
+        static_cast<uint32_t>(out_h)};
 
     PackedByteArray pc_bytes;
     pc_bytes.resize(sizeof(PushConstants));
@@ -79,7 +85,16 @@ void ml::Im2ColOperator::dispatch(
     ctx.rd->compute_list_bind_uniform_set(ctx.compute_list, uniform_set_rid, 0);
     ctx.rd->compute_list_set_push_constant(ctx.compute_list, pc_bytes, pc_bytes.size());
 
-    uint32_t total_workers = out_h * out_w * in_channels * kx * ky;
+    UtilityFunctions::print("Attribute: out h = " + itos(out_h));
+    UtilityFunctions::print("Attribute: out w = " + itos(out_w));
+    UtilityFunctions::print("Attribute: channels = " + itos(channels));
+    UtilityFunctions::print("Attribute: attrs.kernel_w = " + itos(attrs.kernel_w));
+    UtilityFunctions::print("Attribute: attrs.kernel_h = " + itos(attrs.kernel_h));
+
+    uint32_t total_workers = out_h * out_w * channels * attrs.kernel_w * attrs.kernel_h;
+
+    UtilityFunctions::print("IM2COL: total workers = " + String::num(total_workers));
+
     uint32_t workgroup_count = (total_workers + 63) / 64;
     ctx.rd->compute_list_dispatch(ctx.compute_list, workgroup_count, 1, 1);
 }

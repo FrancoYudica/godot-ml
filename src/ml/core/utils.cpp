@@ -95,25 +95,25 @@ void print(const Physical::Graph& graph) {
         UtilityFunctions::print(" inputs: ", get_iterator_str(node.inputs.begin(), node.inputs.end()));
         UtilityFunctions::print(" outputs: ", get_iterator_str(node.outputs.begin(), node.outputs.end()));
 
-        std::visit([&](const auto& attr) {
-            UtilityFunctions::print("  attributes:");
+        // std::visit([&](const auto& attr) {
+        //     UtilityFunctions::print("  attributes:");
 
-            // Get the type of the current attribute set
-            using T = std::decay_t<decltype(attr)>;
+        //     // Get the type of the current attribute set
+        //     using T = std::decay_t<decltype(attr)>;
 
-            if constexpr (std::is_same_v<T, Physical::GemmAttrs>) {
-                UtilityFunctions::print("    alpha: ", String::num_real(attr.alpha));
-                UtilityFunctions::print("    beta: ", String::num_real(attr.beta));
-                UtilityFunctions::print("    transB: ", attr.transB ? "true" : "false");
-            } else if constexpr (std::is_same_v<T, Physical::ConvAttrs>) {
-                UtilityFunctions::print("    kernel_shape: ", get_iterator_str(attr.kernel_shape.begin(), attr.kernel_shape.end()));
-                UtilityFunctions::print("    pads: ", get_iterator_str(attr.pads.begin(), attr.pads.end()));
-                UtilityFunctions::print("    strides: ", get_iterator_str(attr.strides.begin(), attr.strides.end()));
-            } else {
-                UtilityFunctions::print("    No specific attributes for this node type.");
-            }
-        },
-                   node.attributes);
+        //     if constexpr (std::is_same_v<T, Physical::GemmAttrs>) {
+        //         UtilityFunctions::print("    alpha: ", String::num_real(attr.alpha));
+        //         UtilityFunctions::print("    beta: ", String::num_real(attr.beta));
+        //         UtilityFunctions::print("    transB: ", attr.transB ? "true" : "false");
+        //     } else if constexpr (std::is_same_v<T, Physical::ConvAttrs>) {
+        //         UtilityFunctions::print("    kernel_shape: ", get_iterator_str(attr.kernel_shape.begin(), attr.kernel_shape.end()));
+        //         UtilityFunctions::print("    pads: ", get_iterator_str(attr.pads.begin(), attr.pads.end()));
+        //         UtilityFunctions::print("    strides: ", get_iterator_str(attr.strides.begin(), attr.strides.end()));
+        //     } else {
+        //         UtilityFunctions::print("    No specific attributes for this node type.");
+        //     }
+        // },
+        //            node.attributes);
     }
 }
 bool tensor_shape_matches(
