@@ -19,8 +19,10 @@ layout(push_constant) uniform PushConstants {
   uint in_height;
   uint in_channels;
   uint out_channels;
-  uint kernel_size;
-  uint pad;
+  uint kernel_w;
+  uint kernel_h;
+  uint padding_left;
+  uint padding_top;
   uint stride_x;
   uint stride_y;
   uint out_width;
@@ -50,12 +52,12 @@ void main() {
   for (uint oc = 0; oc < pc.out_channels; oc++) {
     float sum = 0.0;
 
-    for (uint ky = 0; ky < pc.kernel_size; ky++) {
-      for (uint kx = 0; kx < pc.kernel_size; kx++) {
+    for (uint ky = 0; ky < pc.kernel_h; ky++) {
+      for (uint kx = 0; kx < pc.kernel_w; kx++) {
 
         // Sample relative to the window start
-        int sample_x = int(start_x) + int(kx) - int(pc.pad);
-        int sample_y = int(start_y) + int(ky) - int(pc.pad);
+        int sample_x = int(start_x) + int(kx) - int(pc.padding_left);
+        int sample_y = int(start_y) + int(ky) - int(pc.padding_top);
 
         if (sample_x >= 0 && sample_x < int(pc.in_width) && sample_y >= 0 &&
             sample_y < int(pc.in_height)) {
@@ -65,9 +67,8 @@ void main() {
                                  pc.in_channels +
                              ic + batch_offset;
             uint weight_idx =
-                oc * (pc.in_channels * pc.kernel_size * pc.kernel_size) +
-                ic * (pc.kernel_size * pc.kernel_size) + ky * pc.kernel_size +
-                kx;
+                oc * (pc.in_channels * pc.kernel_w * pc.kernel_h) +
+                ic * (pc.kernel_w * pc.kernel_h) + ky * pc.kernel_w + kx;
 
             sum += input_tensor.data[input_idx] * weights.data[weight_idx];
           }

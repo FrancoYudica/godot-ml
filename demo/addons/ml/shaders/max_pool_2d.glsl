@@ -15,7 +15,8 @@ layout(push_constant) uniform PushConstants {
   uint in_height;
   uint out_width;
   uint out_height;
-  uint kernel_size;
+  uint kernel_w;
+  uint kernel_h;
   uint stride_x;
   uint stride_y;
   uint pad_left;
@@ -47,8 +48,8 @@ void main() {
   uint batch_channel_offset = (batch * pc.channels + channel) * in_image_size;
 
   // Sliding Window
-  for (uint ky = 0; ky < pc.kernel_size; ky++) {
-    for (uint kx = 0; kx < pc.kernel_size; kx++) {
+  for (uint ky = 0; ky < pc.kernel_h; ky++) {
+    for (uint kx = 0; kx < pc.kernel_w; kx++) {
       int sample_x =
           int(start_x) + int(kx) * int(pc.dilation_x) - int(pc.pad_left);
       int sample_y =

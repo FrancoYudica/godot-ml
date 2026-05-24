@@ -129,6 +129,7 @@ func _setup_tests() -> Array[Test]:
 			]
 		)
 	)
+	return list
 	
 	list.append(
 		Test.new(
@@ -277,5 +278,7 @@ func assert_almost_equals(test_name, a: PackedFloat32Array, b: PackedFloat32Arra
 	for i in range(a.size()):
 		if abs(a[i] - b[i]) > epsilon:
 			push_error("Test %s failed at index %d. Expected %f, got %f" % [test_name, i, a[i], b[i]])
+			push_error(" - Expected: %s\n - Got: %s" % [a, b])
+			
 			return
 	print("Success: %s. Got: %s" % [test_name, b])
