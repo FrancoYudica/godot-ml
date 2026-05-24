@@ -212,6 +212,28 @@ func _setup_tests() -> Array[Test]:
 		)
 	)
 
+	list.append(
+		Test.new(
+			"MaxPool2D (Dilations=2)",
+			"ml/tests/test_max_pool_2d_dilations=2.onnx",
+			_setup_float_array_test.bind(
+				# 1x3x4x4 input
+				max_pool_in_floats,
+				[
+					1, # Batches
+					3, # Channels
+					4, # Height
+					4] # Width
+				),
+			_pop_float_array_result,
+			
+			# 1x3x2x2 output
+			[
+				11, 27, 43
+			]
+		)
+	)
+
 	return list
 
 func _setup_float_array_test(descriptor: InferenceDescriptor, data: PackedFloat32Array, shape: PackedFloat64Array):

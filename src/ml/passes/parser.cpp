@@ -92,6 +92,9 @@ static OperationResult _parse_nodes(const onnx::GraphProto& proto, LogicalGraph&
                 if (attr.name() == "strides")
                     for (int i = 0; i < attr.ints_size(); ++i)
                         conv.strides.push_back(attr.ints(i));
+                if (attr.name() == "dilations")
+                    for (int i = 0; i < attr.ints_size(); ++i)
+                        conv.dilations.push_back(attr.ints(i));
             }
             // Fallback: derive kernel_shape from weight tensor if attribute was absent
             if (conv.kernel_shape.empty() && node.input_size() > 1) {
@@ -104,7 +107,8 @@ static OperationResult _parse_nodes(const onnx::GraphProto& proto, LogicalGraph&
                 conv.strides.assign(conv.kernel_shape.size(), 1);
             if (conv.pads.empty())
                 conv.pads.assign(conv.kernel_shape.size() * 2, 0);
-
+            if (conv.dilations.empty())
+                conv.dilations.assign(conv.kernel_shape.size(), 1);
             n.op = operator_type;
         }
 
@@ -124,6 +128,9 @@ static OperationResult _parse_nodes(const onnx::GraphProto& proto, LogicalGraph&
                 if (attr.name() == "output_padding")
                     for (int i = 0; i < attr.ints_size(); ++i)
                         conv.output_padding.push_back(attr.ints(i));
+                if (attr.name() == "dilations")
+                    for (int i = 0; i < attr.ints_size(); ++i)
+                        conv.dilations.push_back(attr.ints(i));
             }
             if (conv.kernel_shape.empty() && node.input_size() > 1) {
                 auto it = graph.initializers.find(node.input(1));
@@ -137,6 +144,8 @@ static OperationResult _parse_nodes(const onnx::GraphProto& proto, LogicalGraph&
                 conv.pads.assign(conv.kernel_shape.size() * 2, 0);
             if (conv.output_padding.empty())
                 conv.output_padding.assign(conv.kernel_shape.size(), 0);
+            if (conv.dilations.empty())
+                conv.dilations.assign(conv.kernel_shape.size(), 1);
 
             n.op = LogicalOp::ConvTranspose;
         }
@@ -148,17 +157,25 @@ static OperationResult _parse_nodes(const onnx::GraphProto& proto, LogicalGraph&
                 if (attr.name() == "kernel_shape")
                     for (int i = 0; i < attr.ints_size(); ++i)
                         max_pool.kernel_shape.push_back(attr.ints(i));
-                if (attr.name() == "pads")
+                else if (attr.name() == "pads")
                     for (int i = 0; i < attr.ints_size(); ++i)
                         max_pool.pads.push_back(attr.ints(i));
-                if (attr.name() == "strides")
+                else if (attr.name() == "strides")
                     for (int i = 0; i < attr.ints_size(); ++i)
                         max_pool.strides.push_back(attr.ints(i));
+                else if (attr.name() == "dilations")
+                    for (int i = 0; i < attr.ints_size(); ++i)
+                        max_pool.dilations.push_back(attr.ints(i));
+                else {
+                    godot::UtilityFunctions::push_warning("Unhandled attribute: " + godot::String(attr.name().c_str()) + " for operator: " + godot::String(node.name().c_str()));
+                }
             }
             if (max_pool.strides.empty())
                 max_pool.strides.assign(max_pool.kernel_shape.size(), 1);
             if (max_pool.pads.empty())
                 max_pool.pads.assign(max_pool.kernel_shape.size() * 2, 0);
+            if (max_pool.dilations.empty())
+                max_pool.dilations.assign(max_pool.kernel_shape.size(), 1);
 
             n.op = operator_type;
         }

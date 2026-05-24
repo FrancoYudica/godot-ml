@@ -3,7 +3,7 @@ from onnx import helper, TensorProto
 import onnxruntime as ort
 import numpy as np
 
-def create_and_evaluate_maxpool(kernel_size=2, stride=2, pad=0):
+def create_and_evaluate_maxpool(kernel_size=2, stride=2, pad=0, dilation=1):
     in_channels = 3
     filename = 'test_maxpool2d.onnx'
     
@@ -17,6 +17,7 @@ def create_and_evaluate_maxpool(kernel_size=2, stride=2, pad=0):
         kernel_shape=[kernel_size, kernel_size],
         strides=[stride, stride],
         pads=[pad, pad, pad, pad], 
+        dilations=[dilation, dilation],
         name='maxpool_layer'
     )
 
@@ -62,4 +63,4 @@ def create_and_evaluate_maxpool(kernel_size=2, stride=2, pad=0):
 
 if __name__ == "__main__":
     # Feel free to change kernel, stride, or pad parameters to test edge cases!
-    create_and_evaluate_maxpool(kernel_size=2, stride=2, pad=0)
+    create_and_evaluate_maxpool(kernel_size=2, stride=2, pad=0, dilation=2)

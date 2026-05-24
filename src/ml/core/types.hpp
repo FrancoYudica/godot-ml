@@ -60,6 +60,7 @@ struct ConvAttributes {
     std::vector<int64_t> kernel_shape;
     std::vector<int64_t> pads;
     std::vector<int64_t> strides;
+    std::vector<int64_t> dilations;
 };
 
 struct Col2ImAttributes {
@@ -67,6 +68,7 @@ struct Col2ImAttributes {
     std::vector<int64_t> pads;
     std::vector<int64_t> strides;
     std::vector<int64_t> output_padding;
+    std::vector<int64_t> dilations;
     // Name of the original ConvTranspose input tensor [b, ic, ih, iw].
     // Used by shape inference to compute output spatial dimensions.
     std::string source_activation;
@@ -93,12 +95,14 @@ struct ConvTransposeAttributes {
     std::vector<int64_t> pads;
     std::vector<int64_t> strides;
     std::vector<int64_t> output_padding;
+    std::vector<int64_t> dilations;
 };
 
 struct MaxPool2DAttributes {
     std::vector<int64_t> kernel_shape;
     std::vector<int64_t> pads;
     std::vector<int64_t> strides;
+    std::vector<int64_t> dilations;
 };
 
 /**

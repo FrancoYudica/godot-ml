@@ -18,7 +18,10 @@ layout(push_constant) uniform PushConstants {
   uint kernel_size;
   uint stride_x;
   uint stride_y;
-  uint pad;
+  uint pad_left;
+  uint pad_top;
+  uint dilation_x;
+  uint dilation_y;
 }
 pc;
 
@@ -46,8 +49,10 @@ void main() {
   // Sliding Window
   for (uint ky = 0; ky < pc.kernel_size; ky++) {
     for (uint kx = 0; kx < pc.kernel_size; kx++) {
-      int sample_x = int(start_x) + int(kx) - int(pc.pad);
-      int sample_y = int(start_y) + int(ky) - int(pc.pad);
+      int sample_x =
+          int(start_x) + int(kx) * int(pc.dilation_x) - int(pc.pad_left);
+      int sample_y =
+          int(start_y) + int(ky) * int(pc.dilation_y) - int(pc.pad_top);
 
       if (sample_x >= 0 && sample_x < int(pc.in_width) && sample_y >= 0 &&
           sample_y < int(pc.in_height)) {

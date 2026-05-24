@@ -130,6 +130,7 @@ static OperationResult low_conv_transpose(const LogicalNode& node, PhysicalGraph
     col2im_attrs.pads = attrs.pads;
     col2im_attrs.strides = attrs.strides;
     col2im_attrs.output_padding = attrs.output_padding;
+    col2im_attrs.dilations = attrs.dilations;
     col2im_attrs.source_activation = node.inputs[0];
 
     PhysicalNode col2im;

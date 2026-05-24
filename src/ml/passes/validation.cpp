@@ -74,12 +74,12 @@ static OperationResult check_node_arity(size_t idx, const PhysicalNode& node) {
     return {true, {}};
 }
 
-static OperationResult check_kernel_pads_strides(
+static OperationResult check_kernel_pads_strides_dilations(
     const std::string& ctx,
     const std::vector<int64_t>& kernel_shape,
     const std::vector<int64_t>& pads,
-    const std::vector<int64_t>& strides) {
-
+    const std::vector<int64_t>& strides,
+    const std::vector<int64_t>& dilations) {
     if (kernel_shape.size() != 2)
         return {
             false,
@@ -96,6 +96,10 @@ static OperationResult check_kernel_pads_strides(
         return {
             false,
             ctx + "expected 2 stride values, got: " + std::to_string(strides.size())};
+    if (dilations.size() != 2)
+        return {
+            false,
+            ctx + "expected 2 dilation values, got: " + std::to_string(dilations.size())};
     return {true, {}};
 }
 
@@ -113,7 +117,7 @@ static OperationResult check_node_attributes(
             return {false, ctx + "expected ConvAttributes variant"};
         {
             const auto& attrs = std::get<ConvAttributes>(node.attributes);
-            auto vr = check_kernel_pads_strides(ctx, attrs.kernel_shape, attrs.pads, attrs.strides);
+            auto vr = check_kernel_pads_strides_dilations(ctx, attrs.kernel_shape, attrs.pads, attrs.strides, attrs.dilations);
             if (!vr.success) return vr;
         }
         break;
@@ -130,7 +134,7 @@ static OperationResult check_node_attributes(
             return {false, ctx + "expected Col2ImAttributes variant"};
         {
             const auto& attrs = std::get<Col2ImAttributes>(node.attributes);
-            auto vr = check_kernel_pads_strides(ctx, attrs.kernel_shape, attrs.pads, attrs.strides);
+            auto vr = check_kernel_pads_strides_dilations(ctx, attrs.kernel_shape, attrs.pads, attrs.strides, attrs.dilations);
             if (!vr.success) return vr;
             if (attrs.output_padding.size() != 2)
                 return {false, ctx + "expected 2 output padding values, got: " + std::to_string(attrs.output_padding.size())};
@@ -156,7 +160,7 @@ static OperationResult check_node_attributes(
             return {false, ctx + "expected MaxPool2DAttributes variant"};
         {
             const auto& attrs = std::get<MaxPool2DAttributes>(node.attributes);
-            auto vr = check_kernel_pads_strides(ctx, attrs.kernel_shape, attrs.pads, attrs.strides);
+            auto vr = check_kernel_pads_strides_dilations(ctx, attrs.kernel_shape, attrs.pads, attrs.strides, attrs.dilations);
             if (!vr.success) return vr;
         }
         break;
@@ -235,8 +239,12 @@ ValidationResult validate(const LogicalGraph& graph) {
             if (!std::holds_alternative<ConvAttributes>(node.attributes))
                 return {{false, ctx + "expected ConvAttributes variant"}};
             const auto& attrs = std::get<ConvAttributes>(node.attributes);
-            auto vr = check_kernel_pads_strides(ctx, attrs.kernel_shape, attrs.pads, attrs.strides);
+            auto vr = check_kernel_pads_strides_dilations(ctx, attrs.kernel_shape, attrs.pads, attrs.strides, attrs.dilations);
             if (!vr.success) return {vr};
+
+            if (attrs.dilations[0] != 1.0 || attrs.dilations[1] != 1.0)
+                return {{false, ctx + "unsupported Conv dilation values. Currently, dilations=1 is supported"}};
+
             break;
         }
 
@@ -244,10 +252,14 @@ ValidationResult validate(const LogicalGraph& graph) {
             if (!std::holds_alternative<ConvTransposeAttributes>(node.attributes))
                 return {{false, ctx + "expected ConvTransposeAttributes variant"}};
             const auto& attrs = std::get<ConvTransposeAttributes>(node.attributes);
-            auto vr = check_kernel_pads_strides(ctx, attrs.kernel_shape, attrs.pads, attrs.strides);
+            auto vr = check_kernel_pads_strides_dilations(ctx, attrs.kernel_shape, attrs.pads, attrs.strides, attrs.dilations);
             if (!vr.success) return {vr};
             if (attrs.output_padding.size() != 2)
                 return {{false, ctx + "expected 2 output padding values, got: " + std::to_string(attrs.output_padding.size())}};
+
+            if (attrs.dilations[0] != 1.0 || attrs.dilations[1] != 1.0)
+                return {{false, ctx + "unsupported Conv ConvTransposeAttributes values. Currently, dilations=1 is supported"}};
+
             break;
         }
 
@@ -256,7 +268,7 @@ ValidationResult validate(const LogicalGraph& graph) {
                 return {false, ctx + "expected MaxPool2DAttributes variant"};
             {
                 const auto& attrs = std::get<MaxPool2DAttributes>(node.attributes);
-                auto vr = check_kernel_pads_strides(ctx, attrs.kernel_shape, attrs.pads, attrs.strides);
+                auto vr = check_kernel_pads_strides_dilations(ctx, attrs.kernel_shape, attrs.pads, attrs.strides, attrs.dilations);
                 if (!vr.success) return {vr};
             }
             break;

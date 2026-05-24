@@ -150,12 +150,29 @@ static bool infer_max_pool_2d(const PhysicalNode& node, ShapeInferenceResult& re
     if (!in) return false;
 
     const auto& attrs = std::get<MaxPool2DAttributes>(node.attributes);
-    int64_t b = (*in)[0], h = (*in)[2], w = (*in)[3];
-    int64_t kH = attrs.kernel_shape[0], kW = attrs.kernel_shape[1];
-    int64_t out_h = (h + 2 * attrs.pads[0] - kH) / attrs.strides[0] + 1;
-    int64_t out_w = (w + 2 * attrs.pads[1] - kW) / attrs.strides[1] + 1;
+    int64_t b = (*in)[0]; // Batches
+    int64_t c = (*in)[1]; // Channels
+    int64_t h = (*in)[2]; // Height
+    int64_t w = (*in)[3]; // Width
 
-    shapes[node.outputs[0]] = {b, (*in)[1], out_h, out_w};
+    int64_t kh = attrs.kernel_shape[0];
+    int64_t kw = attrs.kernel_shape[1];
+
+    int64_t kh_effective = (kh - 1) * attrs.dilations[0] + 1;
+    int64_t kw_effective = (kw - 1) * attrs.dilations[1] + 1;
+
+    int64_t pad_left = attrs.pads[0];
+    int64_t pad_top = attrs.pads[1];
+    int64_t pad_right = attrs.pads[2];
+    int64_t pad_bottom = attrs.pads[3];
+
+    int64_t pad_horizontal = pad_left + pad_right;
+    int64_t pad_vertical = pad_top + pad_bottom;
+
+    int64_t out_h = (h + 2 * pad_vertical - kh_effective) / attrs.strides[0] + 1;
+    int64_t out_w = (w + 2 * pad_horizontal - kw_effective) / attrs.strides[1] + 1;
+
+    shapes[node.outputs[0]] = {b, c, out_h, out_w};
     return true;
 }
 
