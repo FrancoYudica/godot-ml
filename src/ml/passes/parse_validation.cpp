@@ -97,10 +97,6 @@ OperationResult validate_parse(const Logical::Graph& graph) {
             const auto& attrs = std::get<Logical::ConvAttrs>(node.attributes);
             auto vr = check_kernel_pads_strides_dilations(ctx, attrs.kernel_shape, attrs.pads, attrs.strides, attrs.dilations);
             if (!vr.success) return {vr};
-
-            if (attrs.dilations[0] != 1.0 || attrs.dilations[1] != 1.0)
-                return {false, ctx + "unsupported Conv dilation values. Currently, dilations=1 is supported"};
-
             break;
         }
 

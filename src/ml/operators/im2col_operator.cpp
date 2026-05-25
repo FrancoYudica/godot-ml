@@ -75,7 +75,10 @@ void ml::Im2ColOperator::dispatch(
         attrs.stride_x,
         attrs.stride_y,
         static_cast<uint32_t>(out_w),
-        static_cast<uint32_t>(out_h)};
+        static_cast<uint32_t>(out_h),
+        attrs.dilation_x,
+        attrs.dilation_y,
+    };
 
     PackedByteArray pc_bytes;
     pc_bytes.resize(sizeof(PushConstants));

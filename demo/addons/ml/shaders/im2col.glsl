@@ -20,6 +20,8 @@ layout(push_constant) uniform PushConstants {
   uint stride_y;
   uint out_width;
   uint out_height;
+  uint dilation_x;
+  uint dilation_y;
 }
 pc;
 
@@ -47,8 +49,10 @@ void main() {
   uint ky = (elem_idx / pc.kernel_w) % pc.kernel_h;
   uint ic = elem_idx / (pc.kernel_w * pc.kernel_h);
 
-  int sample_x = int(out_x * pc.stride_x) + int(kx) - int(pc.padding_left);
-  int sample_y = int(out_y * pc.stride_y) + int(ky) - int(pc.padding_top);
+  int sample_x =
+      int(out_x * pc.stride_x) + int(kx * pc.dilation_x) - int(pc.padding_left);
+  int sample_y =
+      int(out_y * pc.stride_y) + int(ky * pc.dilation_y) - int(pc.padding_top);
 
   float val = 0.0; // zero padding
 

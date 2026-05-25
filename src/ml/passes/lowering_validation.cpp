@@ -84,13 +84,6 @@ static OperationResult check_node_attributes(
     case Physical::Operator::Conv:
         if (!std::holds_alternative<Physical::ConvAttrs>(node.attributes))
             return {false, ctx + "expected ConvAttributes variant"};
-        {
-            const auto& attrs = std::get<Physical::ConvAttrs>(node.attributes);
-
-            if (attrs.dilation_x != 1 || attrs.dilation_y != 1)
-                return {false, ctx + "only unit dilations supported"};
-        }
-
         break;
 
     case Physical::Operator::Gemm:

@@ -22,7 +22,9 @@ class Im2ColOperator : public IOperator {
         uint32_t stride_y;
         uint32_t out_width;
         uint32_t out_height;
-        float _padding[1];
+        uint32_t dilation_x;
+        uint32_t dilation_y;
+        float _padding[3];
     };
 
     godot::RID _shader;

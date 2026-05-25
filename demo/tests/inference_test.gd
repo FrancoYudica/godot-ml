@@ -129,8 +129,40 @@ func _setup_tests() -> Array[Test]:
 			]
 		)
 	)
-	return list
-	
+
+	list.append(
+		Test.new(
+			"Img2ColDilations2",
+			"ml/tests/test_im2col_dilations=2.onnx",
+			_setup_float_array_test.bind(
+				
+				# Input image
+				[
+					1, 2, 3, 4,
+					5, 6, 7, 8,
+					9, 10, 11, 12
+				], 
+				
+				# Shape
+				[
+					1, # Batches
+					1, # Channels
+					4, # Height
+					4  # Width
+				]
+			),
+			_pop_float_array_result,
+			
+			# Expected output
+			[
+				0.0, 0.0, 0.0, 0.0, 6.0, 8.0, 0.0, 0.0, 0.0, # Patch 1
+				0.0, 0.0, 0.0, 5.0, 7.0, 0.0, 0.0, 0.0, 0.0,  # Patch 2
+				0.0, 2.0, 4.0, 0.0, 10., 12., 0.0, 0.0, 0.0,
+				1.0, 3.0, 0.0, 9.0, 11., 0.0, 0.0, 0.0, 0.0
+			]
+		)
+	)
+
 	list.append(
 		Test.new(
 			"ConvTranspose2x2",
