@@ -95,9 +95,9 @@ uint32_t MLInferenceEngine::register_model(String model_path) {
 
     auto logical_validation_result = ml::passes::validate(parse_result.graph);
     ERR_FAIL_COND_V_MSG(
-        !logical_validation_result.status.success,
+        !logical_validation_result.success,
         0,
-        ("InferenceEngine: logical graph validation failed: " + logical_validation_result.status.error).c_str());
+        ("InferenceEngine: logical graph validation failed: " + logical_validation_result.error).c_str());
 
     auto lower_result = ml::passes::lower(parse_result.graph);
     ERR_FAIL_COND_V_MSG(
@@ -107,9 +107,9 @@ uint32_t MLInferenceEngine::register_model(String model_path) {
 
     auto validation_result = ml::passes::validate(lower_result.graph);
     ERR_FAIL_COND_V_MSG(
-        !validation_result.status.success,
+        !validation_result.success,
         0,
-        ("InferenceEngine: graph validation failed: " + validation_result.status.error).c_str());
+        ("InferenceEngine: graph validation failed: " + validation_result.error).c_str());
 
     GraphContext graph_context;
     graph_context.graph = std::move(lower_result.graph);

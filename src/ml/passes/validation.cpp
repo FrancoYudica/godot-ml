@@ -31,7 +31,7 @@ static OperationResult check_connectivity(const Physical::Graph& graph) {
             defined.insert(output);
         }
     }
-    return {true, {}};
+    return {true};
 }
 
 static OperationResult check_node_arity(size_t idx, const Physical::Node& node) {
@@ -69,7 +69,7 @@ static OperationResult check_node_arity(size_t idx, const Physical::Node& node) 
     case Physical::Operator::Unknown:
         return {false, ctx + "op is Unknown - node cannot be dispatched"};
     }
-    return {true, {}};
+    return {true};
 }
 
 static OperationResult check_kernel_pads_strides_dilations(
@@ -98,7 +98,8 @@ static OperationResult check_kernel_pads_strides_dilations(
         return {
             false,
             ctx + "expected 2 dilation values, got: " + std::to_string(dilations.size())};
-    return {true, {}};
+
+    return OPERATION_OK;
 }
 
 static OperationResult check_node_attributes(
@@ -168,7 +169,7 @@ static OperationResult check_node_attributes(
         return {false, ctx + "op is Unknown"};
     }
 
-    return {true, {}};
+    return OPERATION_OK;
 }
 
 static std::string logical_node_ctx(size_t idx, Logical::Operator op) {
@@ -210,10 +211,10 @@ static OperationResult check_logical_node_arity(size_t idx, const Logical::Node&
     case Logical::Operator::Unknown:
         return {false, ctx + "op is Unknown"};
     }
-    return {true, {}};
+    return OPERATION_OK;
 }
 
-ValidationResult validate(const Logical::Graph& graph) {
+OperationResult validate(const Logical::Graph& graph) {
     for (size_t i = 0; i < graph.nodes.size(); ++i) {
         const auto& node = graph.nodes[i];
         const std::string ctx = logical_node_ctx(i, node.op);
@@ -224,36 +225,36 @@ ValidationResult validate(const Logical::Graph& graph) {
         switch (node.op) {
         case Logical::Operator::Gemm:
             if (!std::holds_alternative<Logical::GemmAttrs>(node.attributes))
-                return {{false, ctx + "expected GemmAttributes variant"}};
+                return {false, ctx + "expected GemmAttributes variant"};
             if (!std::get<Logical::GemmAttrs>(node.attributes).transB)
-                return {{false, ctx + "unsupported transB value `false`"}};
+                return {false, ctx + "unsupported transB value `false`"};
             break;
 
         case Logical::Operator::Conv:
         case Logical::Operator::Im2Col: {
             if (!std::holds_alternative<Logical::ConvAttrs>(node.attributes))
-                return {{false, ctx + "expected ConvAttributes variant"}};
+                return {false, ctx + "expected ConvAttributes variant"};
             const auto& attrs = std::get<Logical::ConvAttrs>(node.attributes);
             auto vr = check_kernel_pads_strides_dilations(ctx, attrs.kernel_shape, attrs.pads, attrs.strides, attrs.dilations);
             if (!vr.success) return {vr};
 
             if (attrs.dilations[0] != 1.0 || attrs.dilations[1] != 1.0)
-                return {{false, ctx + "unsupported Conv dilation values. Currently, dilations=1 is supported"}};
+                return {false, ctx + "unsupported Conv dilation values. Currently, dilations=1 is supported"};
 
             break;
         }
 
         case Logical::Operator::ConvTranspose: {
             if (!std::holds_alternative<Logical::ConvTransposeAttrs>(node.attributes))
-                return {{false, ctx + "expected ConvTransposeAttributes variant"}};
+                return {false, ctx + "expected ConvTransposeAttributes variant"};
             const auto& attrs = std::get<Logical::ConvTransposeAttrs>(node.attributes);
             auto vr = check_kernel_pads_strides_dilations(ctx, attrs.kernel_shape, attrs.pads, attrs.strides, attrs.dilations);
             if (!vr.success) return {vr};
             if (attrs.output_padding.size() != 2)
-                return {{false, ctx + "expected 2 output padding values, got: " + std::to_string(attrs.output_padding.size())}};
+                return {false, ctx + "expected 2 output padding values, got: " + std::to_string(attrs.output_padding.size())};
 
             if (attrs.dilations[0] != 1.0 || attrs.dilations[1] != 1.0)
-                return {{false, ctx + "unsupported Conv ConvTransposeAttributes values. Currently, dilations=1 is supported"}};
+                return {false, ctx + "unsupported Conv ConvTransposeAttributes values. Currently, dilations=1 is supported"};
 
             break;
         }
@@ -273,16 +274,16 @@ ValidationResult validate(const Logical::Graph& graph) {
             break;
 
         case Logical::Operator::Unknown:
-            return {{false, ctx + "op is Unknown"}};
+            return {false, ctx + "op is Unknown"};
         }
     }
-    return {{true, {}}};
+    return OPERATION_OK;
 }
 
-ValidationResult validate(const Physical::Graph& graph) {
+OperationResult validate(const Physical::Graph& graph) {
     auto conn = check_connectivity(graph);
     if (!conn.success)
-        return {{false, conn.error}};
+        return {false, conn.error};
 
     std::unordered_set<std::string> defined;
     for (const auto& name : graph.input_names)
@@ -297,13 +298,12 @@ ValidationResult validate(const Physical::Graph& graph) {
         const auto& node = graph.nodes[i];
 
         auto arity = check_node_arity(i, node);
-        if (!arity.success) return {{false, arity.error}};
+        if (!arity.success) return {false, arity.error};
 
         auto attrs = check_node_attributes(i, node, defined);
-        if (!attrs.success) return {{false, attrs.error}};
+        if (!attrs.success) return {false, attrs.error};
     }
 
-    return {{true, {}}};
+    return OPERATION_OK;
 }
-
 } // namespace ml::passes

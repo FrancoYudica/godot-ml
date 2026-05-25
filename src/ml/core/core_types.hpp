@@ -19,6 +19,11 @@ struct OperationResult {
     std::string error;
 };
 
+#define OPERATION_OK \
+    {                \
+        true, {}     \
+    }
+
 /**
  * Tensor holds its shape and weight data
  */

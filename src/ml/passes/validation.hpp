@@ -3,17 +3,13 @@
 
 namespace ml::passes {
 
-struct ValidationResult {
-    OperationResult status;
-};
-
 /**
  * Validates a Logical::Graph immediately after parsing, before lowering.
  * Checks per-node arity (input/output counts) and attribute values
  * (kernel dimensions, pad/stride counts, Gemm transB requirement).
  * Call between parse() and lower().
  */
-ValidationResult validate(const Logical::Graph& graph);
+OperationResult validate(const Logical::Graph& graph);
 
 /**
  * Validates a Physical::Graph after lowering.
@@ -22,6 +18,6 @@ ValidationResult validate(const Logical::Graph& graph);
  * Col2Im source_activation existence).
  * Call between lower() and infer_shapes().
  */
-ValidationResult validate(const Physical::Graph& graph);
+OperationResult validate(const Physical::Graph& graph);
 
 } // namespace ml::passes
