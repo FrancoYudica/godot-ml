@@ -11,18 +11,18 @@ output_tensor;
 layout(push_constant) uniform PushConstants {
   uint batch_size;
   uint channels;
-  uint in_width;
   uint in_height;
-  uint out_width;
+  uint in_width;
   uint out_height;
-  uint kernel_w;
+  uint out_width;
   uint kernel_h;
-  uint stride_x;
+  uint kernel_w;
+  uint padding_top;
+  uint padding_left;
   uint stride_y;
-  uint pad_left;
-  uint pad_top;
-  uint dilation_x;
+  uint stride_x;
   uint dilation_y;
+  uint dilation_x;
 }
 pc;
 
@@ -51,9 +51,9 @@ void main() {
   for (uint ky = 0; ky < pc.kernel_h; ky++) {
     for (uint kx = 0; kx < pc.kernel_w; kx++) {
       int sample_x =
-          int(start_x) + int(kx) * int(pc.dilation_x) - int(pc.pad_left);
+          int(start_x) + int(kx) * int(pc.dilation_x) - int(pc.padding_left);
       int sample_y =
-          int(start_y) + int(ky) * int(pc.dilation_y) - int(pc.pad_top);
+          int(start_y) + int(ky) * int(pc.dilation_y) - int(pc.padding_top);
 
       if (sample_x >= 0 && sample_x < int(pc.in_width) && sample_y >= 0 &&
           sample_y < int(pc.in_height)) {

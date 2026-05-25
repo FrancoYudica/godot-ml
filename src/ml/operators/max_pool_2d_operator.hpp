@@ -13,18 +13,18 @@ class MaxPool2DOperator : public IOperator {
     struct PushConstants {
         uint32_t batch_size;
         uint32_t channels;
-        uint32_t in_width;
         uint32_t in_height;
-        uint32_t out_width;
+        uint32_t in_width;
         uint32_t out_height;
-        uint32_t kernel_w;
+        uint32_t out_width;
         uint32_t kernel_h;
-        uint32_t stride_x;
+        uint32_t kernel_w;
+        uint32_t padding_top;
+        uint32_t padding_left;
         uint32_t stride_y;
-        uint32_t pad_left;
-        uint32_t pad_top;
-        uint32_t dilation_x;
+        uint32_t stride_x;
         uint32_t dilation_y;
+        uint32_t dilation_x;
         uint32_t _padding[2];
     };
 

@@ -9,19 +9,19 @@ layout(set = 0, binding = 1) buffer Output { float data[]; }
 output_tensor;
 
 layout(push_constant) uniform PushConstants {
-  uint in_width;
-  uint in_height;
   uint in_channels;
-  uint kernel_w;
-  uint kernel_h;
-  uint padding_left;
-  uint padding_top;
-  uint stride_x;
-  uint stride_y;
-  uint out_width;
+  uint in_height;
+  uint in_width;
   uint out_height;
-  uint dilation_x;
+  uint out_width;
+  uint kernel_h;
+  uint kernel_w;
+  uint padding_top;
+  uint padding_left;
+  uint stride_y;
+  uint stride_x;
   uint dilation_y;
+  uint dilation_x;
 }
 pc;
 

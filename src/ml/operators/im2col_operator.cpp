@@ -65,20 +65,19 @@ void ml::Im2ColOperator::dispatch(
     });
 
     PushConstants pc{
-        in_width,
-        in_height,
-        channels,
-        attrs.kernel_w,
-        attrs.kernel_h,
-        attrs.padding_left,
-        attrs.padding_top,
-        attrs.stride_x,
-        attrs.stride_y,
-        static_cast<uint32_t>(out_w),
-        static_cast<uint32_t>(out_h),
-        attrs.dilation_x,
-        attrs.dilation_y,
-    };
+        .in_channels = channels,
+        .in_height = in_height,
+        .in_width = in_width,
+        .out_height = static_cast<uint32_t>(out_h),
+        .out_width = static_cast<uint32_t>(out_w),
+        .kernel_h = attrs.kernel_h,
+        .kernel_w = attrs.kernel_w,
+        .padding_top = attrs.padding_top,
+        .padding_left = attrs.padding_left,
+        .stride_y = attrs.stride_y,
+        .stride_x = attrs.stride_x,
+        .dilation_y = attrs.dilation_y,
+        .dilation_x = attrs.dilation_x};
 
     PackedByteArray pc_bytes;
     pc_bytes.resize(sizeof(PushConstants));

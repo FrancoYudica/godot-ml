@@ -23,45 +23,45 @@ struct GemmAttrs {
 };
 
 struct ConvAttrs {
-    uint32_t kernel_w;
     uint32_t kernel_h;
-    uint32_t padding_left;
+    uint32_t kernel_w;
     uint32_t padding_top;
-    uint32_t padding_right;
+    uint32_t padding_left;
     uint32_t padding_bottom;
-    uint32_t stride_x;
+    uint32_t padding_right;
     uint32_t stride_y;
-    uint32_t dilation_x;
+    uint32_t stride_x;
     uint32_t dilation_y;
+    uint32_t dilation_x;
 };
 
 struct Col2ImAttrs {
-    uint32_t kernel_w;
     uint32_t kernel_h;
-    uint32_t padding_left;
+    uint32_t kernel_w;
     uint32_t padding_top;
-    uint32_t padding_right;
+    uint32_t padding_left;
     uint32_t padding_bottom;
-    uint32_t stride_x;
+    uint32_t padding_right;
     uint32_t stride_y;
-    uint32_t dilation_x;
+    uint32_t stride_x;
     uint32_t dilation_y;
-    uint32_t output_padding_x;
+    uint32_t dilation_x;
     uint32_t output_padding_y;
+    uint32_t output_padding_x;
     std::string source_activation;
 };
 
 struct MaxPool2DAttrs {
-    uint32_t kernel_w;
     uint32_t kernel_h;
-    uint32_t padding_left;
+    uint32_t kernel_w;
     uint32_t padding_top;
-    uint32_t padding_right;
+    uint32_t padding_left;
     uint32_t padding_bottom;
-    uint32_t stride_x;
+    uint32_t padding_right;
     uint32_t stride_y;
-    uint32_t dilation_x;
+    uint32_t stride_x;
     uint32_t dilation_y;
+    uint32_t dilation_x;
 };
 
 enum class ReshapeMode {

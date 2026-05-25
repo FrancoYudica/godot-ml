@@ -77,19 +77,19 @@ void ml::Conv2DOperator::dispatch(
     });
 
     PushConstants pc{
-        in_batch_size,
-        in_width,
-        in_height,
-        in_channels,
-        out_channels,
-        attrs.kernel_w,
-        attrs.kernel_h,
-        attrs.padding_left,
-        attrs.padding_top,
-        attrs.stride_x,
-        attrs.stride_y,
-        out_w,
-        out_h};
+        .in_batch_size = in_batch_size,
+        .in_channels = in_channels,
+        .in_height = in_height,
+        .in_width = in_width,
+        .out_channels = out_channels,
+        .out_height = out_h,
+        .out_width = out_w,
+        .kernel_h = attrs.kernel_h,
+        .kernel_w = attrs.kernel_w,
+        .padding_top = attrs.padding_top,
+        .padding_left = attrs.padding_left,
+        .stride_y = attrs.stride_y,
+        .stride_x = attrs.stride_x};
 
     PackedByteArray pc_bytes;
     pc_bytes.resize(sizeof(PushConstants));

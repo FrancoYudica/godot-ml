@@ -63,20 +63,19 @@ void ml::Col2ImOperator::dispatch(
     });
 
     PushConstants pc{
-        in_width,
-        in_height,
-        out_w,
-        out_h,
-        out_channels,
-        attrs.kernel_w,
-        attrs.kernel_h,
-        attrs.padding_left,
-        attrs.padding_top,
-        attrs.stride_x,
-        attrs.stride_y,
-        attrs.dilation_x,
-        attrs.dilation_y,
-    };
+        .in_height = in_height,
+        .in_width = in_width,
+        .out_channels = out_channels,
+        .out_height = out_h,
+        .out_width = out_w,
+        .kernel_h = attrs.kernel_h,
+        .kernel_w = attrs.kernel_w,
+        .padding_top = attrs.padding_top,
+        .padding_left = attrs.padding_left,
+        .stride_y = attrs.stride_y,
+        .stride_x = attrs.stride_x,
+        .dilation_y = attrs.dilation_y,
+        .dilation_x = attrs.dilation_x};
 
     PackedByteArray pc_bytes;
     pc_bytes.resize(sizeof(PushConstants));

@@ -43,20 +43,22 @@ static OperationResult low_conv(const Logical::Node& node, Physical::Graph& grap
     const std::string col_name = node.outputs[0] + "__col";
 
     Physical::Node im2col;
-    im2col.inputs = {node.inputs}; // {activation, weights, bias}
+    im2col.inputs = {node.inputs[0], node.inputs[1]}; // activation, weights
     im2col.outputs = {col_name};
 
+    // ONNX pads: [top, left, bottom, right]
+    // ONNX shapes: [H, W]
     im2col.attributes = Physical::ConvAttrs{
-        .kernel_w = static_cast<uint32_t>(l_attrs.kernel_shape[0]),
-        .kernel_h = static_cast<uint32_t>(l_attrs.kernel_shape[1]),
-        .padding_left = static_cast<uint32_t>(l_attrs.pads[0]),
-        .padding_top = static_cast<uint32_t>(l_attrs.pads[1]),
-        .padding_right = static_cast<uint32_t>(l_attrs.pads[2]),
-        .padding_bottom = static_cast<uint32_t>(l_attrs.pads[3]),
-        .stride_x = static_cast<uint32_t>(l_attrs.strides[0]),
-        .stride_y = static_cast<uint32_t>(l_attrs.strides[1]),
-        .dilation_x = static_cast<uint32_t>(l_attrs.dilations[0]),
-        .dilation_y = static_cast<uint32_t>(l_attrs.dilations[1])};
+        .kernel_h = static_cast<uint32_t>(l_attrs.kernel_shape[0]),
+        .kernel_w = static_cast<uint32_t>(l_attrs.kernel_shape[1]),
+        .padding_top = static_cast<uint32_t>(l_attrs.pads[0]),
+        .padding_left = static_cast<uint32_t>(l_attrs.pads[1]),
+        .padding_bottom = static_cast<uint32_t>(l_attrs.pads[2]),
+        .padding_right = static_cast<uint32_t>(l_attrs.pads[3]),
+        .stride_y = static_cast<uint32_t>(l_attrs.strides[0]),
+        .stride_x = static_cast<uint32_t>(l_attrs.strides[1]),
+        .dilation_y = static_cast<uint32_t>(l_attrs.dilations[0]),
+        .dilation_x = static_cast<uint32_t>(l_attrs.dilations[1])};
 
     im2col.op = Physical::Operator::Im2Col;
 
@@ -90,16 +92,16 @@ static OperationResult low_im2col(const Logical::Node& node, Physical::Graph& gr
     n.outputs = {node.outputs[0]};
 
     n.attributes = Physical::ConvAttrs{
-        .kernel_w = static_cast<uint32_t>(l_attrs.kernel_shape[0]),
-        .kernel_h = static_cast<uint32_t>(l_attrs.kernel_shape[1]),
-        .padding_left = static_cast<uint32_t>(l_attrs.pads[0]),
-        .padding_top = static_cast<uint32_t>(l_attrs.pads[1]),
-        .padding_right = static_cast<uint32_t>(l_attrs.pads[2]),
-        .padding_bottom = static_cast<uint32_t>(l_attrs.pads[3]),
-        .stride_x = static_cast<uint32_t>(l_attrs.strides[0]),
-        .stride_y = static_cast<uint32_t>(l_attrs.strides[1]),
-        .dilation_x = static_cast<uint32_t>(l_attrs.dilations[0]),
-        .dilation_y = static_cast<uint32_t>(l_attrs.dilations[1])};
+        .kernel_h = static_cast<uint32_t>(l_attrs.kernel_shape[0]),
+        .kernel_w = static_cast<uint32_t>(l_attrs.kernel_shape[1]),
+        .padding_top = static_cast<uint32_t>(l_attrs.pads[0]),
+        .padding_left = static_cast<uint32_t>(l_attrs.pads[1]),
+        .padding_bottom = static_cast<uint32_t>(l_attrs.pads[2]),
+        .padding_right = static_cast<uint32_t>(l_attrs.pads[3]),
+        .stride_y = static_cast<uint32_t>(l_attrs.strides[0]),
+        .stride_x = static_cast<uint32_t>(l_attrs.strides[1]),
+        .dilation_y = static_cast<uint32_t>(l_attrs.dilations[0]),
+        .dilation_x = static_cast<uint32_t>(l_attrs.dilations[1])};
 
     n.op = Physical::Operator::Im2Col;
     graph.nodes.push_back(std::move(n));
@@ -145,7 +147,8 @@ static OperationResult low_conv_transpose(const Logical::Node& node, Physical::G
     }
 
     // Gemm: [b*ih*iw, ic] x [oc*kh*kw, ic]^T -> [b*ih*iw, oc*kh*kw]
-    Physical::GemmAttrs gemm_attrs{.alpha = 1.0f, .beta = 1.0f};
+    // beta = 0.0 because Col2Im will handle bias to avoid multiple accumulation.
+    Physical::GemmAttrs gemm_attrs{.alpha = 1.0f, .beta = 0.0f};
 
     Physical::Node gemm;
     gemm.op = Physical::Operator::Gemm;
@@ -155,23 +158,23 @@ static OperationResult low_conv_transpose(const Logical::Node& node, Physical::G
 
     // Col2Im: [b*ih*iw, oc*kh*kw] -> [out_h*out_w, oc]
     Physical::Col2ImAttrs col2im_attrs = {
-        .kernel_w = static_cast<uint32_t>(l_attrs.kernel_shape[0]),
-        .kernel_h = static_cast<uint32_t>(l_attrs.kernel_shape[1]),
-        .padding_left = static_cast<uint32_t>(l_attrs.pads[0]),
-        .padding_top = static_cast<uint32_t>(l_attrs.pads[1]),
-        .padding_right = static_cast<uint32_t>(l_attrs.pads[2]),
-        .padding_bottom = static_cast<uint32_t>(l_attrs.pads[3]),
-        .stride_x = static_cast<uint32_t>(l_attrs.strides[0]),
-        .stride_y = static_cast<uint32_t>(l_attrs.strides[1]),
-        .dilation_x = static_cast<uint32_t>(l_attrs.dilations[0]),
-        .dilation_y = static_cast<uint32_t>(l_attrs.dilations[1]),
-        .output_padding_x = static_cast<uint32_t>(l_attrs.output_padding[0]),
-        .output_padding_y = static_cast<uint32_t>(l_attrs.output_padding[1])};
+        .kernel_h = static_cast<uint32_t>(l_attrs.kernel_shape[0]),
+        .kernel_w = static_cast<uint32_t>(l_attrs.kernel_shape[1]),
+        .padding_top = static_cast<uint32_t>(l_attrs.pads[0]),
+        .padding_left = static_cast<uint32_t>(l_attrs.pads[1]),
+        .padding_bottom = static_cast<uint32_t>(l_attrs.pads[2]),
+        .padding_right = static_cast<uint32_t>(l_attrs.pads[3]),
+        .stride_y = static_cast<uint32_t>(l_attrs.strides[0]),
+        .stride_x = static_cast<uint32_t>(l_attrs.strides[1]),
+        .dilation_y = static_cast<uint32_t>(l_attrs.dilations[0]),
+        .dilation_x = static_cast<uint32_t>(l_attrs.dilations[1]),
+        .output_padding_y = static_cast<uint32_t>(l_attrs.output_padding[0]),
+        .output_padding_x = static_cast<uint32_t>(l_attrs.output_padding[1])};
     col2im_attrs.source_activation = node.inputs[0];
 
     Physical::Node col2im;
     col2im.op = Physical::Operator::Col2Im;
-    col2im.inputs = {gemm_name, node.inputs[2]};
+    col2im.inputs = {gemm_name, node.inputs[2]}; // Col data and Bias
     col2im.outputs = {col2im_name};
     col2im.attributes = col2im_attrs;
 
@@ -200,16 +203,16 @@ static OperationResult low_max_pool_2d(const Logical::Node& node, Physical::Grap
     max_pool.outputs = {node.outputs[0]};
 
     max_pool.attributes = Physical::MaxPool2DAttrs{
-        .kernel_w = static_cast<uint32_t>(l_attrs.kernel_shape[0]),
-        .kernel_h = static_cast<uint32_t>(l_attrs.kernel_shape[1]),
-        .padding_left = static_cast<uint32_t>(l_attrs.pads[0]),
-        .padding_top = static_cast<uint32_t>(l_attrs.pads[1]),
-        .padding_right = static_cast<uint32_t>(l_attrs.pads[2]),
-        .padding_bottom = static_cast<uint32_t>(l_attrs.pads[3]),
-        .stride_x = static_cast<uint32_t>(l_attrs.strides[0]),
-        .stride_y = static_cast<uint32_t>(l_attrs.strides[1]),
-        .dilation_x = static_cast<uint32_t>(l_attrs.dilations[0]),
-        .dilation_y = static_cast<uint32_t>(l_attrs.dilations[1])};
+        .kernel_h = static_cast<uint32_t>(l_attrs.kernel_shape[0]),
+        .kernel_w = static_cast<uint32_t>(l_attrs.kernel_shape[1]),
+        .padding_top = static_cast<uint32_t>(l_attrs.pads[0]),
+        .padding_left = static_cast<uint32_t>(l_attrs.pads[1]),
+        .padding_bottom = static_cast<uint32_t>(l_attrs.pads[2]),
+        .padding_right = static_cast<uint32_t>(l_attrs.pads[3]),
+        .stride_y = static_cast<uint32_t>(l_attrs.strides[0]),
+        .stride_x = static_cast<uint32_t>(l_attrs.strides[1]),
+        .dilation_y = static_cast<uint32_t>(l_attrs.dilations[0]),
+        .dilation_x = static_cast<uint32_t>(l_attrs.dilations[1])};
 
     graph.nodes.push_back(std::move(max_pool));
     return {true, {}};

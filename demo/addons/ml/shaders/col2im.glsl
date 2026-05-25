@@ -10,19 +10,19 @@ layout(set = 0, binding = 1, std430) buffer OutputBuffer {
 };
 
 layout(push_constant) uniform PushConstants {
-  uint in_width;
   uint in_height;
-  uint out_width;
-  uint out_height;
+  uint in_width;
   uint out_channels;
-  uint kernel_w;
+  uint out_height;
+  uint out_width;
   uint kernel_h;
-  uint pad_x;
-  uint pad_y;
-  uint stride_x;
+  uint kernel_w;
+  uint pad_top;
+  uint pad_left;
   uint stride_y;
-  uint dilation_x;
+  uint stride_x;
   uint dilation_y;
+  uint dilation_x;
 }
 pc;
 
@@ -40,8 +40,10 @@ void main() {
   for (uint ky = 0; ky < pc.kernel_h; ky++) {
     for (uint kx = 0; kx < pc.kernel_w; kx++) {
       // Reverse map
-      int in_x_raw = int(out_x) + int(pc.pad_x) - int(kx) * int(pc.dilation_x);
-      int in_y_raw = int(out_y) + int(pc.pad_y) - int(ky) * int(pc.dilation_y);
+      int in_x_raw =
+          int(out_x) + int(pc.pad_left) - int(kx) * int(pc.dilation_x);
+      int in_y_raw =
+          int(out_y) + int(pc.pad_top) - int(ky) * int(pc.dilation_y);
 
       // Must be divisible by stride
       if (in_x_raw % int(pc.stride_x) != 0)

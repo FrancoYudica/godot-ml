@@ -71,20 +71,20 @@ void ml::MaxPool2DOperator::dispatch(
 
     // Push constants
     PushConstants pc{
-        batch_size,
-        channels,
-        in_width,
-        in_height,
-        out_w,
-        out_h,
-        attrs.kernel_w,
-        attrs.kernel_h,
-        attrs.stride_x,
-        attrs.stride_y,
-        attrs.padding_left,
-        attrs.padding_top,
-        attrs.dilation_x,
-        attrs.dilation_y};
+        .batch_size = batch_size,
+        .channels = channels,
+        .in_height = in_height,
+        .in_width = in_width,
+        .out_height = out_h,
+        .out_width = out_w,
+        .kernel_h = attrs.kernel_h,
+        .kernel_w = attrs.kernel_w,
+        .padding_top = attrs.padding_top,
+        .padding_left = attrs.padding_left,
+        .stride_y = attrs.stride_y,
+        .stride_x = attrs.stride_x,
+        .dilation_y = attrs.dilation_y,
+        .dilation_x = attrs.dilation_x};
 
     PackedByteArray pc_bytes;
     pc_bytes.resize(sizeof(PushConstants));
