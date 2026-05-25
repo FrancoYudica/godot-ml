@@ -1,0 +1,19 @@
+:Ç
+h
+inputoutput"MaxPool*
+	dilations@@ *
+kernel_shape@@ *
+pads@@@@ *
+strides@@ MaxPoolModelZ$
+input
+
+batch
+
+
+b'
+output
+
+batch
+
+h
+wB

@@ -1,6 +1,6 @@
 [gd_scene load_steps=2 format=3 uid="uid://bqv83hujlxed5"]
 
-[ext_resource type="Script" uid="uid://doghqj6dwl5p2" path="res://tests/inference_test.gd" id="3_h2yge"]
+[ext_resource type="Script" uid="uid://dd36v3qff26nv" path="res://tests/test_runner.gd" id="1_ig7tw"]
 
 [node name="Main" type="Control"]
 layout_mode = 3
@@ -11,4 +11,6 @@ grow_horizontal = 2
 grow_vertical = 2
 
 [node name="TestRunner" type="Node" parent="."]
-script = ExtResource("3_h2yge")
+script = ExtResource("1_ig7tw")
+test_suite_path = "res://ml/tests/generated_tests/tests.json"
+onnx_root_path = "res://ml/tests/generated_tests"
