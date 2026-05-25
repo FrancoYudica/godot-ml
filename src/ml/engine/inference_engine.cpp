@@ -93,7 +93,7 @@ uint32_t MLInferenceEngine::register_model(String model_path) {
         0,
         ("InferenceEngine: parse failed: " + parse_result.status.error).c_str());
 
-    auto logical_validation_result = ml::passes::validate(parse_result.graph);
+    auto logical_validation_result = ml::passes::validate_parse(parse_result.graph);
     ERR_FAIL_COND_V_MSG(
         !logical_validation_result.success,
         0,
@@ -105,7 +105,7 @@ uint32_t MLInferenceEngine::register_model(String model_path) {
         0,
         ("InferenceEngine: lowering failed: " + lower_result.status.error).c_str());
 
-    auto validation_result = ml::passes::validate(lower_result.graph);
+    auto validation_result = ml::passes::lowering_validation(lower_result.graph);
     ERR_FAIL_COND_V_MSG(
         !validation_result.success,
         0,
