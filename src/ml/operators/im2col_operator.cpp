@@ -85,16 +85,7 @@ void ml::Im2ColOperator::dispatch(
     ctx.rd->compute_list_bind_uniform_set(ctx.compute_list, uniform_set_rid, 0);
     ctx.rd->compute_list_set_push_constant(ctx.compute_list, pc_bytes, pc_bytes.size());
 
-    UtilityFunctions::print("Attribute: out h = " + itos(out_h));
-    UtilityFunctions::print("Attribute: out w = " + itos(out_w));
-    UtilityFunctions::print("Attribute: channels = " + itos(channels));
-    UtilityFunctions::print("Attribute: attrs.kernel_w = " + itos(attrs.kernel_w));
-    UtilityFunctions::print("Attribute: attrs.kernel_h = " + itos(attrs.kernel_h));
-
     uint32_t total_workers = out_h * out_w * channels * attrs.kernel_w * attrs.kernel_h;
-
-    UtilityFunctions::print("IM2COL: total workers = " + String::num(total_workers));
-
     uint32_t workgroup_count = (total_workers + 63) / 64;
     ctx.rd->compute_list_dispatch(ctx.compute_list, workgroup_count, 1, 1);
 }

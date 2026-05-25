@@ -30,7 +30,6 @@ static OperationResult low_gemm(const Logical::Node& node, Physical::Graph& grap
     Physical::GemmAttrs attrs;
     attrs.alpha = l_attrs.alpha;
     attrs.beta = l_attrs.beta;
-    attrs.transB = l_attrs.transB;
     n.attributes = attrs;
 
     n.op = Physical::Operator::Gemm;
@@ -64,7 +63,7 @@ static OperationResult low_conv(const Logical::Node& node, Physical::Graph& grap
     Physical::Node gemm;
     gemm.inputs = {col_name, node.inputs[1], node.inputs[2]};
     gemm.outputs = node.outputs;
-    gemm.attributes = Physical::GemmAttrs{1.0f, 1.0f, true};
+    gemm.attributes = Physical::GemmAttrs{1.0f, 1.0f};
     gemm.op = Physical::Operator::Gemm;
 
     Physical::ReshapeAttrs reshape_attrs{
@@ -146,7 +145,7 @@ static OperationResult low_conv_transpose(const Logical::Node& node, Physical::G
     }
 
     // Gemm: [b*ih*iw, ic] x [oc*kh*kw, ic]^T -> [b*ih*iw, oc*kh*kw]
-    Physical::GemmAttrs gemm_attrs{.alpha = 1.0f, .beta = 1.0f, .transB = true};
+    Physical::GemmAttrs gemm_attrs{.alpha = 1.0f, .beta = 1.0f};
 
     Physical::Node gemm;
     gemm.op = Physical::Operator::Gemm;
@@ -155,12 +154,19 @@ static OperationResult low_conv_transpose(const Logical::Node& node, Physical::G
     gemm.attributes = gemm_attrs;
 
     // Col2Im: [b*ih*iw, oc*kh*kw] -> [out_h*out_w, oc]
-    Physical::Col2ImAttrs col2im_attrs;
-    col2im_attrs.kernel_shape = l_attrs.kernel_shape;
-    col2im_attrs.pads = l_attrs.pads;
-    col2im_attrs.strides = l_attrs.strides;
-    col2im_attrs.output_padding = l_attrs.output_padding;
-    col2im_attrs.dilations = l_attrs.dilations;
+    Physical::Col2ImAttrs col2im_attrs = {
+        .kernel_w = static_cast<uint32_t>(l_attrs.kernel_shape[0]),
+        .kernel_h = static_cast<uint32_t>(l_attrs.kernel_shape[1]),
+        .padding_left = static_cast<uint32_t>(l_attrs.pads[0]),
+        .padding_top = static_cast<uint32_t>(l_attrs.pads[1]),
+        .padding_right = static_cast<uint32_t>(l_attrs.pads[2]),
+        .padding_bottom = static_cast<uint32_t>(l_attrs.pads[3]),
+        .stride_x = static_cast<uint32_t>(l_attrs.strides[0]),
+        .stride_y = static_cast<uint32_t>(l_attrs.strides[1]),
+        .dilation_x = static_cast<uint32_t>(l_attrs.dilations[0]),
+        .dilation_y = static_cast<uint32_t>(l_attrs.dilations[1]),
+        .output_padding_x = static_cast<uint32_t>(l_attrs.output_padding[0]),
+        .output_padding_y = static_cast<uint32_t>(l_attrs.output_padding[1])};
     col2im_attrs.source_activation = node.inputs[0];
 
     Physical::Node col2im;

@@ -41,7 +41,7 @@ void ml::Col2ImOperator::dispatch(
     uint32_t out_w = meta4d[3];
     uint32_t out_h = meta4d[2];
     uint32_t out_channels = meta4d[1];
-    uint32_t kH = attrs.kernel_shape[0];
+    uint32_t kH = attrs.kernel_h;
 
     auto make_uniform = [&](RID rid, int binding) {
         Ref<RDUniform> u;
@@ -68,9 +68,12 @@ void ml::Col2ImOperator::dispatch(
         out_w,
         out_h,
         out_channels,
-        kH,
-        static_cast<uint32_t>(attrs.pads[0]),
-        static_cast<uint32_t>(attrs.strides[0])};
+        attrs.kernel_w,
+        attrs.kernel_h,
+        attrs.padding_left,
+        attrs.padding_top,
+        attrs.stride_x,
+        attrs.stride_y};
 
     PackedByteArray pc_bytes;
     pc_bytes.resize(sizeof(PushConstants));

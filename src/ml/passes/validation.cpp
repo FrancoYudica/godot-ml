@@ -113,13 +113,18 @@ static OperationResult check_node_attributes(
     case Physical::Operator::Conv:
         if (!std::holds_alternative<Physical::ConvAttrs>(node.attributes))
             return {false, ctx + "expected ConvAttributes variant"};
+        {
+            const auto& attrs = std::get<Physical::ConvAttrs>(node.attributes);
+
+            if (attrs.dilation_x != 1 || attrs.dilation_y != 1)
+                return {false, ctx + "only unit dilations supported"};
+        }
+
         break;
 
     case Physical::Operator::Gemm:
         if (!std::holds_alternative<Physical::GemmAttrs>(node.attributes))
             return {false, ctx + "expected GemmAttributes variant"};
-        if (!std::get<Physical::GemmAttrs>(node.attributes).transB)
-            return {false, ctx + "unsupported transB value `false`"};
         break;
 
     case Physical::Operator::Col2Im:
@@ -127,14 +132,16 @@ static OperationResult check_node_attributes(
             return {false, ctx + "expected Col2ImAttributes variant"};
         {
             const auto& attrs = std::get<Physical::Col2ImAttrs>(node.attributes);
-            auto vr = check_kernel_pads_strides_dilations(ctx, attrs.kernel_shape, attrs.pads, attrs.strides, attrs.dilations);
-            if (!vr.success) return vr;
-            if (attrs.output_padding.size() != 2)
-                return {false, ctx + "expected 2 output padding values, got: " + std::to_string(attrs.output_padding.size())};
             if (attrs.source_activation.empty())
                 return {false, ctx + "source activation name cannot be empty"};
             if (defined.find(attrs.source_activation) == defined.end())
                 return {false, ctx + "source_activation tensor '" + attrs.source_activation + "' not found in defined tensor set"};
+
+            if (attrs.dilation_x != 1 || attrs.dilation_y != 1)
+                return {false, ctx + "only unit dilations supported"};
+
+            if (attrs.output_padding_x != 0 || attrs.output_padding_y != 0)
+                return {false, ctx + "only zero output padding supported"};
         }
         break;
 

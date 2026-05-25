@@ -18,17 +18,8 @@ enum class Operator {
 };
 
 struct GemmAttrs {
-    /**
-     * GeMM (General Matrix Multiply) attributes
-     * output = alpha * (A @ B^T) + beta * C
-     *
-     * A = input activations, B = weights, C = bias
-     * transB = true means B is stored as [out_features, in_features],
-     * which is what the shader always assumes.
-     */
     float alpha = 1.0f;
     float beta = 1.0f;
-    bool transB = false;
 };
 
 struct ConvAttrs {
@@ -45,12 +36,18 @@ struct ConvAttrs {
 };
 
 struct Col2ImAttrs {
-    std::vector<int64_t> kernel_shape;
-    std::vector<int64_t> pads;
-    std::vector<int64_t> strides;
-    std::vector<int64_t> output_padding;
-    std::vector<int64_t> dilations;
-
+    uint32_t kernel_w;
+    uint32_t kernel_h;
+    uint32_t padding_left;
+    uint32_t padding_top;
+    uint32_t padding_right;
+    uint32_t padding_bottom;
+    uint32_t stride_x;
+    uint32_t stride_y;
+    uint32_t dilation_x;
+    uint32_t dilation_y;
+    uint32_t output_padding_x;
+    uint32_t output_padding_y;
     std::string source_activation;
 };
 
@@ -83,22 +80,9 @@ struct ReshapeAttrs {
     std::string image_shape_ref;
 };
 
-/**
- * Physical::Graph node has an operation and its tensor inputs and outputs.
- * Shapes are not stored here - they are computed per-inference by the
- * shape inference pass and stored in a ShapeTable.
- */
 struct Node {
     Operator op;
-
-    /**
-     * Tensor names (activations + weights)
-     */
     std::vector<std::string> inputs;
-
-    /**
-     * Intermediate output tensor names
-     */
     std::vector<std::string> outputs;
 
     std::variant<
@@ -111,20 +95,9 @@ struct Node {
         attributes;
 };
 
-/**
- * Parsed graph
- */
 struct Graph {
     std::vector<std::string> input_names;
-
-    /**
-     * Nodes to process in topological order
-     */
     std::vector<Node> nodes;
-
-    /**
-     * Holds the trained weights and biases.
-     */
     std::unordered_map<std::string, Tensor> initializers;
 };
 } // namespace Physical

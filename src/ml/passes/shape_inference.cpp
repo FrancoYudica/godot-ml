@@ -84,12 +84,9 @@ static bool infer_col2im(const Node& node, ShapeInferenceResult& result) {
     int64_t b = (*src)[0];
     int64_t ih = (*src)[2];
     int64_t iw = (*src)[3];
-    int64_t kH = attrs.kernel_shape[0];
-    int64_t kW = attrs.kernel_shape[1];
 
-    // ConvTranspose output size formula (matches col2im_operator.cpp)
-    int64_t out_h = (ih - 1) * attrs.strides[0] - 2 * attrs.pads[0] + kH;
-    int64_t out_w = (iw - 1) * attrs.strides[1] - 2 * attrs.pads[1] + kW;
+    int64_t out_h = attrs.stride_y * (ih - 1) + attrs.kernel_h - attrs.padding_left - attrs.padding_right;
+    int64_t out_w = attrs.stride_x * (iw - 1) + attrs.kernel_w - attrs.padding_top - attrs.padding_bottom;
 
     int64_t out_c = (*bias)[0];
 

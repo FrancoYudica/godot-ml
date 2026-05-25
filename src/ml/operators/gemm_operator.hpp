@@ -16,7 +16,7 @@ class GemmOperator : public IOperator {
         uint32_t K;
         float alpha;
         float beta;
-        float padding[3]; // Alignment to 32 bytes
+        float _padding[3];
     };
 
     godot::RID _shader;

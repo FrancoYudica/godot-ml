@@ -10,14 +10,17 @@ layout(set = 0, binding = 1, std430) buffer OutputBuffer {
 };
 
 layout(push_constant) uniform PushConstants {
-  uint in_width;   // low-res width  (col columns)
-  uint in_height;  // low-res height (col rows)
-  uint out_width;  // high-res width
-  uint out_height; // high-res height
+  uint in_width;
+  uint in_height;
+  uint out_width;
+  uint out_height;
   uint out_channels;
-  uint kernel_size;
-  uint pad;
-  uint stride;
+  uint kernel_w;
+  uint kernel_h;
+  uint pad_x;
+  uint pad_y;
+  uint stride_x;
+  uint stride_y;
 }
 pc;
 
@@ -32,33 +35,29 @@ void main() {
   float sum = 0.0;
 
   // Which input patches contribute to this output pixel?
-  for (uint ky = 0; ky < pc.kernel_size; ky++) {
-    for (uint kx = 0; kx < pc.kernel_size; kx++) {
-      // Reverse map: which in_x, in_y produced this out_x, out_y via this
-      // kernel pos?
-      int in_x_raw = int(out_x) + int(pc.pad) - int(kx);
-      int in_y_raw = int(out_y) + int(pc.pad) - int(ky);
+  for (uint ky = 0; ky < pc.kernel_h; ky++) {
+    for (uint kx = 0; kx < pc.kernel_w; kx++) {
+      // Reverse map
+      int in_x_raw = int(out_x) + int(pc.pad_x) - int(kx);
+      int in_y_raw = int(out_y) + int(pc.pad_y) - int(ky);
 
       // Must be divisible by stride
-      if (in_x_raw % int(pc.stride) != 0)
+      if (in_x_raw % int(pc.stride_x) != 0)
         continue;
-      if (in_y_raw % int(pc.stride) != 0)
+      if (in_y_raw % int(pc.stride_y) != 0)
         continue;
 
-      int in_x = in_x_raw / int(pc.stride);
-      int in_y = in_y_raw / int(pc.stride);
-
+      int in_x = in_x_raw / int(pc.stride_x);
+      int in_y = in_y_raw / int(pc.stride_y);
       if (in_x < 0 || in_x >= int(pc.in_width) || in_y < 0 ||
           in_y >= int(pc.in_height))
         continue;
 
       uint patch_idx = uint(in_y) * pc.in_width + uint(in_x);
-      uint elem_idx =
-          oc * (pc.kernel_size * pc.kernel_size) + ky * pc.kernel_size + kx;
+      uint elem_idx = oc * (pc.kernel_h * pc.kernel_w) + ky * pc.kernel_w + kx;
 
       uint col_idx =
-          patch_idx * (pc.out_channels * pc.kernel_size * pc.kernel_size) +
-          elem_idx;
+          patch_idx * (pc.out_channels * pc.kernel_h * pc.kernel_w) + elem_idx;
 
       sum += col_data[col_idx];
     }
