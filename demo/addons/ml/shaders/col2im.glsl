@@ -21,6 +21,8 @@ layout(push_constant) uniform PushConstants {
   uint pad_y;
   uint stride_x;
   uint stride_y;
+  uint dilation_x;
+  uint dilation_y;
 }
 pc;
 
@@ -38,8 +40,8 @@ void main() {
   for (uint ky = 0; ky < pc.kernel_h; ky++) {
     for (uint kx = 0; kx < pc.kernel_w; kx++) {
       // Reverse map
-      int in_x_raw = int(out_x) + int(pc.pad_x) - int(kx);
-      int in_y_raw = int(out_y) + int(pc.pad_y) - int(ky);
+      int in_x_raw = int(out_x) + int(pc.pad_x) - int(kx) * int(pc.dilation_x);
+      int in_y_raw = int(out_y) + int(pc.pad_y) - int(ky) * int(pc.dilation_y);
 
       // Must be divisible by stride
       if (in_x_raw % int(pc.stride_x) != 0)

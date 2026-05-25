@@ -187,6 +187,34 @@ func _setup_tests() -> Array[Test]:
 			]
 		)
 	)
+
+	list.append(
+		Test.new(
+			"ConvTranspose2x2Dilations2",
+			"ml/tests/test_conv_transpose_2x2_dilations=2.onnx",
+			_setup_float_array_test.bind(
+				[
+					1, 2, 
+					3, 4
+				], 
+				[
+					1, # Batches
+					1, # Channels
+					2, # Height
+					2  # Width
+				]
+			),
+			_pop_float_array_result,
+			# Expected output
+			[
+				4.0, 3.0, 4.0, 3.0, 
+				2.0, 1.0, 2.0, 1.0, 
+				4.0, 3.0, 4.0, 3.0,
+				2.0, 1.0, 2.0, 1.0
+			]
+		)
+	)
+
 	list.append(
 		Test.new(
 			"ConvTranspose4x4",

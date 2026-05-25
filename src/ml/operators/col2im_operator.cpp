@@ -73,7 +73,10 @@ void ml::Col2ImOperator::dispatch(
         attrs.padding_left,
         attrs.padding_top,
         attrs.stride_x,
-        attrs.stride_y};
+        attrs.stride_y,
+        attrs.dilation_x,
+        attrs.dilation_y,
+    };
 
     PackedByteArray pc_bytes;
     pc_bytes.resize(sizeof(PushConstants));

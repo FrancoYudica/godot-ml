@@ -35,7 +35,7 @@ def create_conv_transpose_identity():
         strides=[1, 1],
         pads=[1, 1, 1, 1], # [pad_top, pad_left, pad_bottom, pad_right]
         group=1,
-        dilations=[1, 1]
+        dilations=[2, 2]
     )
 
     # 6. Build the Graph

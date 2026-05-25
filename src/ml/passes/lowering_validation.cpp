@@ -101,9 +101,6 @@ static OperationResult check_node_attributes(
             if (defined.find(attrs.source_activation) == defined.end())
                 return {false, ctx + "source_activation tensor '" + attrs.source_activation + "' not found in defined tensor set"};
 
-            if (attrs.dilation_x != 1 || attrs.dilation_y != 1)
-                return {false, ctx + "only unit dilations supported"};
-
             if (attrs.output_padding_x != 0 || attrs.output_padding_y != 0)
                 return {false, ctx + "only zero output padding supported"};
         }

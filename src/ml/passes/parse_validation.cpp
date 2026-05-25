@@ -109,9 +109,6 @@ OperationResult validate_parse(const Logical::Graph& graph) {
             if (attrs.output_padding.size() != 2)
                 return {false, ctx + "expected 2 output padding values, got: " + std::to_string(attrs.output_padding.size())};
 
-            if (attrs.dilations[0] != 1.0 || attrs.dilations[1] != 1.0)
-                return {false, ctx + "unsupported Conv ConvTransposeAttributes values. Currently, dilations=1 is supported"};
-
             break;
         }
 

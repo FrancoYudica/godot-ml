@@ -85,8 +85,16 @@ static bool infer_col2im(const Node& node, ShapeInferenceResult& result) {
     int64_t ih = (*src)[2];
     int64_t iw = (*src)[3];
 
-    int64_t out_h = attrs.stride_y * (ih - 1) + attrs.kernel_h - attrs.padding_left - attrs.padding_right;
-    int64_t out_w = attrs.stride_x * (iw - 1) + attrs.kernel_w - attrs.padding_top - attrs.padding_bottom;
+    int64_t kH = attrs.kernel_h, kW = attrs.kernel_w;
+
+    int64_t kh_effective = (kH - 1) * attrs.dilation_y + 1;
+    int64_t kw_effective = (kW - 1) * attrs.dilation_x + 1;
+
+    int64_t pad_horizontal = attrs.padding_left + attrs.padding_right;
+    int64_t pad_vertical = attrs.padding_top + attrs.padding_bottom;
+
+    int64_t out_h = attrs.stride_y * (ih - 1) + kh_effective - pad_vertical;
+    int64_t out_w = attrs.stride_x * (iw - 1) + kw_effective - pad_horizontal;
 
     int64_t out_c = (*bias)[0];
 
