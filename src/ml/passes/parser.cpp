@@ -188,19 +188,7 @@ static OperationResult _parse_nodes(const onnx::GraphProto& proto, Graph& graph)
 } // namespace Logical
 namespace passes {
 
-ParseResult parse(const std::string& path) {
-    godot::String global_path =
-        godot::ProjectSettings::get_singleton()->globalize_path(
-            godot::String(path.c_str()));
-    std::string absolute_path = global_path.utf8().get_data();
-
-    onnx::ModelProto model;
-    std::ifstream file(absolute_path, std::ios::binary);
-    if (!file.is_open())
-        return {{}, {false, "could not open file: " + absolute_path}};
-    if (!model.ParseFromIstream(&file))
-        return {{}, {false, "failed to deserialize ONNX protobuf: " + absolute_path}};
-
+static ParseResult _parse_model(onnx::ModelProto& model) {
     const onnx::GraphProto& proto = model.graph();
     Logical::Graph graph;
     _parse_inputs(proto, graph);
@@ -211,6 +199,15 @@ ParseResult parse(const std::string& path) {
         return {{}, nodes_result};
 
     return {std::move(graph), {true, {}}};
+}
+
+
+ParseResult parse(const uint8_t* data, size_t size) {
+    onnx::ModelProto model;
+    if (!model.ParseFromArray(data, static_cast<int>(size)))
+        return {{}, {false, "failed to deserialize ONNX protobuf from bytes"}};
+
+    return _parse_model(model);
 }
 
 } // namespace passes

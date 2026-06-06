@@ -1,5 +1,6 @@
 # thirdparty/onnx/SCsub
 import os
+import glob
 Import("env")
 
 env_onnx = env.Clone()
@@ -12,6 +13,18 @@ env_onnx.Append(CPPPATH=[
     onnx_dir,
     onnx_dir + "/onnx",
 ])
+
+# ── Protobuf compiler ─────────────────────────────────────────────────────────
+
+vcpkg_installed = env.get("VCPKG_INSTALLED", "")
+if vcpkg_installed:
+    _ext = ".exe" if env["platform"] == "windows" else ""
+    _candidate = os.path.join(vcpkg_installed, "tools", "protobuf", f"protoc{_ext}")
+    protoc = f'"{_candidate}"' if os.path.isfile(_candidate) else "protoc"
+else:
+    protoc = "protoc"
+
+print(f"[vcpkg] protoc: {protoc}")
 
 # ── Protobuf generation ───────────────────────────────────────────────────────
 
@@ -27,7 +40,7 @@ for proto in proto_files:
     env_onnx.Command(
         [cc, hdr],
         proto,
-        f"protoc"
+        f"{protoc}"
         f" --cpp_out={onnx_dir}/onnx/"
         f" --proto_path={onnx_dir}/onnx/"
         f" --proto_path={onnx_dir}/"
@@ -49,13 +62,33 @@ env["ONNX_SOURCES"] = [
     for src in generated_cc
 ]
 env["ONNX_INCLUDE_PATHS"] = [onnx_dir, onnx_dir + "/onnx"]
-env["ONNX_LIBS"] = [
-    "protobuf",
-    "absl_log_internal_check_op",
-    "absl_log_internal_message",
-    "absl_log_internal_log_sink_set",
-    "absl_log_internal_nullguard",
-    "absl_status",
-    "absl_strings",
-    "absl_base",
-]
+
+# ── Link libraries ────────────────────────────────────────────────────────────
+
+_vcpkg_lib = os.path.join(env.get("VCPKG_INSTALLED", ""), "lib")
+
+# vcpkg static builds name the library 'libprotobuf.lib'; dynamic use 'protobuf.lib'.
+_protobuf_lib = (
+    "libprotobuf"
+    if os.path.isfile(os.path.join(_vcpkg_lib, "libprotobuf.lib"))
+    else "protobuf"
+)
+
+# Discover transitive protobuf deps from vcpkg (absl + utf8_range).
+def _discover_libs(pattern_win, pattern_unix):
+    if not (_vcpkg_lib and os.path.isdir(_vcpkg_lib)):
+        return []
+    if env["platform"] == "windows":
+        return [
+            os.path.splitext(os.path.basename(f))[0]
+            for f in glob.glob(os.path.join(_vcpkg_lib, pattern_win))
+        ]
+    return [
+        os.path.splitext(os.path.basename(f))[0][3:]  # strip 'lib' prefix
+        for f in glob.glob(os.path.join(_vcpkg_lib, pattern_unix))
+    ]
+
+_absl_libs  = _discover_libs("absl_*.lib",       "libabsl_*.a")
+_utf8_libs  = _discover_libs("utf8_range*.lib",   "libutf8_range*.a")
+
+env["ONNX_LIBS"] = [_protobuf_lib] + _absl_libs + _utf8_libs

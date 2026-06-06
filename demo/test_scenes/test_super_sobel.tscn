@@ -1,10 +1,11 @@
-[gd_scene load_steps=8 format=3 uid="uid://kvx7gqpvpgw0"]
+[gd_scene load_steps=9 format=3 uid="uid://kvx7gqpvpgw0"]
 
 [ext_resource type="Texture2D" uid="uid://bif6ceo2bhp7d" path="res://textures/test_img_0.png" id="1_x6gm0"]
 [ext_resource type="Texture2D" uid="uid://2aaci7qapndj" path="res://icon.svg" id="3_0rjo6"]
 [ext_resource type="Script" uid="uid://c5ip6kwl0d1ik" path="res://image_test_runner.gd" id="3_5bqun"]
 [ext_resource type="Script" uid="uid://bh2l1jjfspdvw" path="res://test_scenes/move_parent.gd" id="3_q3or8"]
 [ext_resource type="Script" uid="uid://2tmtsrbjcifv" path="res://test_scenes/parent_controller.gd" id="4_5bqun"]
+[ext_resource type="ONNXResource" uid="uid://tbo8gxnegb74" path="res://ml/super_resolution_4x.onnx" id="6_0rjo6"]
 
 [sub_resource type="ViewportTexture" id="ViewportTexture_q3or8"]
 viewport_path = NodePath("SrcSizeSubViewport")
@@ -145,5 +146,5 @@ expand_mode = 3
 script = ExtResource("3_5bqun")
 input_texture_viewport = NodePath("../DownsampledSubViewport")
 texture_rect = NodePath("../HBoxContainer/ResultSubViewportContainer/SubViewport/TextureRect")
-onnx_model_path = "ml/super_resolution_4x.onnx"
+onnx_model = ExtResource("6_0rjo6")
 scale_factor = 4

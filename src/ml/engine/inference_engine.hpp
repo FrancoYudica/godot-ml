@@ -4,6 +4,7 @@
 #include "inference_descriptor.hpp"
 #include "inference_task.hpp"
 #include "io/io.hpp"
+#include "io/onnx_resource.hpp"
 #include "operators/operators.hpp"
 #include "passes/parser.hpp"
 #include "tensors/tensors.hpp"
@@ -26,7 +27,7 @@ class MLInferenceEngine : public RefCounted {
   public:
     void init();
     void destroy();
-    uint32_t register_model(String model_path);
+    uint32_t register_model(Ref<ONNXResource> resource);
     void unload_model(uint32_t model_rid);
     Ref<InferenceTask> queue_request(
         uint32_t model_rid,

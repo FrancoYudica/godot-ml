@@ -2,7 +2,7 @@ extends Node
 
 @export var input_texture_viewport: SubViewport
 @export var texture_rect: TextureRect
-@export var onnx_model_path: String
+@export var onnx_model: ONNXResource
 @export var scale_factor: int
 
 var engine: MLInferenceEngine
@@ -12,7 +12,7 @@ var result_texture: Texture2D
 func _ready() -> void:
 	engine = MLInferenceEngine.new()
 	engine.init()
-	model_id = engine.register_model(onnx_model_path)
+	model_id = engine.register_model(onnx_model)
 	engine.print_model(model_id)
 	var input_texture = input_texture_viewport.get_texture()
 	var upscale_size = Vector2i(

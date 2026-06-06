@@ -11,7 +11,51 @@ env.Alias('compiledb', compilation_db)
 env["ML_SOURCES"]  = []
 env["ONNX_SOURCES"] = []
 
-# Thirdparty 
+# ── vcpkg integration ─────────────────────────────────────────────────────────
+# SConstruct lives in src/; project root (where vcpkg.json is) is one level up.
+_project_root = os.path.dirname(Dir("#").abspath)
+
+_default_triplets = {
+    "windows": "x64-windows-static",
+    "linux":   "x64-linux-static",
+    "macos":   "arm64-osx-static",
+    "android": "arm64-android",
+    "ios":     "arm64-ios-static",
+}
+vcpkg_triplet = ARGUMENTS.get(
+    "vcpkg_triplet",
+    _default_triplets.get(env["platform"], "x64-windows-static")
+)
+
+# Manifest-mode local install (preferred): vcpkg_installed/ next to vcpkg.json
+_manifest_installed = os.path.join(_project_root, "vcpkg_installed", vcpkg_triplet)
+
+# Classic-mode fallback: {VCPKG_ROOT}/installed/{triplet}
+vcpkg_root = ARGUMENTS.get("vcpkg_root", os.environ.get("VCPKG_ROOT", ""))
+_classic_installed = os.path.join(vcpkg_root, "installed", vcpkg_triplet) if vcpkg_root else ""
+
+if os.path.isdir(_manifest_installed):
+    vcpkg_installed = _manifest_installed
+    print(f"[vcpkg] manifest mode — installed: {vcpkg_installed}")
+elif _classic_installed and os.path.isdir(_classic_installed):
+    vcpkg_installed = _classic_installed
+    print(f"[vcpkg] classic mode — installed: {vcpkg_installed}")
+else:
+    vcpkg_installed = _manifest_installed  # not yet installed; path will be used once created
+    print(f"[vcpkg] WARNING: packages not found at {vcpkg_installed}")
+    print(f"[vcpkg]   Run: vcpkg install --triplet {vcpkg_triplet}")
+    print(f"[vcpkg]   (from the project root: {_project_root})")
+
+env["VCPKG_TRIPLET"]   = vcpkg_triplet
+env["VCPKG_INSTALLED"] = vcpkg_installed
+
+# Propagate vcpkg include/lib paths to all sub-scripts via the parent env.
+# env_onnx and env_ml are clones, so they inherit these automatically.
+if os.path.isdir(vcpkg_installed):
+    env.Append(CPPPATH=[os.path.join(vcpkg_installed, "include")])
+    env.Append(LIBPATH=[os.path.join(vcpkg_installed, "lib")])
+
+# Thirdparty
 SConscript("thirdparty/SCsub", exports="env")
 
 # ML Runtime

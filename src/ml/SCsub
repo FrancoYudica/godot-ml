@@ -9,6 +9,11 @@ scsub_dir = Dir(".").abspath
 build_dir = os.path.join(scsub_dir, "build")
 
 env_ml.Append(CPPDEFINES=["ONNX_ML=0"])
+
+if env["platform"] == "windows":
+    env_ml.Append(CXXFLAGS=["/std:c++20"])
+else:
+    env_ml.Append(CXXFLAGS=["-std=c++20"])
 env_ml.Append(CPPPATH=[
     os.path.dirname(scsub_dir),    # src/
     scsub_dir,                     # src/ml/

@@ -1,5 +1,7 @@
 #pragma once
 #include "core/core.hpp" // IWYU pragma: export
+#include <cstdint>
+#include <string>
 
 namespace ml::passes {
 
@@ -8,6 +10,6 @@ struct ParseResult {
     OperationResult status;
 };
 
-ParseResult parse(const std::string& path);
+ParseResult parse(const uint8_t* data, size_t size);
 
 } // namespace ml::passes

@@ -3,6 +3,7 @@ extends Node
 @export var run: bool = true
 @export_file("*.json") var test_suite_path: String
 @export var onnx_root_path: String
+@export var sources: Array[ONNXResource] = []
 
 var engine = MLInferenceEngine.new()
 var model_cache: Dictionary = {}
@@ -42,9 +43,15 @@ func _execute_test(data: Dictionary):
 
 func _get_or_register_model(path: String) -> int:
 	if model_cache.has(path): return model_cache[path]
-	var id = engine.register_model(path)
-	if id != 0: model_cache[path] = id
-	else: push_error("Failed to load: " + path)
+	var model = sources.filter(func(resource: Resource): return path == resource.resource_path).back()
+	if model == null:
+		return 0
+		
+	var id = engine.register_model(model)
+	if id != 0: 
+		model_cache[path] = id
+	else: 
+		push_error("Failed to load: " + path)
 	return id
 
 func _on_test_completed(data: Dictionary, task: InferenceTask):

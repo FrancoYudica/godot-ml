@@ -1,12 +1,17 @@
 #include "register_types.h"
 
 #include "ml/engine/engine.hpp"
+#include "ml/io/onnx_resource.hpp"
+#include "ml/io/onnx_resource_loader.hpp"
 
 #include <gdextension_interface.h>
+#include <godot_cpp/classes/resource_loader.hpp>
 #include <godot_cpp/core/defs.hpp>
 #include <godot_cpp/godot.hpp>
 
 using namespace godot;
+
+static Ref<ONNXResourceLoader> _onnx_loader;
 
 void initialize_module(ModuleInitializationLevel p_level) {
     if (p_level != MODULE_INITIALIZATION_LEVEL_SCENE) {
@@ -16,12 +21,20 @@ void initialize_module(ModuleInitializationLevel p_level) {
     GDREGISTER_RUNTIME_CLASS(MLInferenceEngine);
     GDREGISTER_RUNTIME_CLASS(InferenceTask);
     GDREGISTER_RUNTIME_CLASS(InferenceDescriptor);
+    GDREGISTER_CLASS(ONNXResource);
+    GDREGISTER_CLASS(ONNXResourceLoader);
+
+    _onnx_loader.instantiate();
+    ResourceLoader::get_singleton()->add_resource_format_loader(_onnx_loader);
 }
 
 void uninitialize_module(ModuleInitializationLevel p_level) {
     if (p_level != MODULE_INITIALIZATION_LEVEL_SCENE) {
         return;
     }
+
+    ResourceLoader::get_singleton()->remove_resource_format_loader(_onnx_loader);
+    _onnx_loader.unref();
 }
 
 extern "C" {

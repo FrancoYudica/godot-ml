@@ -1,9 +1,9 @@
 .vscode
-bin
 *.os
-
+*.obj
 .sconsign.dblite
 config.log
 .sconf_temp
 compile_commands.json
 .cache
+vcpkg_installed

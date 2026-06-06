@@ -19,7 +19,7 @@ void MLInferenceEngine::_bind_methods() {
     ClassDB::bind_method(
         D_METHOD(
             "register_model",
-            "model_path"),
+            "resource"),
         &MLInferenceEngine::register_model);
     ClassDB::bind_method(
         D_METHOD(
@@ -82,12 +82,13 @@ void MLInferenceEngine::init() {
     _initialized = true;
 }
 
-uint32_t MLInferenceEngine::register_model(String model_path) {
+
+uint32_t MLInferenceEngine::register_model(Ref<ONNXResource> resource) {
     ERR_FAIL_COND_V_MSG(!_initialized, 0, "InferenceEngine: not initialized.");
+    ERR_FAIL_COND_V_MSG(resource.is_null(), 0, "InferenceEngine: null ONNXResource.");
 
-    print_line("Loading ML inference engine with model: " + model_path);
-
-    auto parse_result = ml::passes::parse(model_path.utf8().ptr());
+    const PackedByteArray data = resource->get_data();
+    auto parse_result = ml::passes::parse(data.ptr(), data.size());
     ERR_FAIL_COND_V_MSG(
         !parse_result.status.success,
         0,
@@ -119,13 +120,13 @@ uint32_t MLInferenceEngine::register_model(String model_path) {
     uint32_t graph_rid = _next_graph_id++;
     _graphs[graph_rid] = graph_context;
 
-    // Makes sure that the graph initializers are loaded to the task tm
     for (const auto& [name, tensor] : graph_context.graph.initializers) {
         graph_context.initializers_tm->get_or_create(name, tensor.shape, tensor.data);
     }
 
     return graph_rid;
 }
+
 void MLInferenceEngine::unload_model(uint32_t model_rid) {
     ERR_FAIL_COND_MSG(
         !_has_graph(model_rid),
