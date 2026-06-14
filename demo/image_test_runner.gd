@@ -53,7 +53,14 @@ func _dispatch_inference() -> void:
 	var descriptor = InferenceDescriptor.new()
 	var tex = input_texture_viewport.get_texture()
 	var input_texture = input_texture_viewport.get_texture()
-	descriptor.add_texture_input("input", tex, input_texture.get_width(), input_texture.get_height())
+	
+	descriptor.add_texture_input(
+		"input", 
+		tex, 
+		InferenceDescriptor.TEXTURE_LOAD_RGB, 
+		input_texture.get_width(), 
+		input_texture.get_height()
+	)
 	descriptor.add_texture_output("output", result_texture)
 	var task = engine.queue_request(model_id, descriptor)
 	if task == null:
