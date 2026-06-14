@@ -23,6 +23,7 @@ class TextureInputHandlerCompute : public IInputHandler {
     godot::RID _shader_rid;
     std::vector<godot::Ref<godot::RDUniform>> _uniforms;
     std::string _tensor_name;
+    uint32_t _load_mode = 0;
 };
 
 } // namespace ml

@@ -29,26 +29,49 @@ bool TextureInputHandler::upload(
     if (img->is_compressed()) {
         img->decompress();
     }
-    img->convert(Image::FORMAT_RGBF);
+
+    // mode values: 0=RGB, 1=RGBA, 2=RED, 3=GREEN, 4=BLUE, 5=ALPHA, 6=GRAYSCALE
+    uint32_t mode = texture_desc->load_mode;
+    bool need_alpha = (mode == 1 || mode == 5); // RGBA or ALPHA
+    img->convert(need_alpha ? Image::FORMAT_RGBAF : Image::FORMAT_RGBF);
 
     uint32_t w = img->get_width();
     uint32_t h = img->get_height();
     uint32_t channels = texture_desc->channels;
     uint32_t pixels = w * h;
+    uint32_t src_ch = need_alpha ? 4u : 3u;
 
     PackedByteArray raw = img->get_data();
     const float* src = reinterpret_cast<const float*>(raw.ptr());
 
-    std::vector<float> floats(pixels * channels);
+    // BCHW layout: each channel plane is contiguous.
+    std::vector<float> floats(channels * pixels);
     for (uint32_t i = 0; i < pixels; i++) {
-        for (uint32_t c = 0; c < channels; c++) {
-            floats[i * channels + c] = src[i * 3 + c];
+        const float* p = src + i * src_ch;
+        switch (mode) {
+        case 0: // RGB
+            floats[0 * pixels + i] = p[0];
+            floats[1 * pixels + i] = p[1];
+            floats[2 * pixels + i] = p[2];
+            break;
+        case 1: // RGBA
+            floats[0 * pixels + i] = p[0];
+            floats[1 * pixels + i] = p[1];
+            floats[2 * pixels + i] = p[2];
+            floats[3 * pixels + i] = p[3];
+            break;
+        case 2: floats[i] = p[0]; break; // RED
+        case 3: floats[i] = p[1]; break; // GREEN
+        case 4: floats[i] = p[2]; break; // BLUE
+        case 5: floats[i] = p[3]; break; // ALPHA
+        default: // GRAYSCALE (mode 6)
+            floats[i] = 0.299f * p[0] + 0.587f * p[1] + 0.114f * p[2];
+            break;
         }
     }
 
-    // (channels, height, width)
     std::vector<int64_t> shape = {
-        1, // Batches
+        1,
         (int64_t)channels,
         (int64_t)h,
         (int64_t)w};

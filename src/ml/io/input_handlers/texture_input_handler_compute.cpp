@@ -7,8 +7,8 @@ using namespace godot;
 struct PushConstants {
     uint32_t width;
     uint32_t height;
-    uint32_t channel_count;
-    float padding[1]; // Alignment to 16 bytes
+    uint32_t load_mode;
+    uint32_t _padding;
 };
 
 namespace ml {
@@ -97,6 +97,7 @@ bool TextureInputHandlerCompute::upload(
         "InferenceEngine: Failed to cast InputDesc to Texture.");
 
     _tensor_name = texture_desc->tensor_name;
+    _load_mode = texture_desc->load_mode;
 
     RID tensor_rid = ctx.activations_tm->get_or_create(
         texture_desc->tensor_name,
@@ -118,14 +119,13 @@ void TextureInputHandlerCompute::dispatch(const InputHandlerContext& ctx) {
     const auto& shape = ctx.activations_tm->get_tensor_shape(_tensor_name);
     uint32_t width = static_cast<uint32_t>(shape[3]);
     uint32_t height = static_cast<uint32_t>(shape[2]);
-    uint32_t channels = static_cast<uint32_t>(shape[1]);
 
     RID uniform_set_rid = ctx.rd->uniform_set_create(
         {_uniforms[0], _uniforms[1]},
         _shader_rid,
         0);
 
-    PushConstants pc{width, height, channels};
+    PushConstants pc{width, height, _load_mode, 0};
 
     PackedByteArray pc_bytes;
     pc_bytes.resize(sizeof(PushConstants));

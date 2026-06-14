@@ -4,6 +4,16 @@
 
 namespace godot {
 
+enum LoadTextureMode {
+    TEXTURE_LOAD_RGB = 0,       // 3 channels → [R, G, B]
+    TEXTURE_LOAD_RGBA = 1,      // 4 channels → [R, G, B, A]
+    TEXTURE_LOAD_RED = 2,       // 1 channel  → [R]
+    TEXTURE_LOAD_GREEN = 3,     // 1 channel  → [G]
+    TEXTURE_LOAD_BLUE = 4,      // 1 channel  → [B]
+    TEXTURE_LOAD_ALPHA = 5,     // 1 channel  → [A]
+    TEXTURE_LOAD_GRAYSCALE = 6, // 1 channel  → [0.299R + 0.587G + 0.114B]
+};
+
 class InferenceDescriptor : public RefCounted {
     GDCLASS(InferenceDescriptor, RefCounted);
 
@@ -22,6 +32,7 @@ class InferenceDescriptor : public RefCounted {
     void add_texture_input(
         const String& tensor_name,
         Ref<Texture2D> texture,
+        LoadTextureMode load_mode = LoadTextureMode::TEXTURE_LOAD_RGB,
         uint32_t process_width_override = 0,
         uint32_t process_height_override = 0);
 
@@ -51,3 +62,5 @@ class InferenceDescriptor : public RefCounted {
 };
 
 } // namespace godot
+
+VARIANT_ENUM_CAST(LoadTextureMode);

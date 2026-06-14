@@ -4,6 +4,14 @@
 
 namespace godot {
 void InferenceDescriptor::_bind_methods() {
+    BIND_ENUM_CONSTANT(TEXTURE_LOAD_RGB);
+    BIND_ENUM_CONSTANT(TEXTURE_LOAD_RGBA);
+    BIND_ENUM_CONSTANT(TEXTURE_LOAD_RED);
+    BIND_ENUM_CONSTANT(TEXTURE_LOAD_GREEN);
+    BIND_ENUM_CONSTANT(TEXTURE_LOAD_BLUE);
+    BIND_ENUM_CONSTANT(TEXTURE_LOAD_ALPHA);
+    BIND_ENUM_CONSTANT(TEXTURE_LOAD_GRAYSCALE);
+
     ClassDB::bind_method(
         D_METHOD(
             "add_float_array_input",
@@ -16,9 +24,11 @@ void InferenceDescriptor::_bind_methods() {
             "add_texture_input",
             "tensor_name",
             "texture",
+            "load_mode",
             "process_width_override",
             "process_height_override"),
         &InferenceDescriptor::add_texture_input,
+        DEFVAL(LoadTextureMode::TEXTURE_LOAD_RGB),
         DEFVAL(0),
         DEFVAL(0));
     ClassDB::bind_method(
@@ -70,6 +80,7 @@ void InferenceDescriptor::add_float_array_input(
 void InferenceDescriptor::add_texture_input(
     const String& tensor_name,
     Ref<Texture2D> texture,
+    LoadTextureMode load_mode,
     uint32_t process_width_override,
     uint32_t process_height_override) {
     ERR_FAIL_COND_MSG(
@@ -79,7 +90,9 @@ void InferenceDescriptor::add_texture_input(
     auto desc = std::make_unique<ml::InputDesc::Texture>();
     desc->type = ml::InputType::Texture2D;
     desc->tensor_name = tensor_name.utf8().get_data();
-    desc->channels = 3;
+    desc->channels = (load_mode == LoadTextureMode::TEXTURE_LOAD_RGBA) ? 4u : (load_mode == LoadTextureMode::TEXTURE_LOAD_RGB) ? 3u
+                                                                                                                               : 1u;
+    desc->load_mode = static_cast<uint32_t>(load_mode);
     desc->texture = texture;
     desc->process_width_override = process_width_override;
     desc->process_height_override = process_height_override;

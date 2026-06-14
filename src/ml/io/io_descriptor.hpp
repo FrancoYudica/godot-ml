@@ -35,7 +35,8 @@ class BaseData {
 class Texture : public BaseData {
   public:
     godot::Ref<godot::Texture2D> texture;
-    uint32_t channels = 3; // how many channels to extract
+    uint32_t channels = 3;   // number of output channels (derived from load_mode)
+    uint32_t load_mode = 0;  // LoadTextureMode cast to uint32_t, forwarded to shader
     uint32_t process_width_override = 0;
     uint32_t process_height_override = 0;
 };
