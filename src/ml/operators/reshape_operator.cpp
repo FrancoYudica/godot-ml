@@ -70,6 +70,24 @@ void ReshapeOperator::dispatch(
         ERR_FAIL_COND_MSG(!result.success, result.error.c_str());
         break;
     }
+
+    case Physical::ReshapeMode::Standard: {
+        ERR_FAIL_COND_MSG(node.inputs.size() != 1, "Standard reshape: expected 1 input");
+        ERR_FAIL_COND_MSG(node.outputs.size() != 1, "Standard reshape: expected 1 output");
+
+        const auto& out_shape = ctx.shape_table->at(node.outputs[0]);
+        auto result = ctx.activations_tm->create_alias(
+            node.inputs[0],
+            node.outputs[0],
+            out_shape);
+
+        ERR_FAIL_COND_MSG(!result.success, result.error.c_str());
+
+        ctx.frame_deletion_stack->push([name = node.outputs[0], tm = ctx.activations_tm]() {
+            tm->remove_alias(name);
+        });
+        break;
+    }
     }
 }
 

@@ -7,3 +7,4 @@ ipykernel
 numpy
 onnx
 onnxruntime
+netron

@@ -59,6 +59,12 @@ static OperationResult check_logical_node_arity(size_t idx, const Logical::Node&
         if (node.outputs.size() != 1)
             return {false, ctx + "expected 1 output, got " + std::to_string(node.outputs.size())};
         break;
+    case Logical::Operator::Reshape:
+        if (node.inputs.size() != 2)
+            return {false, ctx + "expected 2 inputs (data, shape), got " + std::to_string(node.inputs.size())};
+        if (node.outputs.size() != 1)
+            return {false, ctx + "expected 1 output, got " + std::to_string(node.outputs.size())};
+        break;
     case Logical::Operator::ReLU:
     case Logical::Operator::Sigmoid:
     case Logical::Operator::MaxPool2D:
@@ -120,6 +126,9 @@ OperationResult validate_parse(const Logical::Graph& graph) {
                 auto vr = check_kernel_pads_strides_dilations(ctx, attrs.kernel_shape, attrs.pads, attrs.strides, attrs.dilations);
                 if (!vr.success) return {vr};
             }
+            break;
+
+        case Logical::Operator::Reshape:
             break;
 
         case Logical::Operator::ReLU:

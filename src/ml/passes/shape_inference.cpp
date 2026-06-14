@@ -123,6 +123,33 @@ static bool infer_reshape(const Node& node, ShapeInferenceResult& result) {
         shapes[node.outputs[0]] = *target;
         break;
     }
+    case ReshapeMode::Standard: {
+        const auto* in = require(node.inputs[0], shapes, result);
+        if (!in) return false;
+
+        int64_t total = 1;
+        for (int64_t d : *in)
+            total *= d;
+
+        std::vector<int64_t> out_shape = attrs.target_shape;
+        int64_t infer_idx = -1;
+        int64_t known_product = 1;
+        for (int64_t i = 0; i < static_cast<int64_t>(out_shape.size()); ++i) {
+            if (out_shape[i] == -1) {
+                infer_idx = i;
+            } else if (out_shape[i] == 0) {
+                out_shape[i] = (*in)[i];
+                known_product *= out_shape[i];
+            } else {
+                known_product *= out_shape[i];
+            }
+        }
+        if (infer_idx >= 0)
+            out_shape[infer_idx] = total / known_product;
+
+        shapes[node.outputs[0]] = std::move(out_shape);
+        break;
+    }
     }
     return true;
 }

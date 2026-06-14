@@ -70,6 +70,9 @@ enum class ReshapeMode {
     // Restores [b*h*w, oc] -> [b, oc, oh, ow]  (after Col2Im / after GEMM in Conv)
     // Reads the 4D target shape from ShapeTable using image_shape_ref.
     GemmToImage,
+    // Standard ONNX Reshape: explicit target_shape from the shape initializer.
+    // -1 dimensions are resolved at shape inference time.
+    Standard,
 };
 
 struct ReshapeAttrs {
@@ -81,6 +84,9 @@ struct ReshapeAttrs {
     // When true: dispatches matrix_transpose.glsl instead of creating a zero-copy alias.
     // Used for BCHW bridge nodes around GEMM in Conv (post-GEMM) and ConvTranspose (pre-GEMM).
     bool is_permutation = false;
+    // For Standard mode: target dimensions read from the ONNX shape initializer.
+    // May contain -1 (infer) or 0 (copy from input dim).
+    std::vector<int64_t> target_shape;
 };
 
 struct Node {

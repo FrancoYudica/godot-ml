@@ -13,6 +13,7 @@ enum class Operator {
     Im2Col,
     ConvTranspose,
     MaxPool2D,
+    Reshape,
     Unknown
 };
 

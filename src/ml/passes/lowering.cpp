@@ -202,6 +202,27 @@ static OperationResult low_conv_transpose(const Logical::Node& node, Physical::G
     return {true, {}};
 }
 
+static OperationResult low_reshape(const Logical::Node& node, Physical::Graph& graph) {
+    auto it = graph.initializers.find(node.inputs[1]);
+    if (it == graph.initializers.end())
+        return {false, "Reshape: shape tensor '" + node.inputs[1] + "' not found in initializers"};
+
+    std::vector<int64_t> target_shape;
+    for (float v : it->second.data)
+        target_shape.push_back(static_cast<int64_t>(v));
+
+    Physical::Node n;
+    n.op = Physical::Operator::Reshape;
+    n.inputs = {node.inputs[0]};
+    n.outputs = node.outputs;
+    n.attributes = Physical::ReshapeAttrs{
+        .mode = Physical::ReshapeMode::Standard,
+        .target_shape = std::move(target_shape)};
+
+    graph.nodes.push_back(std::move(n));
+    return {true, {}};
+}
+
 static OperationResult low_max_pool_2d(const Logical::Node& node, Physical::Graph& graph) {
     const auto& l_attrs = std::get<Logical::MaxPool2DAttrs>(node.attributes);
 
@@ -258,6 +279,9 @@ LoweringResult lower(const Logical::Graph& logical_graph) {
             break;
         case Logical::Operator::MaxPool2D:
             op_result = low_max_pool_2d(node, graph);
+            break;
+        case Logical::Operator::Reshape:
+            op_result = low_reshape(node, graph);
             break;
         case Logical::Operator::Unknown:
             result.status = {false, "lowering: encountered unknown op"};

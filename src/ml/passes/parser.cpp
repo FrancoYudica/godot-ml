@@ -16,6 +16,7 @@ static const std::unordered_map<std::string, Operator> operator_names = {
     {"ConvTranspose", Operator::ConvTranspose},
     {"Im2Col", Operator::Im2Col},
     {"MaxPool", Operator::MaxPool2D},
+    {"Reshape", Operator::Reshape},
     {"Unknown", Operator::Unknown}};
 
 static void _parse_inputs(const onnx::GraphProto& proto, Graph& graph) {
@@ -40,6 +41,16 @@ static void _parse_initializers(const onnx::GraphProto& proto, Graph& graph) {
             t.shape.push_back(dim);
         if (tensor.float_data_size() > 0) {
             t.data.assign(tensor.float_data().begin(), tensor.float_data().end());
+        } else if (tensor.data_type() == onnx::TensorProto::INT64) {
+            if (tensor.int64_data_size() > 0) {
+                for (auto v : tensor.int64_data())
+                    t.data.push_back(static_cast<float>(v));
+            } else if (!tensor.raw_data().empty()) {
+                const int64_t* raw = reinterpret_cast<const int64_t*>(tensor.raw_data().data());
+                size_t count = tensor.raw_data().size() / sizeof(int64_t);
+                for (size_t i = 0; i < count; ++i)
+                    t.data.push_back(static_cast<float>(raw[i]));
+            }
         } else if (!tensor.raw_data().empty()) {
             const float* raw = reinterpret_cast<const float*>(tensor.raw_data().data());
             t.data.assign(raw, raw + tensor.raw_data().size() / sizeof(float));
@@ -151,6 +162,11 @@ static OperationResult _parse_nodes(const onnx::GraphProto& proto, Graph& graph)
             n.op = Operator::ConvTranspose;
         }
 
+        else if (operator_type == Operator::Reshape) {
+            n.op = Operator::Reshape;
+            // No attributes - shape comes from n.inputs[1] (the shape tensor initializer).
+        }
+
         else if (operator_type == Operator::MaxPool2D) {
             n.attributes.emplace<MaxPool2DAttrs>();
             auto& max_pool = std::get<MaxPool2DAttrs>(n.attributes);
@@ -200,7 +216,6 @@ static ParseResult _parse_model(onnx::ModelProto& model) {
 
     return {std::move(graph), {true, {}}};
 }
-
 
 ParseResult parse(const uint8_t* data, size_t size) {
     onnx::ModelProto model;

@@ -113,6 +113,8 @@ static OperationResult check_node_attributes(
             const auto& attrs = std::get<Physical::ReshapeAttrs>(node.attributes);
             if (attrs.mode == Physical::ReshapeMode::GemmToImage && attrs.image_shape_ref.empty())
                 return {false, ctx + "GemmToImage mode requires non-empty image_shape_ref"};
+            if (attrs.mode == Physical::ReshapeMode::Standard && attrs.target_shape.empty())
+                return {false, ctx + "Standard mode requires non-empty target_shape"};
         }
         break;
 
