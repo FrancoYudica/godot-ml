@@ -2,53 +2,37 @@ extends SubViewport
 
 signal changed
 
-@export var point: PackedScene
-@export var points_parent: Control
-@export var point_scale = 0.1
+@export var lines_parent: Control
+@export var line_thickness_scale = 0.05
 
 var _drawing: bool = false
-var _last_position: Vector2 = Vector2(-1, -1)
+var _current_line: Line2D
 
-var point_size:
+var line_width:
 	get:
-		return point_scale * size.x
+		return line_thickness_scale * size.x
 
 func clear():
-	while points_parent.get_child_count():
-		points_parent.remove_child(points_parent.get_child(0))
+	while lines_parent.get_child_count():
+		lines_parent.remove_child(lines_parent.get_child(0))
 
 func _input(event: InputEvent) -> void:
 	if event.is_action_pressed("click"):
 		_drawing = true
 	if event.is_action_released("click"):
 		_drawing = false
-		_last_position = Vector2(-1, -1)
+		_current_line = null
 
 	if event is InputEventMouse and _drawing:
-		_moved(event.position)
-		_last_position = event.position
+		_add(event.position)
 
-func _moved(pos: Vector2):
-	
-	if _last_position.x == -1 and _last_position.y == -1:
-		_add(pos)
-		return
-	
-	var distance = (pos - _last_position).length()
-	var points = int(distance + point_size - 1) / int(point_size)
-	
-	var start = _last_position
-	var end = pos
-	for i in range(points):
-		var t = float(i + 1) / points
-		var position = lerp(start, end, t)
-		_add(position)
-	
 
 func _add(pos: Vector2):
-	var p = point.instantiate()
-	p.position = pos
-	p.size.x = point_size
-	p.size.y = point_size
-	points_parent.add_child(p)
+	
+	if _current_line == null:
+		_current_line = Line2D.new()
+		_current_line.width = line_width
+		lines_parent.add_child(_current_line)
+	
+	_current_line.add_point(pos)
 	changed.emit()

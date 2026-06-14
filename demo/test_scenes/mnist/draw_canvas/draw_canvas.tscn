@@ -1,12 +1,10 @@
-[gd_scene load_steps=3 format=3 uid="uid://bm8tm6sow8k70"]
+[gd_scene load_steps=2 format=3 uid="uid://bm8tm6sow8k70"]
 
 [ext_resource type="Script" uid="uid://f76h1xy5xch2" path="res://test_scenes/mnist/draw_canvas/draw_canvas.gd" id="1_j5f5g"]
-[ext_resource type="PackedScene" uid="uid://i2apbdn58hyh" path="res://test_scenes/mnist/draw_canvas/draw_point.tscn" id="2_rtpo5"]
 
-[node name="DrawCanvas" type="SubViewport" node_paths=PackedStringArray("points_parent")]
+[node name="DrawCanvas" type="SubViewport" node_paths=PackedStringArray("lines_parent")]
 script = ExtResource("1_j5f5g")
-point = ExtResource("2_rtpo5")
-points_parent = NodePath("PointsControl")
+lines_parent = NodePath("LinesParent")
 
 [node name="ColorRect" type="ColorRect" parent="."]
 anchors_preset = 15
@@ -16,7 +14,7 @@ grow_horizontal = 2
 grow_vertical = 2
 color = Color(0, 0, 0, 1)
 
-[node name="PointsControl" type="Control" parent="."]
+[node name="LinesParent" type="Control" parent="."]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
