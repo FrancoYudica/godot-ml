@@ -41,6 +41,8 @@ static OperationResult low_conv(const Logical::Node& node, Physical::Graph& grap
     const auto& l_attrs = std::get<Logical::ConvAttrs>(node.attributes);
 
     const std::string col_name = node.outputs[0] + "__col";
+    // GEMM writes [OH*OW, OC]; the permutation reshape below transposes to [OC, OH*OW] (BCHW).
+    const std::string flat_name = node.outputs[0] + "__flat";
 
     Physical::Node im2col;
     im2col.inputs = {node.inputs[0], node.inputs[1]}; // activation, weights
@@ -64,16 +66,18 @@ static OperationResult low_conv(const Logical::Node& node, Physical::Graph& grap
 
     Physical::Node gemm;
     gemm.inputs = {col_name, node.inputs[1], node.inputs[2]};
-    gemm.outputs = node.outputs;
+    gemm.outputs = {flat_name}; // [OH*OW, OC]
     gemm.attributes = Physical::GemmAttrs{1.0f, 1.0f};
     gemm.op = Physical::Operator::Gemm;
 
+    // GPU matrix transpose [OH*OW, OC] -> [OC, OH*OW], then relabel as 4D BCHW.
     Physical::ReshapeAttrs reshape_attrs{
         .mode = Physical::ReshapeMode::GemmToImage,
-        .image_shape_ref = col_name + "__4d"};
+        .image_shape_ref = col_name + "__4d",
+        .is_permutation = true};
 
     Physical::Node reshape;
-    reshape.inputs = node.outputs;
+    reshape.inputs = {flat_name};
     reshape.outputs = node.outputs;
     reshape.attributes = reshape_attrs;
     reshape.op = Physical::Operator::Reshape;
@@ -115,12 +119,16 @@ static OperationResult low_conv_transpose(const Logical::Node& node, Physical::G
     const std::string gemm_name = node.outputs[0] + "__gemm";
     const std::string col2im_name = node.outputs[0] + "__col2im";
 
-    // Reshape 1: [b, ic, ih, iw] -> [b*ih*iw, ic]
+    // GPU matrix transpose: BCHW [1, IC, IH, IW] (memory: [IC, IH*IW]) -> [IH*IW, IC]
+    // so that GEMM receives the input in the expected [B*IH*IW, IC] row-major format.
+    // Note: is_permutation=true is correct for batch=1 only; batch>1 needs a 4D permute.
     Physical::Node pre_reshape;
     pre_reshape.op = Physical::Operator::Reshape;
     pre_reshape.inputs = {node.inputs[0]};
     pre_reshape.outputs = {flat_name};
-    pre_reshape.attributes = Physical::ReshapeAttrs{.mode = Physical::ReshapeMode::ImageToGemm};
+    pre_reshape.attributes = Physical::ReshapeAttrs{
+        .mode = Physical::ReshapeMode::ImageToGemm,
+        .is_permutation = true};
 
     // ONNX ConvTranspose weights are [ic, oc, kH, kW]. The GEMM shader always
     // computes A x B^T, so transpose to [oc*kH*kW, ic] at load time.

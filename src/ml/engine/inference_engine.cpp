@@ -82,7 +82,6 @@ void MLInferenceEngine::init() {
     _initialized = true;
 }
 
-
 uint32_t MLInferenceEngine::register_model(Ref<ONNXResource> resource) {
     ERR_FAIL_COND_V_MSG(!_initialized, 0, "InferenceEngine: not initialized.");
     ERR_FAIL_COND_V_MSG(resource.is_null(), 0, "InferenceEngine: null ONNXResource.");
@@ -310,8 +309,11 @@ void MLInferenceEngine::_allocate_activations(
     Ref<ml::TensorResourceManager> activations_tm) {
 
     for (const auto& node : graph.nodes) {
-        // Reshape nodes create zero-copy aliases, not real GPU buffers.
-        if (node.op == ml::Physical::Operator::Reshape) continue;
+        // Non-permutation Reshape nodes create zero-copy aliases, not real GPU buffers.
+        if (node.op == ml::Physical::Operator::Reshape) {
+            const auto& attrs = std::get<ml::Physical::ReshapeAttrs>(node.attributes);
+            if (!attrs.is_permutation) continue;
+        }
         for (const auto& name : node.outputs) {
             auto it = shape_table.find(name);
             if (it != shape_table.end()) {

@@ -1,6 +1,8 @@
 #[compute]
 #version 450
 
+#include "common.glsl.inc"
+
 layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
 
 // Flattened Tensors
@@ -40,8 +42,7 @@ void main() {
       batch_idx >= pc.batch_size)
     return;
 
-  // Calculate the start of this specific image in the flat array
-  // (Channels * Height * Width)
+  // Batch offset: same total elements per batch regardless of layout
   uint image_size = pc.in_channels * pc.in_width * pc.in_height;
   uint batch_offset = batch_idx * image_size;
 
@@ -63,9 +64,10 @@ void main() {
             sample_y < int(pc.in_height)) {
 
           for (uint ic = 0; ic < pc.in_channels; ic++) {
-            uint input_idx = (uint(sample_y) * pc.in_width + uint(sample_x)) *
-                                 pc.in_channels +
-                             ic + batch_offset;
+            uint input_idx =
+                batch_offset + chw_index(pc.in_height, pc.in_width, ic,
+                                         uint(sample_y), uint(sample_x));
+            // Weights are OIHW: oc*(IC*KH*KW) + ic*(KH*KW) + ky*KW + kx
             uint weight_idx =
                 oc * (pc.in_channels * pc.kernel_w * pc.kernel_h) +
                 ic * (pc.kernel_w * pc.kernel_h) + ky * pc.kernel_w + kx;
@@ -76,12 +78,9 @@ void main() {
       }
     }
 
-    uint output_image_size = pc.out_width * pc.out_height * pc.out_channels;
-
-    // Packed output index plus the batch offset (y * out_width + x) *
-    // out_channels + oc
-    uint output_idx = (batch_idx * output_image_size) +
-                      (out_y * pc.out_width + out_x) * pc.out_channels + oc;
+    uint output_idx =
+        batch_idx * (pc.out_channels * pc.out_height * pc.out_width) +
+        chw_index(pc.out_height, pc.out_width, oc, out_y, out_x);
     output_tensor.data[output_idx] = sum + biases.data[oc];
   }
 }

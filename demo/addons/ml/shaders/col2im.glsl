@@ -1,5 +1,7 @@
 #[compute]
 #version 450
+
+#include "common.glsl.inc"
 layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
 
 layout(set = 0, binding = 0, std430) restrict readonly buffer ColBuffer {
@@ -67,6 +69,6 @@ void main() {
     }
   }
 
-  uint out_idx = (out_y * pc.out_width + out_x) * pc.out_channels + oc;
+  uint out_idx = chw_index(pc.out_height, pc.out_width, oc, out_y, out_x);
   out_data[out_idx] = sum;
 }

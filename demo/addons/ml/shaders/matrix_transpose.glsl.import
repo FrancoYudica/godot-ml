@@ -1,0 +1,14 @@
+[remap]
+
+importer="glsl"
+type="RDShaderFile"
+uid="uid://cni8y1rr1etlg"
+path="res://.godot/imported/matrix_transpose.glsl-4f06b99cff4c6d564cff13c36ba3b803.res"
+
+[deps]
+
+source_file="res://addons/ml/shaders/matrix_transpose.glsl"
+dest_files=["res://.godot/imported/matrix_transpose.glsl-4f06b99cff4c6d564cff13c36ba3b803.res"]
+
+[params]
+

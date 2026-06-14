@@ -1,6 +1,8 @@
 #[compute]
 #version 450
 
+#include "common.glsl.inc"
+
 layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
 
 layout(set = 0, binding = 0) uniform sampler2D input_texture;
@@ -26,15 +28,14 @@ void main() {
   vec2 uv = (vec2(id.xy) + vec2(0.5)) / vec2(pc.width, pc.height);
   vec4 color = texture(input_texture, uv);
 
-  // Calculate base index in the 1D buffer: (y * width + x) * channels
-  uint base_index = (id.y * pc.width + id.x) * pc.channel_count;
-
-  // Fill the tensor buffer based on requested channels
-  output_tensor.data[base_index + 0] = color.r;
+  output_tensor.data[chw_index(pc.height, pc.width, 0u, id.y, id.x)] = color.r;
   if (pc.channel_count > 1)
-    output_tensor.data[base_index + 1] = color.g;
+    output_tensor.data[chw_index(pc.height, pc.width, 1u, id.y, id.x)] =
+        color.g;
   if (pc.channel_count > 2)
-    output_tensor.data[base_index + 2] = color.b;
+    output_tensor.data[chw_index(pc.height, pc.width, 2u, id.y, id.x)] =
+        color.b;
   if (pc.channel_count > 3)
-    output_tensor.data[base_index + 3] = color.a;
+    output_tensor.data[chw_index(pc.height, pc.width, 3u, id.y, id.x)] =
+        color.a;
 }

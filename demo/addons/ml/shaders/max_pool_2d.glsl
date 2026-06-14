@@ -1,6 +1,8 @@
 #[compute]
 #version 450
 
+#include "common.glsl.inc"
+
 layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
 
 layout(set = 0, binding = 0) buffer Input { float data[]; }
@@ -35,19 +37,11 @@ void main() {
       bc >= (pc.batch_size * pc.channels))
     return;
 
-  uint batch = bc / pc.channels;
-  uint channel = bc % pc.channels;
-
-  // Initialize max_val to a very small number
   float max_val = -3.402823466e+38;
 
   uint start_x = out_x * pc.stride_x;
   uint start_y = out_y * pc.stride_y;
 
-  uint in_image_size = pc.in_width * pc.in_height;
-  uint batch_channel_offset = (batch * pc.channels + channel) * in_image_size;
-
-  // Sliding Window
   for (uint ky = 0; ky < pc.kernel_h; ky++) {
     for (uint kx = 0; kx < pc.kernel_w; kx++) {
       int sample_x =
@@ -57,18 +51,13 @@ void main() {
 
       if (sample_x >= 0 && sample_x < int(pc.in_width) && sample_y >= 0 &&
           sample_y < int(pc.in_height)) {
-
-        uint input_idx = batch_channel_offset +
-                         (uint(sample_y) * pc.in_width + uint(sample_x));
+        uint input_idx = chw_index(pc.in_height, pc.in_width, bc,
+                                   uint(sample_y), uint(sample_x));
         max_val = max(max_val, input_tensor.data[input_idx]);
       }
     }
   }
 
-  // Write result
-  uint out_image_size = pc.out_width * pc.out_height;
-  uint output_idx = (batch * pc.channels + channel) * out_image_size +
-                    (out_y * pc.out_width + out_x);
-
-  output_tensor.data[output_idx] = max_val;
+  output_tensor.data[chw_index(pc.out_height, pc.out_width, bc, out_y, out_x)] =
+      max_val;
 }

@@ -1,6 +1,8 @@
 #[compute]
 #version 450
 
+#include "common.glsl.inc"
+
 layout(local_size_x = 64, local_size_y = 1, local_size_z = 1) in;
 
 layout(set = 0, binding = 0) buffer Input { float data[]; }
@@ -60,9 +62,7 @@ void main() {
   if (sample_x >= 0 && sample_x < int(pc.in_width) && sample_y >= 0 &&
       sample_y < int(pc.in_height)) {
 
-    // Gets element index within tensor data
-    uint input_idx =
-        (uint(sample_y) * pc.in_width + uint(sample_x)) * pc.in_channels + ic;
+    uint input_idx = chw_index(pc.in_height, pc.in_width, ic, uint(sample_y), uint(sample_x));
     val = input_tensor.data[input_idx];
   }
 

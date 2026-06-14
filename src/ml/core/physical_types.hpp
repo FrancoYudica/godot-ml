@@ -78,6 +78,9 @@ struct ReshapeAttrs {
     // Written by Im2Col (Conv path) or Col2Im (ConvTranspose path) during shape inference.
     // Format: <producer_output_name> + "__4d"
     std::string image_shape_ref;
+    // When true: dispatches matrix_transpose.glsl instead of creating a zero-copy alias.
+    // Used for BCHW bridge nodes around GEMM in Conv (post-GEMM) and ConvTranspose (pre-GEMM).
+    bool is_permutation = false;
 };
 
 struct Node {
