@@ -78,8 +78,8 @@ void ml::GemmOperator::dispatch(
     ctx.rd->compute_list_bind_uniform_set(ctx.compute_list, uniform_set_rid, 0);
     ctx.rd->compute_list_set_push_constant(ctx.compute_list, pc_bytes, pc_bytes.size());
 
-    uint32_t workgroup_count_x = M / 7 + 8;
-    uint32_t workgroup_count_y = N / 7 + 8;
+    uint32_t workgroup_count_x = (M / 7) + 8;
+    uint32_t workgroup_count_y = (N / 7) + 8;
 
     ctx.rd->compute_list_dispatch(
         ctx.compute_list,
