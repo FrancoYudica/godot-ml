@@ -1,4 +1,4 @@
-[gd_scene load_steps=15 format=3 uid="uid://bfw44rbac7h28"]
+[gd_scene load_steps=16 format=3 uid="uid://bfw44rbac7h28"]
 
 [ext_resource type="Texture2D" uid="uid://cq14756u52xid" path="res://demo_scenes/style_transfer/resources/textures/white.png" id="1_qkdas"]
 [ext_resource type="Script" uid="uid://bu7m0lax871s" path="res://demo_scenes/style_transfer/game/bird/bird.gd" id="2_q4pd8"]
@@ -11,6 +11,7 @@
 [ext_resource type="Script" uid="uid://opmfhe34ivbd" path="res://demo_scenes/style_transfer/game/bird/states/play_logic.gd" id="8_00riy"]
 [ext_resource type="Script" uid="uid://wqlyfep3co7l" path="res://demo_scenes/style_transfer/game/bird/states/dead_logic.gd" id="9_0dpju"]
 [ext_resource type="Script" uid="uid://hi34utau3u2l" path="res://demo_scenes/style_transfer/game/bird/states/kinematics_logic.gd" id="11_0dpju"]
+[ext_resource type="Script" uid="uid://y4yop2bkgljs" path="res://demo_scenes/style_transfer/game/bird/states/animation_logic.gd" id="12_biy06"]
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_q4pd8"]
 radius = 0.45
@@ -87,6 +88,9 @@ delay_in_seconds = "0.0"
 [node name="KinematicsState" type="Node" parent="StateChart/ParallelState"]
 script = ExtResource("5_ceji2")
 
+[node name="AnimationState" type="Node" parent="StateChart/ParallelState"]
+script = ExtResource("5_ceji2")
+
 [node name="StateLogic" type="Node" parent="."]
 
 [node name="CompoundState" type="Node" parent="StateLogic"]
@@ -110,3 +114,10 @@ state = NodePath("../../../StateChart/ParallelState/CompoundState/DeadState")
 script = ExtResource("11_0dpju")
 bird = NodePath("../..")
 state = NodePath("../../StateChart/ParallelState/KinematicsState")
+
+[node name="AnimationLogic" type="Node" parent="StateLogic" node_paths=PackedStringArray("sprite", "bird", "state")]
+script = ExtResource("12_biy06")
+sprite = NodePath("../../CollisionShape2D/Bird")
+max_speed = 70.0
+bird = NodePath("../..")
+state = NodePath("../../StateChart/ParallelState/AnimationState")
