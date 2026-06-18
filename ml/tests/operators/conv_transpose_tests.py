@@ -15,7 +15,7 @@ def create_conv_transpose_model(model_filepath, kernel_shape, strides, dilations
     w_values = np.ones(w_shape, dtype=np.float32).flatten()
     
     weights = helper.make_tensor('W', TensorProto.FLOAT, w_shape, w_values)
-    biases = helper.make_tensor('B', TensorProto.FLOAT, [out_channels], np.zeros([out_channels], dtype=np.float32))
+    biases = helper.make_tensor('B', TensorProto.FLOAT, [out_channels], np.ones([out_channels], dtype=np.float32))
 
     node = helper.make_node(
         'ConvTranspose',
