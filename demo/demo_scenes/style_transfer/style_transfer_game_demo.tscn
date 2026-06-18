@@ -1,0 +1,64 @@
+[gd_scene load_steps=6 format=3 uid="uid://fgdflnihsc5u"]
+
+[ext_resource type="PackedScene" uid="uid://53tws5cwxsas" path="res://demo_scenes/style_transfer/game/flappy_game.tscn" id="1_g8li3"]
+[ext_resource type="Script" uid="uid://chh3x32c8u4h3" path="res://demo_scenes/style_transfer/style_transfer_game_demo.gd" id="1_hcnuq"]
+[ext_resource type="Script" uid="uid://drgdtqr5cc66" path="res://demo_scenes/style_transfer/ml_post_processor.gd" id="2_hcnuq"]
+[ext_resource type="ONNXResource" uid="uid://bxhacms120hyp" path="res://demo_scenes/style_transfer/resources/models/style_transfer_4x.onnx" id="3_ynokh"]
+
+[sub_resource type="ViewportTexture" id="ViewportTexture_bad66"]
+viewport_path = NodePath("HighResSubViewport")
+
+[node name="StyleTransferGameDemo" type="Control" node_paths=PackedStringArray("high_res_sub_viewport")]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("1_hcnuq")
+high_res_sub_viewport = NodePath("HighResSubViewport")
+metadata/_edit_vertical_guides_ = [-2002.0]
+
+[node name="MLPostProcessor" type="Node" parent="." node_paths=PackedStringArray("input_texture_viewport", "texture_rect")]
+script = ExtResource("2_hcnuq")
+input_texture_viewport = NodePath("../LowResSubViewport")
+texture_rect = NodePath("../GameTextureRect")
+onnx_model = ExtResource("3_ynokh")
+scale_factor = 4
+
+[node name="HighResSubViewport" type="SubViewport" parent="."]
+handle_input_locally = false
+render_target_update_mode = 4
+
+[node name="FlappyGame" parent="HighResSubViewport" instance=ExtResource("1_g8li3")]
+
+[node name="LowResSubViewport" type="SubViewport" parent="."]
+handle_input_locally = false
+size = Vector2i(128, 128)
+render_target_update_mode = 4
+
+[node name="TextureRect" type="TextureRect" parent="LowResSubViewport"]
+texture_filter = 2
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+texture = SubResource("ViewportTexture_bad66")
+expand_mode = 1
+
+[node name="GameTextureRect" type="TextureRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = 1.0
+offset_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 5

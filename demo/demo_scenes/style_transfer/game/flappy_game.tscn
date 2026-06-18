@@ -1,0 +1,136 @@
+[gd_scene load_steps=17 format=3 uid="uid://53tws5cwxsas"]
+
+[ext_resource type="Script" uid="uid://qd1xem880xhl" path="res://demo_scenes/style_transfer/game/flappy_game.gd" id="1_2t711"]
+[ext_resource type="PackedScene" uid="uid://chrlku24awtof" path="res://demo_scenes/style_transfer/game/gap/gap.tscn" id="1_niogy"]
+[ext_resource type="Texture2D" uid="uid://uldqfui8a8px" path="res://demo_scenes/style_transfer/resources/textures/pattern.png" id="2_nl5kl"]
+[ext_resource type="PackedScene" uid="uid://bfw44rbac7h28" path="res://demo_scenes/style_transfer/game/bird/bird.tscn" id="2_ve2dg"]
+[ext_resource type="PackedScene" uid="uid://bw3g6akatl7hf" path="res://demo_scenes/style_transfer/game/ground.tscn" id="3_w4l4d"]
+[ext_resource type="Script" uid="uid://bd046eokvcnu2" path="res://addons/phantom_camera/scripts/phantom_camera_host/phantom_camera_host.gd" id="4_77n3m"]
+[ext_resource type="Script" uid="uid://bhexx6mj1xv3q" path="res://addons/phantom_camera/scripts/phantom_camera/phantom_camera_2d.gd" id="5_2saki"]
+[ext_resource type="Script" uid="uid://8umksf8e80fw" path="res://addons/phantom_camera/scripts/resources/tween_resource.gd" id="6_2t711"]
+[ext_resource type="Script" uid="uid://couw105c3bde4" path="res://addons/godot_state_charts/state_chart.gd" id="8_dwg4l"]
+[ext_resource type="Script" uid="uid://jk2jm1g6q853" path="res://addons/godot_state_charts/compound_state.gd" id="9_dyioo"]
+[ext_resource type="Script" uid="uid://cytafq8i1y8qm" path="res://addons/godot_state_charts/atomic_state.gd" id="10_bx4dn"]
+[ext_resource type="Script" uid="uid://cf1nsco3w0mf6" path="res://addons/godot_state_charts/transition.gd" id="11_bx4dn"]
+[ext_resource type="Script" uid="uid://knesgunr22xr" path="res://demo_scenes/style_transfer/game/states/playing_logic.gd" id="12_lejgf"]
+[ext_resource type="Script" uid="uid://uojg1yfwqdch" path="res://demo_scenes/style_transfer/game/pipe_spawner.gd" id="13_wlov1"]
+
+[sub_resource type="Resource" id="Resource_2saki"]
+script = ExtResource("6_2t711")
+
+[sub_resource type="Curve" id="Curve_wlov1"]
+
+[node name="FlappyGame" type="Node2D"]
+script = ExtResource("1_2t711")
+
+[node name="ParallaxBackground" type="ParallaxBackground" parent="."]
+
+[node name="ParallaxLayer" type="ParallaxLayer" parent="ParallaxBackground"]
+motion_scale = Vector2(0.9, 0.9)
+motion_mirroring = Vector2(64, 64)
+
+[node name="ColorRect" type="ColorRect" parent="ParallaxBackground/ParallaxLayer"]
+offset_right = 64.0
+offset_bottom = 64.0
+mouse_filter = 2
+color = Color(0, 0, 0, 1)
+
+[node name="TextureRect" type="TextureRect" parent="ParallaxBackground/ParallaxLayer"]
+visible = false
+self_modulate = Color(0.13319641, 0.13319641, 0.13319638, 1)
+offset_right = 64.0
+offset_bottom = 64.0
+texture = ExtResource("2_nl5kl")
+
+[node name="MovingFrame" type="Node2D" parent="."]
+position = Vector2(46, 32)
+
+[node name="CenterTrack" type="Node2D" parent="MovingFrame"]
+
+[node name="PhantomCamera2D" type="Node2D" parent="MovingFrame" node_paths=PackedStringArray("follow_target")]
+top_level = true
+position = Vector2(46, 32)
+script = ExtResource("5_2saki")
+follow_mode = 1
+follow_target = NodePath("../CenterTrack")
+zoom = Vector2(9, 9)
+tween_resource = SubResource("Resource_2saki")
+metadata/_custom_type_script = "uid://bhexx6mj1xv3q"
+
+[node name="Camera2D" type="Camera2D" parent="MovingFrame"]
+top_level = true
+position = Vector2(46, 32)
+zoom = Vector2(9, 9)
+
+[node name="PhantomCameraHost" type="Node" parent="MovingFrame/Camera2D"]
+process_priority = 300
+process_physics_priority = 300
+script = ExtResource("4_77n3m")
+metadata/_custom_type_script = "uid://bd046eokvcnu2"
+
+[node name="Bird" parent="MovingFrame" instance=ExtResource("2_ve2dg")]
+
+[node name="Edges" type="Node2D" parent="MovingFrame"]
+
+[node name="TopGround" parent="MovingFrame/Edges" instance=ExtResource("3_w4l4d")]
+position = Vector2(0, -32)
+
+[node name="BottomGround" parent="MovingFrame/Edges" instance=ExtResource("3_w4l4d")]
+position = Vector2(0, 32)
+
+[node name="GapsParent" type="Node2D" parent="."]
+position = Vector2(46, 32)
+
+[node name="StateChart" type="Node" parent="."]
+script = ExtResource("8_dwg4l")
+metadata/_custom_type_script = "uid://couw105c3bde4"
+
+[node name="CompoundState" type="Node" parent="StateChart"]
+script = ExtResource("9_dyioo")
+initial_state = NodePath("PlayingState")
+
+[node name="IdleState" type="Node" parent="StateChart/CompoundState"]
+script = ExtResource("10_bx4dn")
+
+[node name="ToPlay" type="Node" parent="StateChart/CompoundState/IdleState"]
+script = ExtResource("11_bx4dn")
+to = NodePath("../../PlayingState")
+event = &"play"
+delay_in_seconds = "0.0"
+
+[node name="PlayingState" type="Node" parent="StateChart/CompoundState"]
+script = ExtResource("10_bx4dn")
+
+[node name="ToDied" type="Node" parent="StateChart/CompoundState/PlayingState"]
+script = ExtResource("11_bx4dn")
+to = NodePath("../../DiedState")
+event = &"died"
+delay_in_seconds = "0.0"
+
+[node name="DiedState" type="Node" parent="StateChart/CompoundState"]
+script = ExtResource("10_bx4dn")
+
+[node name="ToIdle" type="Node" parent="StateChart/CompoundState/DiedState"]
+script = ExtResource("11_bx4dn")
+to = NodePath("../../IdleState")
+event = &"idle"
+delay_in_seconds = "0.0"
+
+[node name="StateLogic" type="Node" parent="."]
+
+[node name="IdleLogic" type="Node" parent="StateLogic"]
+
+[node name="PlayingLogic" type="Node" parent="StateLogic" node_paths=PackedStringArray("frame", "state")]
+script = ExtResource("12_lejgf")
+frame = NodePath("../../MovingFrame")
+speed = 20.0
+state = NodePath("../../StateChart/CompoundState/PlayingState")
+
+[node name="DeadLogic" type="Node" parent="StateLogic"]
+
+[node name="GapsSpawner" type="Node" parent="." node_paths=PackedStringArray("gaps_parent", "camera")]
+script = ExtResource("13_wlov1")
+gaps_scene = ExtResource("1_niogy")
+gaps_parent = NodePath("../GapsParent")
+space_curve = SubResource("Curve_wlov1")
+camera = NodePath("../MovingFrame/Camera2D")

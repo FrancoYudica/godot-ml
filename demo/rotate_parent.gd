@@ -1,7 +1,0 @@
-extends Node
-
-var _t = 0.0
-
-func _process(delta: float) -> void:
-	_t += delta
-	get_parent().rotation = _t

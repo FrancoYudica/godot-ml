@@ -17,12 +17,19 @@ compatibility/default_parent_skeleton_in_mesh_instance_3d=true
 config/name="demo-cnn"
 run/main_scene="uid://kvx7gqpvpgw0"
 config/features=PackedStringArray("4.5", "Forward Plus")
-run/max_fps=60
-config/icon="res://icon.svg"
+
+[autoload]
+
+PhantomCameraManager="*res://addons/phantom_camera/scripts/managers/phantom_camera_manager.gd"
 
 [display]
 
+window/stretch/mode="viewport"
 window/vsync/vsync_mode=0
+
+[editor_plugins]
+
+enabled=PackedStringArray("res://addons/godot_state_charts/plugin.cfg", "res://addons/phantom_camera/plugin.cfg")
 
 [input]
 

@@ -1,0 +1,16 @@
+[gd_scene load_steps=3 format=3 uid="uid://chrlku24awtof"]
+
+[ext_resource type="Script" uid="uid://bxyig4ba7hd6y" path="res://demo_scenes/style_transfer/game/gap/gap.gd" id="1_805w5"]
+[ext_resource type="PackedScene" uid="uid://c2ymyshlq0uwu" path="res://demo_scenes/style_transfer/game/gap/pipe.tscn" id="1_nycin"]
+
+[node name="Gap" type="Node2D" node_paths=PackedStringArray("top_pipe", "bottom_pipe")]
+script = ExtResource("1_805w5")
+top_pipe = NodePath("TopPipe")
+bottom_pipe = NodePath("BottomPipe")
+
+[node name="TopPipe" parent="." instance=ExtResource("1_nycin")]
+position = Vector2(0, -20)
+
+[node name="BottomPipe" parent="." instance=ExtResource("1_nycin")]
+position = Vector2(0, 20)
+rotation = 3.1415927

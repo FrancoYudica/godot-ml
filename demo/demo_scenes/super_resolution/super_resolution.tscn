@@ -1,0 +1,123 @@
+[gd_scene load_steps=6 format=3 uid="uid://kvx7gqpvpgw0"]
+
+[ext_resource type="Texture2D" uid="uid://bif6ceo2bhp7d" path="res://demo_scenes/super_resolution/resources/textures/test_img_0.png" id="1_3chsr"]
+[ext_resource type="Script" uid="uid://c5ip6kwl0d1ik" path="res://demo_scenes/super_resolution/ml_post_processor.gd" id="5_k7f8b"]
+[ext_resource type="ONNXResource" uid="uid://tbo8gxnegb74" path="res://demo_scenes/super_resolution/resources/models/super_resolution_4x.onnx" id="6_p1y42"]
+
+[sub_resource type="ViewportTexture" id="ViewportTexture_q3or8"]
+viewport_path = NodePath("SrcSizeSubViewport")
+
+[sub_resource type="ViewportTexture" id="ViewportTexture_evj8q"]
+viewport_path = NodePath("DownsampledSubViewport")
+
+[node name="SuperResolution" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="MLPostProcessor" type="Node" parent="." node_paths=PackedStringArray("input_texture_viewport", "texture_rect")]
+script = ExtResource("5_k7f8b")
+input_texture_viewport = NodePath("../DownsampledSubViewport")
+texture_rect = NodePath("../HBoxContainer/ResultSubViewportContainer/SubViewport/TextureRect")
+onnx_model = ExtResource("6_p1y42")
+scale_factor = 4
+
+[node name="SrcSizeSubViewport" type="SubViewport" parent="."]
+handle_input_locally = false
+snap_2d_transforms_to_pixel = true
+snap_2d_vertices_to_pixel = true
+render_target_update_mode = 4
+
+[node name="ColorRect" type="ColorRect" parent="SrcSizeSubViewport"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.18916011, 0.17341283, 0.020786589, 1)
+
+[node name="TextureRect" type="TextureRect" parent="SrcSizeSubViewport"]
+texture_filter = 2
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+pivot_offset = Vector2(16, 16)
+size_flags_horizontal = 3
+size_flags_vertical = 3
+texture = ExtResource("1_3chsr")
+expand_mode = 3
+stretch_mode = 5
+
+[node name="DownsampledSubViewport" type="SubViewport" parent="."]
+size = Vector2i(128, 128)
+
+[node name="TextureRect" type="TextureRect" parent="DownsampledSubViewport"]
+texture_filter = 4
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+texture = SubResource("ViewportTexture_q3or8")
+expand_mode = 1
+
+[node name="HBoxContainer" type="HBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="DisplaySourceSubViewportContainer" type="SubViewportContainer" parent="HBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+stretch = true
+
+[node name="SubViewport" type="SubViewport" parent="HBoxContainer/DisplaySourceSubViewportContainer"]
+handle_input_locally = false
+size = Vector2i(574, 648)
+render_target_update_mode = 4
+
+[node name="TextureRect" type="TextureRect" parent="HBoxContainer/DisplaySourceSubViewportContainer/SubViewport"]
+texture_filter = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+size_flags_horizontal = 6
+size_flags_vertical = 3
+texture = SubResource("ViewportTexture_evj8q")
+expand_mode = 3
+
+[node name="ResultSubViewportContainer" type="SubViewportContainer" parent="HBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+stretch = true
+
+[node name="SubViewport" type="SubViewport" parent="HBoxContainer/ResultSubViewportContainer"]
+handle_input_locally = false
+size = Vector2i(574, 648)
+render_target_update_mode = 4
+
+[node name="ColorRect" type="ColorRect" parent="HBoxContainer/ResultSubViewportContainer/SubViewport"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.1584723, 0.15847233, 0.1584723, 1)
+
+[node name="TextureRect" type="TextureRect" parent="HBoxContainer/ResultSubViewportContainer/SubViewport"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+expand_mode = 3

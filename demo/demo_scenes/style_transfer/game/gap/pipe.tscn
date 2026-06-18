@@ -1,0 +1,26 @@
+[gd_scene load_steps=4 format=3 uid="uid://c2ymyshlq0uwu"]
+
+[ext_resource type="Texture2D" uid="uid://cq14756u52xid" path="res://demo_scenes/style_transfer/resources/textures/white.png" id="1_5udmf"]
+
+[sub_resource type="PhysicsMaterial" id="PhysicsMaterial_nq27e"]
+absorbent = true
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_nq27e"]
+size = Vector2(1, 1)
+
+[node name="Pipe" type="Node2D"]
+scale = Vector2(7.5, 40)
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+position = Vector2(0, -0.5)
+texture = ExtResource("1_5udmf")
+
+[node name="RigidBody2D" type="RigidBody2D" parent="."]
+scale = Vector2(1, 1.0000001)
+physics_material_override = SubResource("PhysicsMaterial_nq27e")
+gravity_scale = 0.0
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="RigidBody2D"]
+position = Vector2(-9.934107e-09, -0.50000286)
+scale = Vector2(0.99999994, 1)
+shape = SubResource("RectangleShape2D_nq27e")

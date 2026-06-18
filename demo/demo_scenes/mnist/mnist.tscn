@@ -1,0 +1,240 @@
+[gd_scene load_steps=8 format=3 uid="uid://blgry6565alxq"]
+
+[ext_resource type="Script" uid="uid://clc8scdjj2n2n" path="res://demo_scenes/mnist/mnist.gd" id="1_a5mb2"]
+[ext_resource type="PackedScene" uid="uid://bm8tm6sow8k70" path="res://demo_scenes/mnist/draw_canvas/draw_canvas.tscn" id="2_a5mb2"]
+[ext_resource type="Script" uid="uid://c4mbtc8hsorwy" path="res://demo_scenes/mnist/mnist_runner.gd" id="5_dv8i5"]
+[ext_resource type="ONNXResource" uid="uid://jguuu1y6jfwf" path="res://demo_scenes/mnist/resources/models/simple_cnn_mnist.onnx" id="6_5onrb"]
+
+[sub_resource type="ViewportTexture" id="ViewportTexture_a5mb2"]
+viewport_path = NodePath("Panel/MarginContainer/HBoxContainer/InputPanelContainer/MarginContainer/VBoxContainer/VBoxContainer/VBoxContainer/AspectRatioContainer/DrawCanvas/DrawCanvas")
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_a5mb2"]
+content_margin_left = 0.0
+content_margin_top = 0.0
+content_margin_right = 0.0
+content_margin_bottom = 0.0
+bg_color = Color(0.46618086, 0.4661808, 0.4661808, 1)
+corner_radius_top_left = 3
+corner_radius_top_right = 3
+corner_radius_bottom_right = 3
+corner_radius_bottom_left = 3
+corner_detail = 5
+
+[sub_resource type="ViewportTexture" id="ViewportTexture_dv8i5"]
+viewport_path = NodePath("SubViewportContainer/DownsampledSubViewport")
+
+[node name="Mnist" type="Control" node_paths=PackedStringArray("runner", "draw_canvas", "result_label")]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_a5mb2")
+runner = NodePath("MNISTRunner")
+draw_canvas = NodePath("Panel/MarginContainer/HBoxContainer/InputPanelContainer/MarginContainer/VBoxContainer/VBoxContainer/VBoxContainer/AspectRatioContainer/DrawCanvas/DrawCanvas")
+result_label = NodePath("Panel/MarginContainer/HBoxContainer/OutputPanelContainer/MarginContainer/VBoxContainer/VBoxContainer/PanelContainer/MarginContainer/HBoxContainer/ResultLabel")
+
+[node name="SubViewportContainer" type="SubViewportContainer" parent="."]
+layout_mode = 0
+offset_right = 40.0
+offset_bottom = 40.0
+
+[node name="DownsampledSubViewport" type="SubViewport" parent="SubViewportContainer"]
+handle_input_locally = false
+size = Vector2i(28, 28)
+render_target_update_mode = 4
+
+[node name="TextureRect" type="TextureRect" parent="SubViewportContainer/DownsampledSubViewport"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+texture = SubResource("ViewportTexture_a5mb2")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="SubViewportContainer2" type="SubViewportContainer" parent="."]
+layout_mode = 0
+offset_right = 40.0
+offset_bottom = 40.0
+
+[node name="DownsampledSubViewport" type="SubViewport" parent="SubViewportContainer2"]
+handle_input_locally = false
+size = Vector2i(28, 28)
+render_target_update_mode = 4
+
+[node name="TextureRect" type="TextureRect" parent="SubViewportContainer2/DownsampledSubViewport"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+texture = SubResource("ViewportTexture_a5mb2")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Panel" type="Panel" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_a5mb2")
+
+[node name="MarginContainer" type="MarginContainer" parent="Panel"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 10
+
+[node name="HBoxContainer" type="HBoxContainer" parent="Panel/MarginContainer"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="InputPanelContainer" type="PanelContainer" parent="Panel/MarginContainer/HBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="MarginContainer" type="MarginContainer" parent="Panel/MarginContainer/HBoxContainer/InputPanelContainer"]
+layout_mode = 2
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 10
+
+[node name="VBoxContainer" type="VBoxContainer" parent="Panel/MarginContainer/HBoxContainer/InputPanelContainer/MarginContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Label" type="Label" parent="Panel/MarginContainer/HBoxContainer/InputPanelContainer/MarginContainer/VBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 4
+text = "INPUT"
+
+[node name="VBoxContainer" type="VBoxContainer" parent="Panel/MarginContainer/HBoxContainer/InputPanelContainer/MarginContainer/VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="VBoxContainer" type="VBoxContainer" parent="Panel/MarginContainer/HBoxContainer/InputPanelContainer/MarginContainer/VBoxContainer/VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="Label" type="Label" parent="Panel/MarginContainer/HBoxContainer/InputPanelContainer/MarginContainer/VBoxContainer/VBoxContainer/VBoxContainer"]
+layout_mode = 2
+text = "Draw canvas"
+
+[node name="AspectRatioContainer" type="AspectRatioContainer" parent="Panel/MarginContainer/HBoxContainer/InputPanelContainer/MarginContainer/VBoxContainer/VBoxContainer/VBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="DrawCanvas" type="SubViewportContainer" parent="Panel/MarginContainer/HBoxContainer/InputPanelContainer/MarginContainer/VBoxContainer/VBoxContainer/VBoxContainer/AspectRatioContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+stretch = true
+
+[node name="DrawCanvas" parent="Panel/MarginContainer/HBoxContainer/InputPanelContainer/MarginContainer/VBoxContainer/VBoxContainer/VBoxContainer/AspectRatioContainer/DrawCanvas" instance=ExtResource("2_a5mb2")]
+handle_input_locally = false
+size = Vector2i(499, 499)
+render_target_update_mode = 4
+
+[node name="PanelContainer" type="PanelContainer" parent="Panel/MarginContainer/HBoxContainer/InputPanelContainer/MarginContainer/VBoxContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="MarginContainer" type="MarginContainer" parent="Panel/MarginContainer/HBoxContainer/InputPanelContainer/MarginContainer/VBoxContainer/VBoxContainer/PanelContainer"]
+layout_mode = 2
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 10
+
+[node name="HBoxContainer" type="HBoxContainer" parent="Panel/MarginContainer/HBoxContainer/InputPanelContainer/MarginContainer/VBoxContainer/VBoxContainer/PanelContainer/MarginContainer"]
+layout_mode = 2
+
+[node name="ClearButton" type="Button" parent="Panel/MarginContainer/HBoxContainer/InputPanelContainer/MarginContainer/VBoxContainer/VBoxContainer/PanelContainer/MarginContainer/HBoxContainer"]
+layout_mode = 2
+text = "Clear"
+
+[node name="OutputPanelContainer" type="PanelContainer" parent="Panel/MarginContainer/HBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="MarginContainer" type="MarginContainer" parent="Panel/MarginContainer/HBoxContainer/OutputPanelContainer"]
+layout_mode = 2
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 10
+
+[node name="VBoxContainer" type="VBoxContainer" parent="Panel/MarginContainer/HBoxContainer/OutputPanelContainer/MarginContainer"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="Panel/MarginContainer/HBoxContainer/OutputPanelContainer/MarginContainer/VBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 4
+text = "OUTPUT"
+
+[node name="VBoxContainer" type="VBoxContainer" parent="Panel/MarginContainer/HBoxContainer/OutputPanelContainer/MarginContainer/VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="VBoxContainer" type="VBoxContainer" parent="Panel/MarginContainer/HBoxContainer/OutputPanelContainer/MarginContainer/VBoxContainer/VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="Label" type="Label" parent="Panel/MarginContainer/HBoxContainer/OutputPanelContainer/MarginContainer/VBoxContainer/VBoxContainer/VBoxContainer"]
+layout_mode = 2
+text = "Low resolution input"
+
+[node name="AspectRatioContainer" type="AspectRatioContainer" parent="Panel/MarginContainer/HBoxContainer/OutputPanelContainer/MarginContainer/VBoxContainer/VBoxContainer/VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="TextureRect" type="TextureRect" parent="Panel/MarginContainer/HBoxContainer/OutputPanelContainer/MarginContainer/VBoxContainer/VBoxContainer/VBoxContainer/AspectRatioContainer"]
+texture_filter = 1
+layout_mode = 2
+size_flags_vertical = 3
+texture = SubResource("ViewportTexture_dv8i5")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="PanelContainer" type="PanelContainer" parent="Panel/MarginContainer/HBoxContainer/OutputPanelContainer/MarginContainer/VBoxContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="MarginContainer" type="MarginContainer" parent="Panel/MarginContainer/HBoxContainer/OutputPanelContainer/MarginContainer/VBoxContainer/VBoxContainer/PanelContainer"]
+layout_mode = 2
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 10
+
+[node name="HBoxContainer" type="HBoxContainer" parent="Panel/MarginContainer/HBoxContainer/OutputPanelContainer/MarginContainer/VBoxContainer/VBoxContainer/PanelContainer/MarginContainer"]
+layout_mode = 2
+size_flags_horizontal = 4
+size_flags_vertical = 4
+
+[node name="Label" type="Label" parent="Panel/MarginContainer/HBoxContainer/OutputPanelContainer/MarginContainer/VBoxContainer/VBoxContainer/PanelContainer/MarginContainer/HBoxContainer"]
+layout_mode = 2
+text = "Classification result: "
+
+[node name="ResultLabel" type="Label" parent="Panel/MarginContainer/HBoxContainer/OutputPanelContainer/MarginContainer/VBoxContainer/VBoxContainer/PanelContainer/MarginContainer/HBoxContainer"]
+layout_mode = 2
+text = "NONE"
+
+[node name="MNISTRunner" type="Node" parent="." node_paths=PackedStringArray("input_texture_viewport")]
+script = ExtResource("5_dv8i5")
+input_texture_viewport = NodePath("../SubViewportContainer/DownsampledSubViewport")
+onnx_model = ExtResource("6_5onrb")
+
+[connection signal="changed" from="Panel/MarginContainer/HBoxContainer/InputPanelContainer/MarginContainer/VBoxContainer/VBoxContainer/VBoxContainer/AspectRatioContainer/DrawCanvas/DrawCanvas" to="." method="_on_draw_canvas_changed"]
+[connection signal="pressed" from="Panel/MarginContainer/HBoxContainer/InputPanelContainer/MarginContainer/VBoxContainer/VBoxContainer/PanelContainer/MarginContainer/HBoxContainer/ClearButton" to="." method="_on_clear_button_pressed"]
+[connection signal="predicted_number" from="MNISTRunner" to="." method="_on_mnist_runner_predicted_number"]

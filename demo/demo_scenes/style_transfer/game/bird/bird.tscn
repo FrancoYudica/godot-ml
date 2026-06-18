@@ -1,0 +1,112 @@
+[gd_scene load_steps=15 format=3 uid="uid://bfw44rbac7h28"]
+
+[ext_resource type="Texture2D" uid="uid://cq14756u52xid" path="res://demo_scenes/style_transfer/resources/textures/white.png" id="1_qkdas"]
+[ext_resource type="Script" uid="uid://bu7m0lax871s" path="res://demo_scenes/style_transfer/game/bird/bird.gd" id="2_q4pd8"]
+[ext_resource type="Script" uid="uid://couw105c3bde4" path="res://addons/godot_state_charts/state_chart.gd" id="3_togiq"]
+[ext_resource type="Script" uid="uid://c1vp0ojjvaby1" path="res://addons/godot_state_charts/parallel_state.gd" id="4_00riy"]
+[ext_resource type="Script" uid="uid://jk2jm1g6q853" path="res://addons/godot_state_charts/compound_state.gd" id="4_nyhv5"]
+[ext_resource type="Script" uid="uid://cytafq8i1y8qm" path="res://addons/godot_state_charts/atomic_state.gd" id="5_ceji2"]
+[ext_resource type="Script" uid="uid://cf1nsco3w0mf6" path="res://addons/godot_state_charts/transition.gd" id="6_ceji2"]
+[ext_resource type="Script" uid="uid://cv4k6tpwcv8xx" path="res://demo_scenes/style_transfer/game/bird/states/idle_logic.gd" id="7_bercw"]
+[ext_resource type="Script" uid="uid://opmfhe34ivbd" path="res://demo_scenes/style_transfer/game/bird/states/play_logic.gd" id="8_00riy"]
+[ext_resource type="Script" uid="uid://wqlyfep3co7l" path="res://demo_scenes/style_transfer/game/bird/states/dead_logic.gd" id="9_0dpju"]
+[ext_resource type="Script" uid="uid://hi34utau3u2l" path="res://demo_scenes/style_transfer/game/bird/states/kinematics_logic.gd" id="11_0dpju"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_q4pd8"]
+radius = 0.45
+
+[sub_resource type="Shader" id="Shader_qkdas"]
+code = "shader_type canvas_item;
+
+void vertex() {
+	// Called for every vertex the material is visible on.
+}
+
+void fragment() {
+	COLOR.a = smoothstep(0.5, 0.45, length(UV - vec2(0.5)));
+}
+
+//void light() {
+//	// Called for every pixel for every light affecting the CanvasItem.
+//	// Uncomment to replace the default light processing function with this one.
+//}
+"
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_q4pd8"]
+shader = SubResource("Shader_qkdas")
+
+[node name="Bird" type="Area2D"]
+script = ExtResource("2_q4pd8")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+scale = Vector2(10, 10)
+shape = SubResource("CircleShape2D_q4pd8")
+
+[node name="Bird" type="Sprite2D" parent="CollisionShape2D"]
+material = SubResource("ShaderMaterial_q4pd8")
+texture = ExtResource("1_qkdas")
+
+[node name="StateChart" type="Node" parent="."]
+script = ExtResource("3_togiq")
+metadata/_custom_type_script = "uid://couw105c3bde4"
+
+[node name="ParallelState" type="Node" parent="StateChart"]
+script = ExtResource("4_00riy")
+
+[node name="CompoundState" type="Node" parent="StateChart/ParallelState"]
+script = ExtResource("4_nyhv5")
+initial_state = NodePath("PlayingState")
+
+[node name="IdleState" type="Node" parent="StateChart/ParallelState/CompoundState"]
+script = ExtResource("5_ceji2")
+
+[node name="ToPlay" type="Node" parent="StateChart/ParallelState/CompoundState/IdleState"]
+script = ExtResource("6_ceji2")
+to = NodePath("../../PlayingState")
+event = &"play"
+delay_in_seconds = "0.0"
+
+[node name="PlayingState" type="Node" parent="StateChart/ParallelState/CompoundState"]
+script = ExtResource("5_ceji2")
+
+[node name="ToDead" type="Node" parent="StateChart/ParallelState/CompoundState/PlayingState"]
+script = ExtResource("6_ceji2")
+to = NodePath("../../DeadState")
+event = &"died"
+delay_in_seconds = "0.0"
+
+[node name="DeadState" type="Node" parent="StateChart/ParallelState/CompoundState"]
+script = ExtResource("5_ceji2")
+
+[node name="ToIdle" type="Node" parent="StateChart/ParallelState/CompoundState/DeadState"]
+script = ExtResource("6_ceji2")
+to = NodePath("../../IdleState")
+event = &"idle"
+delay_in_seconds = "0.0"
+
+[node name="KinematicsState" type="Node" parent="StateChart/ParallelState"]
+script = ExtResource("5_ceji2")
+
+[node name="StateLogic" type="Node" parent="."]
+
+[node name="CompoundState" type="Node" parent="StateLogic"]
+
+[node name="IdleLogic" type="Node" parent="StateLogic/CompoundState" node_paths=PackedStringArray("bird", "state")]
+script = ExtResource("7_bercw")
+bird = NodePath("../../..")
+state = NodePath("../../../StateChart/ParallelState/CompoundState/IdleState")
+
+[node name="PlayingLogic" type="Node" parent="StateLogic/CompoundState" node_paths=PackedStringArray("bird", "state")]
+script = ExtResource("8_00riy")
+bird = NodePath("../../..")
+state = NodePath("../../../StateChart/ParallelState/CompoundState/PlayingState")
+
+[node name="DeadLogic" type="Node" parent="StateLogic/CompoundState" node_paths=PackedStringArray("bird", "state")]
+script = ExtResource("9_0dpju")
+bird = NodePath("../../..")
+state = NodePath("../../../StateChart/ParallelState/CompoundState/DeadState")
+
+[node name="KinematicsLogic" type="Node" parent="StateLogic" node_paths=PackedStringArray("bird", "state")]
+script = ExtResource("11_0dpju")
+bird = NodePath("../..")
+state = NodePath("../../StateChart/ParallelState/KinematicsState")
