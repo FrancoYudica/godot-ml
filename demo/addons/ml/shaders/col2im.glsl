@@ -10,6 +10,9 @@ layout(set = 0, binding = 0, std430) restrict readonly buffer ColBuffer {
 layout(set = 0, binding = 1, std430) buffer OutputBuffer {
   float out_data[]; // [batch, out_C, out_H, out_W]
 };
+layout(set = 0, binding = 2, std430) restrict readonly buffer BiasBuffer {
+  float bias[]; // [out_C]
+};
 
 layout(push_constant) uniform PushConstants {
   uint in_height;
@@ -70,5 +73,5 @@ void main() {
   }
 
   uint out_idx = chw_index(pc.out_height, pc.out_width, oc, out_y, out_x);
-  out_data[out_idx] = sum;
+  out_data[out_idx] = sum + bias[oc];
 }
