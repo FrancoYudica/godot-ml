@@ -27,8 +27,15 @@ void ml::Col2ImOperator::dispatch(
     ERR_FAIL_COND_MSG(node.outputs.size() != 1, "Col2Im: expected 1 output");
     ERR_FAIL_COND_MSG(node.inputs.size() != 2, "Col2Im: expected 2 inputs");
 
+    auto resolve = [&](const std::string& name) -> RID {
+        RID r = ctx.activations_tm->get_buffer_rid(name);
+        if (r.is_valid()) return r;
+        return ctx.initializers_tm->get_buffer_rid(name);
+    };
+
     RID input_sb = ctx.activations_tm->get_buffer_rid(node.inputs[0]);
-    RID out_buf = ctx.activations_tm->get_buffer_rid(node.outputs[0]);
+    RID bias_sb  = resolve(node.inputs[1]);
+    RID out_buf  = ctx.activations_tm->get_buffer_rid(node.outputs[0]);
 
     // All shapes come from the pre-computed ShapeTable.
     // meta4d = [b, out_c, out_h, out_w] written by shape inference.
@@ -54,7 +61,8 @@ void ml::Col2ImOperator::dispatch(
 
     TypedArray<RDUniform> uniforms;
     uniforms.push_back(make_uniform(input_sb, 0));
-    uniforms.push_back(make_uniform(out_buf, 1));
+    uniforms.push_back(make_uniform(out_buf,  1));
+    uniforms.push_back(make_uniform(bias_sb,  2));
 
     RID uniform_set_rid = ctx.rd->uniform_set_create(uniforms, _shader, 0);
     ctx.frame_deletion_stack->push([uniform_set_rid, rd = ctx.rd]() {
