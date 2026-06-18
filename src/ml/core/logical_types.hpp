@@ -78,7 +78,7 @@ struct Node {
 
 struct Graph {
     std::vector<std::string> input_names;
-    std::vector<int64_t> input_shape;
+    std::unordered_map<std::string, std::vector<int64_t>> input_shapes;
     std::vector<Node> nodes;
     std::unordered_map<std::string, Tensor> initializers;
 };

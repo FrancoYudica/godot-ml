@@ -28,8 +28,9 @@ static void _parse_inputs(const onnx::GraphProto& proto, Graph& graph) {
     for (const auto& input : proto.input()) {
         if (initializer_names.count(input.name())) continue;
         graph.input_names.push_back(input.name());
+        graph.input_shapes[input.name()] = {};
         for (const auto& dim : input.type().tensor_type().shape().dim())
-            graph.input_shape.push_back(dim.dim_value());
+            graph.input_shapes[input.name()].push_back(dim.dim_value());
     }
 }
 

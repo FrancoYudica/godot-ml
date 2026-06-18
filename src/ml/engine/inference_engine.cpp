@@ -243,6 +243,11 @@ void MLInferenceEngine::_process_task(Ref<InferenceTask> task) {
         input_shapes[name] = handler->get_shape(descriptor);
     }
 
+    bool validation_success = _validate_inputs(graph, input_shapes);
+    if (!validation_success) {
+        return;
+    }
+
     // 2. Shape inference - forward pass to compute all intermediate tensor shapes.
     auto infer_result = ml::passes::infer_shapes(graph, input_shapes);
     ERR_FAIL_COND_MSG(
@@ -356,5 +361,54 @@ void MLInferenceEngine::_free_all_resources() {
 
 bool MLInferenceEngine::_has_graph(uint32_t graph_rid) {
     return _graphs.find(graph_rid) != _graphs.end();
+}
+bool MLInferenceEngine::_validate_inputs(
+    const ml::Physical::Graph& graph,
+    ml::ShapeTable& shape_table) {
+    // Make sure that all the required input shapes are defined and valid.
+    for (const auto& input_name : graph.input_names) {
+        ERR_FAIL_COND_V_MSG(
+            shape_table.find(input_name) == shape_table.end(),
+            false,
+            "InferenceEngine: missing shape for required input '" + String(input_name.c_str()) + "'");
+
+        const auto& shape = shape_table[input_name];
+        ERR_FAIL_COND_V_MSG(
+            shape.empty(),
+            false,
+            "InferenceEngine: empty shape for input '" + String(input_name.c_str()) + "'");
+
+        const auto& expected_shape = graph.input_shapes.at(input_name);
+
+        ERR_FAIL_COND_V_MSG(
+            shape.empty() || shape.size() != expected_shape.size(),
+            false,
+            "InferenceEngine: invalid shape for input '" + String(input_name.c_str()) + "': expected " + String::num(expected_shape.size()) + " dimensions, got " + String::num(shape.size()));
+
+        // Validate tensor dimensions
+        for (uint32_t i = 0; i < shape.size(); i++) {
+            int64_t current_dim = shape[i];
+            int64_t expected_dim = expected_shape[i];
+
+            // Input dimensions can't be negative or zero.
+            if (current_dim <= 0) {
+                ERR_FAIL_V_MSG(
+                    false,
+                    "InferenceEngine: invalid shape for input '" + String(input_name.c_str()) + "': dimension " + String::num(i) + " must be positive, got " + String::num(current_dim));
+            }
+
+            if (expected_dim == -1) {
+                // Dynamic dimension, any positive value is valid.
+                continue;
+            }
+
+            if (current_dim != expected_dim) {
+                ERR_FAIL_V_MSG(
+                    false,
+                    "InferenceEngine: invalid shape for input '" + String(input_name.c_str()) + "': expected dimension " + String::num(i) + " to be " + String::num(expected_dim) + ", got " + String::num(current_dim));
+            }
+        }
+    }
+    return true;
 }
 } // namespace godot

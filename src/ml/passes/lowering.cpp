@@ -253,6 +253,7 @@ LoweringResult lower(const Logical::Graph& logical_graph) {
     auto& graph = result.graph;
 
     graph.input_names = logical_graph.input_names;
+    graph.input_shapes = logical_graph.input_shapes;
     graph.initializers = logical_graph.initializers;
 
     for (const auto& node : logical_graph.nodes) {

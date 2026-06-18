@@ -58,6 +58,9 @@ class MLInferenceEngine : public RefCounted {
 
     void _free_all_resources();
     bool _has_graph(uint32_t graph_rid);
+    bool _validate_inputs(
+        const ml::Physical::Graph& graph,
+        ml::ShapeTable& shape_table);
 
   private:
     RenderingDevice* _rd;
