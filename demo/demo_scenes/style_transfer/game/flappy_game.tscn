@@ -36,7 +36,6 @@ mouse_filter = 2
 color = Color(0, 0, 0, 1)
 
 [node name="TextureRect" type="TextureRect" parent="ParallaxBackground/ParallaxLayer"]
-visible = false
 self_modulate = Color(0.13319641, 0.13319641, 0.13319638, 1)
 offset_right = 64.0
 offset_bottom = 64.0

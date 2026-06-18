@@ -57,7 +57,7 @@ func _dispatch_inference() -> void:
 	descriptor.add_texture_input(
 		"render", 
 		tex, 
-		InferenceDescriptor.TEXTURE_LOAD_RGB, 
+		InferenceDescriptor.TEXTURE_LOAD_RED,
 		input_texture.get_width(), 
 		input_texture.get_height()
 	)
