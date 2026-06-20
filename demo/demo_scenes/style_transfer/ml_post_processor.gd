@@ -4,6 +4,7 @@ extends Node
 @export var texture_rect: TextureRect
 @export var onnx_model: ONNXResource
 @export var scale_factor: int
+@export var profile: bool = false
 
 var engine: MLInferenceEngine
 var model_id: int = 0
@@ -12,6 +13,7 @@ var result_texture: Texture2D
 func _ready() -> void:
 	engine = MLInferenceEngine.new()
 	engine.init()
+	engine.capture_timestamps = profile
 	model_id = engine.register_model(onnx_model)
 	engine.print_model(model_id)
 	var input_texture = input_texture_viewport.get_texture()
@@ -48,7 +50,9 @@ func _process(_delta: float) -> void:
 	if _t >= 1.0:
 		print("FPS: %s" % (1.0 / _delta))
 		_t = 0
-
+	
+	print_profile_report()
+	
 func _dispatch_inference() -> void:
 	var descriptor = InferenceDescriptor.new()
 	var tex = input_texture_viewport.get_texture()
@@ -69,4 +73,42 @@ func _dispatch_inference() -> void:
 	task.completed.connect(_on_inference_completed.bind(task), CONNECT_ONE_SHOT)
 
 func _on_inference_completed(task: InferenceTask) -> void:
+	if profile:
+		await get_tree().create_timer(0.25).timeout
+		_register_report(task.get_performance_report())
 	engine.destroy_task(task)
+
+var _profile_stats = {
+	"total_reports": 0,
+	"total_gpu_time_ms": 0.0,
+	"operators": {}
+}
+
+func _register_report(data: Dictionary) -> void:
+	if data.is_empty():
+		return
+	_profile_stats.total_reports += 1
+	_profile_stats.total_gpu_time_ms += data.total_gpu_time_ms
+	for op in data.operators:
+		if op.name not in _profile_stats.operators:
+			_profile_stats.operators[op.name] = {"total_ms": 0.0, "min_ms": INF, "max_ms": -INF}
+		var s = _profile_stats.operators[op.name]
+		s.total_ms += op.duration_ms
+		s.min_ms = minf(s.min_ms, op.duration_ms)
+		s.max_ms = maxf(s.max_ms, op.duration_ms)
+	
+func print_profile_report() -> void:
+	var n: int = _profile_stats.total_reports
+	if n == 0:
+		print("No profiling data collected.")
+		return
+	print("=== Inference Profile (%d samples) ===" % n)
+	print("  Avg total GPU time: %.3f ms" % (_profile_stats.total_gpu_time_ms / n))
+	for op_name in _profile_stats.operators:
+		var s = _profile_stats.operators[op_name]
+		print("  %s:  avg=%.3f ms  min=%.3f ms  max=%.3f ms" % [
+			op_name, s.total_ms / n, s.min_ms, s.max_ms
+		])
+		
+	
+	

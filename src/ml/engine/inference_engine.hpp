@@ -38,6 +38,8 @@ class MLInferenceEngine : public RefCounted {
     godot::Variant get_task_output(
         Ref<InferenceTask> task,
         const String& output_name);
+    void set_capture_timestamps(bool enabled) { _capture_timestamps = enabled; }
+    bool get_capture_timestamps() const { return _capture_timestamps; }
 
   protected:
     static void _bind_methods();
@@ -62,7 +64,8 @@ class MLInferenceEngine : public RefCounted {
         const ml::Physical::Graph& graph,
         ml::ShapeTable& shape_table);
 
-    void _report_timestamps();
+    void _capture_timestamp(const String& label);
+    void _collect_task_timestamps();
 
   private:
     RenderingDevice* _rd;
@@ -73,12 +76,15 @@ class MLInferenceEngine : public RefCounted {
     std::unordered_map<uint32_t, GraphContext> _graphs;
     std::vector<Ref<InferenceTask>> _pending_tasks;
     std::vector<Ref<InferenceTask>> _executing_tasks;
+    std::unordered_map<uint32_t, Ref<InferenceTask>> _tasks;
     bool _initialized = false;
     bool _destroying = false;
+    bool _capture_timestamps = false;
 
     ml::DeletionStack _frame_deletion_stack;
 
     uint32_t _next_graph_id = 1;
+    uint32_t _next_task_id = 0;
 };
 } // namespace godot
 

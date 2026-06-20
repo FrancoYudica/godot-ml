@@ -26,6 +26,7 @@ input_texture_viewport = NodePath("../LowResSubViewport")
 texture_rect = NodePath("../GameTextureRect")
 onnx_model = ExtResource("3_ynokh")
 scale_factor = 4
+profile = true
 
 [node name="HighResSubViewport" type="SubViewport" parent="."]
 handle_input_locally = false
