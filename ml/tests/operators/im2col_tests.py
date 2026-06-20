@@ -38,10 +38,10 @@ def im2col_evaluate(input_data, input_shape, kernel_shape, strides, pads, dilati
     return output
 
 class _BaseIm2Col(TestBuilder):
-    def __init__(self, base_path, kernel, stride, pad, dilation):
-
+    def __init__(self, h, w, base_path, kernel, stride, pad, dilation):
+        
         name = build_filename(
-            "im2col",
+            f"im2col_{h}x{w}",
             kernel_size=kernel,
             stride=stride,
             padding=pad,
@@ -49,15 +49,15 @@ class _BaseIm2Col(TestBuilder):
         )
 
         super().__init__(base_path, name)
+        self.h = h
+        self.w = w
         self.kernel = kernel
         self.stride = stride
         self.pad = pad
         self.dilation = dilation
 
     def create_model(self):
-        # We define a dummy graph just to satisfy your engine's loader, 
-        # but the ONNX runtime won't actually run this.
-        input_info = helper.make_tensor_value_info('input', TensorProto.FLOAT, [1, 1, 3, 3])
+        input_info = helper.make_tensor_value_info('input', TensorProto.FLOAT, [1, 1, self.h, self.w])
         node = helper.make_node(
             'Im2Col', inputs=['input'], outputs=['output'],
             kernel_shape=[self.kernel, self.kernel],
@@ -81,6 +81,10 @@ class _BaseIm2Col(TestBuilder):
 
 
 class _BaseIm2Col3x3(_BaseIm2Col):
+
+    def __init__(self, base_path, kernel, stride, pad, dilation):
+        super().__init__(3, 3, base_path, kernel, stride, pad, dilation)
+
     def create_input_data(self):
         return [
             1, 2, 3, 
@@ -101,11 +105,15 @@ class _BaseIm2Col3x3(_BaseIm2Col):
         return TestData(
             name=self.name,
             input_data=self.create_input_data(),
-            input_shape=[1, 1, 3, 3],
+            input_shape=[1, 1, self.h, self.w],
             output_data=self.create_output_data()
         )
 
 class _BaseIm2Col4x4(_BaseIm2Col):
+
+    def __init__(self, base_path, kernel, stride, pad, dilation):
+        super().__init__(4, 4, base_path, kernel, stride, pad, dilation)
+
     def create_input_data(self):
         return [
             1, 2, 3, 4, 
@@ -116,7 +124,7 @@ class _BaseIm2Col4x4(_BaseIm2Col):
     def create_output_data(self):
         return im2col_evaluate(
             self.create_input_data(),
-            [1, 1, 4, 4],
+            [1, 1, self.h, self.w],
             [self.kernel, self.kernel],
             [self.stride, self.stride],
             [self.pad, self.pad, self.pad, self.pad],
@@ -127,7 +135,7 @@ class _BaseIm2Col4x4(_BaseIm2Col):
         return TestData(
             name=self.name,
             input_data=self.create_input_data(),
-            input_shape=[1, 1, 4, 4],
+            input_shape=[1, 1, self.h, self.w],
             output_data=self.create_output_data()
         )
 

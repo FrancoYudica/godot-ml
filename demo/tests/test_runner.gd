@@ -2,7 +2,6 @@ extends Node
 
 @export var run: bool = true
 @export_file("*.json") var test_suite_path: String
-@export var onnx_root_path: String
 @export var sources: Array[ONNXResource] = []
 
 var engine = MLInferenceEngine.new()
@@ -29,6 +28,7 @@ func _run_json_suite(path: String):
 
 func _execute_test(data: Dictionary):
 	# Register/Get Model
+	var onnx_root_path = test_suite_path.get_base_dir()
 	var model_id = _get_or_register_model(onnx_root_path + "/" + data.name + ".onnx")
 	if model_id == 0: return
 

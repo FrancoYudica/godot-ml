@@ -701,7 +701,7 @@
 		]
 	},
 	{
-		"name": "im2col_(kernel_size=3)_(stride=1)_(padding=0)_(dilation=1)",
+		"name": "im2col_3x3_(kernel_size=3)_(stride=1)_(padding=0)_(dilation=1)",
 		"input_data": [
 			1,
 			2,
@@ -732,7 +732,7 @@
 		]
 	},
 	{
-		"name": "im2col_(kernel_size=3)_(stride=1)_(padding=1)_(dilation=1)",
+		"name": "im2col_3x3_(kernel_size=3)_(stride=1)_(padding=1)_(dilation=1)",
 		"input_data": [
 			1,
 			2,
@@ -835,7 +835,7 @@
 		]
 	},
 	{
-		"name": "im2col_(kernel_size=3)_(stride=2)_(padding=1)_(dilation=1)",
+		"name": "im2col_4x4_(kernel_size=3)_(stride=2)_(padding=1)_(dilation=1)",
 		"input_data": [
 			1,
 			2,
@@ -900,7 +900,7 @@
 		]
 	},
 	{
-		"name": "im2col_(kernel_size=3)_(stride=1)_(padding=1)_(dilation=2)",
+		"name": "im2col_4x4_(kernel_size=3)_(stride=1)_(padding=1)_(dilation=2)",
 		"input_data": [
 			1,
 			2,

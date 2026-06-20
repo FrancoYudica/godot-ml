@@ -41,34 +41,52 @@ void main() {
 
   float sum = 0.0;
 
-  // Which input patches contribute to this output pixel?
-  for (uint ky = 0; ky < pc.kernel_h; ky++) {
-    for (uint kx = 0; kx < pc.kernel_w; kx++) {
-      // Reverse map
-      int in_x_raw =
-          int(out_x) + int(pc.pad_left) - int(kx) * int(pc.dilation_x);
-      int in_y_raw =
-          int(out_y) + int(pc.pad_top) - int(ky) * int(pc.dilation_y);
-
-      // Must be divisible by stride
-      if (in_x_raw % int(pc.stride_x) != 0)
-        continue;
-      if (in_y_raw % int(pc.stride_y) != 0)
+  if (pc.dilation_y == 1u && pc.dilation_x == 1u) {
+    // Fast path: only visit stride-aligned (ky,kx) pairs
+    uint start_ky = (out_y + pc.pad_top) % pc.stride_y;
+    for (uint ky = start_ky; ky < pc.kernel_h; ky += pc.stride_y) {
+      int in_y = (int(out_y) + int(pc.pad_top) - int(ky)) / int(pc.stride_y);
+      if (in_y < 0 || in_y >= int(pc.in_height))
         continue;
 
-      int in_x = in_x_raw / int(pc.stride_x);
-      int in_y = in_y_raw / int(pc.stride_y);
-      if (in_x < 0 || in_x >= int(pc.in_width) || in_y < 0 ||
-          in_y >= int(pc.in_height))
-        continue;
+      uint start_kx = (out_x + pc.pad_left) % pc.stride_x;
+      for (uint kx = start_kx; kx < pc.kernel_w; kx += pc.stride_x) {
+        int in_x = (int(out_x) + int(pc.pad_left) - int(kx)) / int(pc.stride_x);
+        if (in_x < 0 || in_x >= int(pc.in_width))
+          continue;
 
-      uint patch_idx = uint(in_y) * pc.in_width + uint(in_x);
-      uint elem_idx = oc * (pc.kernel_h * pc.kernel_w) + ky * pc.kernel_w + kx;
-
-      uint col_idx =
-          patch_idx * (pc.out_channels * pc.kernel_h * pc.kernel_w) + elem_idx;
-
-      sum += col_data[col_idx];
+        uint patch_idx = uint(in_y) * pc.in_width + uint(in_x);
+        uint elem_idx =
+            oc * (pc.kernel_h * pc.kernel_w) + ky * pc.kernel_w + kx;
+        sum +=
+            col_data[patch_idx * (pc.out_channels * pc.kernel_h * pc.kernel_w) +
+                     elem_idx];
+      }
+    }
+  } else {
+    // General path: full loop with modulo check (handles dilation != 1)
+    for (uint ky = 0u; ky < pc.kernel_h; ky++) {
+      for (uint kx = 0u; kx < pc.kernel_w; kx++) {
+        int in_x_raw =
+            int(out_x) + int(pc.pad_left) - int(kx) * int(pc.dilation_x);
+        int in_y_raw =
+            int(out_y) + int(pc.pad_top) - int(ky) * int(pc.dilation_y);
+        if (in_x_raw % int(pc.stride_x) != 0)
+          continue;
+        if (in_y_raw % int(pc.stride_y) != 0)
+          continue;
+        int in_x = in_x_raw / int(pc.stride_x);
+        int in_y = in_y_raw / int(pc.stride_y);
+        if (in_x < 0 || in_x >= int(pc.in_width) || in_y < 0 ||
+            in_y >= int(pc.in_height))
+          continue;
+        uint patch_idx = uint(in_y) * pc.in_width + uint(in_x);
+        uint elem_idx =
+            oc * (pc.kernel_h * pc.kernel_w) + ky * pc.kernel_w + kx;
+        sum +=
+            col_data[patch_idx * (pc.out_channels * pc.kernel_h * pc.kernel_w) +
+                     elem_idx];
+      }
     }
   }
 
