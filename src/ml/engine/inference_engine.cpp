@@ -258,6 +258,8 @@ void MLInferenceEngine::_process_task(Ref<InferenceTask> task) {
     // 3. Pre-allocate all activation buffers before recording the compute list.
     _allocate_activations(graph, shape_table, task->activations_tm);
 
+    _rd->capture_timestamp("task_begin");
+
     // 4. Upload model inputs to GPU.
     ml::InputHandlerContext in_ctx = {
         .rd = _rd,
@@ -284,6 +286,8 @@ void MLInferenceEngine::_process_task(Ref<InferenceTask> task) {
     for (const ml::Physical::Node& node : graph.nodes) {
         _run_node(node, compute_list, initializers_tm, task->activations_tm, shape_table);
         _rd->compute_list_add_barrier(compute_list);
+        _rd->capture_timestamp(ml::Utils::op_name(node.op).c_str());
+
     }
 
     ml::OutputHandlerContext out_ctx = {
@@ -299,13 +303,19 @@ void MLInferenceEngine::_process_task(Ref<InferenceTask> task) {
 
     _rd->compute_list_end();
 
+
     // 6. Download outputs.
     for (auto& [output_name, descriptor] : task->descriptor->outputs) {
         auto& handler = _output_registry.get(descriptor->type);
         auto result = handler->download(descriptor, _rd, task->activations_tm);
+
         if (result.get_type() != Variant::Type::NIL)
             task->outputs[output_name] = result;
     }
+    _rd->capture_timestamp("task_end");
+
+   _report_timestamps();
+
 }
 
 void MLInferenceEngine::_allocate_activations(
@@ -383,7 +393,9 @@ bool MLInferenceEngine::_validate_inputs(
         ERR_FAIL_COND_V_MSG(
             shape.empty() || shape.size() != expected_shape.size(),
             false,
-            "InferenceEngine: invalid shape for input '" + String(input_name.c_str()) + "': expected " + String::num(expected_shape.size()) + " dimensions, got " + String::num(shape.size()));
+            "InferenceEngine: invalid shape for input '" + String(input_name.c_str()) + "': expected " + String::num(expected_shape.size()) + " dimensions, got " + String::num(shape.size()) + \
+            " Input shape: " + ml::Utils::shape_to_str(shape) + ", expected shape: " + ml::Utils::shape_to_str(expected_shape)
+        );
 
         // Validate tensor dimensions
         for (uint32_t i = 0; i < shape.size(); i++) {
@@ -394,10 +406,12 @@ bool MLInferenceEngine::_validate_inputs(
             if (current_dim <= 0) {
                 ERR_FAIL_V_MSG(
                     false,
-                    "InferenceEngine: invalid shape for input '" + String(input_name.c_str()) + "': dimension " + String::num(i) + " must be positive, got " + String::num(current_dim));
+                    "InferenceEngine: invalid shape for input '" + String(input_name.c_str()) + "': dimension " + String::num(i) + " must be positive, got " + String::num(current_dim) + \
+                    " Input shape: " + ml::Utils::shape_to_str(shape) + ", expected shape: " + ml::Utils::shape_to_str(expected_shape)
+                );
             }
 
-            if (expected_dim == -1) {
+            if (expected_dim <= 0) {
                 // Dynamic dimension, any positive value is valid.
                 continue;
             }
@@ -405,10 +419,58 @@ bool MLInferenceEngine::_validate_inputs(
             if (current_dim != expected_dim) {
                 ERR_FAIL_V_MSG(
                     false,
-                    "InferenceEngine: invalid shape for input '" + String(input_name.c_str()) + "': expected dimension " + String::num(i) + " to be " + String::num(expected_dim) + ", got " + String::num(current_dim));
+                    "InferenceEngine: invalid shape for input '" + String(input_name.c_str()) + "': expected dimension " + String::num(i) + " to be " + String::num(expected_dim) + ", got " + String::num(current_dim) + \
+                    " Input shape: " + ml::Utils::shape_to_str(shape) + ", expected shape: " + ml::Utils::shape_to_str(expected_shape)
+                );
             }
         }
     }
     return true;
 }
+
+void MLInferenceEngine::_report_timestamps() {
+
+    std::vector<uint64_t> timestamps;
+    std::vector<String> timestamp_names;
+    std::vector<uint64_t> delays;
+
+    uint32_t captured_count = _rd->get_captured_timestamps_count();
+
+    if (captured_count == 0) {
+        UtilityFunctions::print("No timestamps captured for this task.");
+        return;
+    }
+
+    timestamps.resize(captured_count);
+    timestamp_names.resize(captured_count);
+
+    for (uint32_t i = 0; i < captured_count; i++) {
+        timestamps[i] = _rd->get_captured_timestamp_gpu_time(i);
+        timestamp_names[i] = _rd->get_captured_timestamp_name(i);
+    }
+    uint64_t total_time = 0;
+
+    delays.resize(captured_count);
+    delays[0] = 0; // First timestamp, no delay.
+
+    // Capture the deltas accross consecutive timestamps
+    for (uint32_t i = 1; i < captured_count; i++) {
+        uint64_t delta = timestamps[i] - timestamps[i - 1];
+        total_time += delta;
+        delays[i] = delta;
+    }
+
+    UtilityFunctions::print("Inference report. Total GPU time: ", total_time / 1'000'000.0f);
+
+    // Do reporting
+    for (uint32_t i = 0; i < captured_count; i++) {
+        String name = timestamp_names[i];
+        uint64_t time = timestamps[i];
+        uint64_t delay = delays[i];
+        float delay_ms = delay / 1'000'000.0f;
+
+        UtilityFunctions::print(" ", i + 1, ". Operator: ", name, "(duration: ", delay_ms, " ms)");
+    }
+}
+
 } // namespace godot

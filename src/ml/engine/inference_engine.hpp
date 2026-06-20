@@ -62,6 +62,8 @@ class MLInferenceEngine : public RefCounted {
         const ml::Physical::Graph& graph,
         ml::ShapeTable& shape_table);
 
+    void _report_timestamps();
+
   private:
     RenderingDevice* _rd;
     ml::StorageBufferPool _sb_pool;

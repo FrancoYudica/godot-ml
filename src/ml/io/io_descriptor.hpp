@@ -63,4 +63,11 @@ class Texture : public BaseData {
     godot::RID target_texture;
 };
 } // namespace OutputDesc
+
+namespace Utils {
+    std::string input_handler_name(const InputType& type);
+
+    std::string output_handler_name(const OutputType& type);
+}
+
 } // namespace ml
