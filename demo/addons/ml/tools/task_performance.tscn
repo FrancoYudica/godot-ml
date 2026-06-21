@@ -1,0 +1,258 @@
+[gd_scene load_steps=3 format=3 uid="uid://2uyxsf7mhhxy"]
+
+[ext_resource type="Script" uid="uid://cs7l5dv626re5" path="res://addons/ml/tools/task_performance.gd" id="1_6bbhx"]
+[ext_resource type="PackedScene" uid="uid://ct6vxy5bjdnup" path="res://addons/ml/tools/node_entry.tscn" id="2_1y3gq"]
+
+[node name="TaskPerformance" type="Control" node_paths=PackedStringArray("save_file_dialog", "clear_button", "export_button", "collecting_reports_check", "entries_parent", "dispatch_count", "avg_dispatch_time", "min_dispatch_time", "max_dispatch_time")]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_6bbhx")
+save_file_dialog = NodePath("SaveFileDialog")
+clear_button = NodePath("PanelContainer/MarginContainer/VBoxContainer/OptionsContainer/HBoxContainer/ClearEntries")
+export_button = NodePath("PanelContainer/MarginContainer/VBoxContainer/OptionsContainer/HBoxContainer/Export")
+collecting_reports_check = NodePath("PanelContainer/MarginContainer/VBoxContainer/OptionsContainer/HBoxContainer/CollectingDataCheckBox")
+entries_parent = NodePath("PanelContainer/MarginContainer/VBoxContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/EntriesParentControl")
+entry_scene = null
+dispatch_count = NodePath("PanelContainer/MarginContainer/VBoxContainer/HBoxContainer2/DispatchCount/MarginContainer/HBoxContainer/Value")
+avg_dispatch_time = NodePath("PanelContainer/MarginContainer/VBoxContainer/HBoxContainer2/AvgTime/MarginContainer/HBoxContainer/Value")
+min_dispatch_time = NodePath("PanelContainer/MarginContainer/VBoxContainer/HBoxContainer2/MinTime/MarginContainer/HBoxContainer/Value")
+max_dispatch_time = NodePath("PanelContainer/MarginContainer/VBoxContainer/HBoxContainer2/MaxTime/MarginContainer/HBoxContainer/Value")
+
+[node name="PanelContainer" type="PanelContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="MarginContainer" type="MarginContainer" parent="PanelContainer"]
+layout_mode = 2
+theme_override_constants/margin_left = 8
+theme_override_constants/margin_top = 8
+theme_override_constants/margin_right = 8
+theme_override_constants/margin_bottom = 8
+
+[node name="VBoxContainer" type="VBoxContainer" parent="PanelContainer/MarginContainer"]
+layout_mode = 2
+
+[node name="HBoxContainer" type="HBoxContainer" parent="PanelContainer/MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="Title" type="Label" parent="PanelContainer/MarginContainer/VBoxContainer/HBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "TASK PERFORMANCE REPORTS"
+
+[node name="HBoxContainer2" type="HBoxContainer" parent="PanelContainer/MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="DispatchCount" type="PanelContainer" parent="PanelContainer/MarginContainer/VBoxContainer/HBoxContainer2"]
+layout_mode = 2
+
+[node name="MarginContainer" type="MarginContainer" parent="PanelContainer/MarginContainer/VBoxContainer/HBoxContainer2/DispatchCount"]
+layout_mode = 2
+theme_override_constants/margin_left = 4
+theme_override_constants/margin_top = 4
+theme_override_constants/margin_right = 4
+theme_override_constants/margin_bottom = 4
+
+[node name="HBoxContainer" type="HBoxContainer" parent="PanelContainer/MarginContainer/VBoxContainer/HBoxContainer2/DispatchCount/MarginContainer"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="PanelContainer/MarginContainer/VBoxContainer/HBoxContainer2/DispatchCount/MarginContainer/HBoxContainer"]
+layout_mode = 2
+text = "Samples"
+
+[node name="_" type="Label" parent="PanelContainer/MarginContainer/VBoxContainer/HBoxContainer2/DispatchCount/MarginContainer/HBoxContainer"]
+layout_mode = 2
+text = ":"
+
+[node name="Value" type="Label" parent="PanelContainer/MarginContainer/VBoxContainer/HBoxContainer2/DispatchCount/MarginContainer/HBoxContainer"]
+custom_minimum_size = Vector2(50, 0)
+layout_mode = 2
+text = "100"
+horizontal_alignment = 1
+
+[node name="AvgTime" type="PanelContainer" parent="PanelContainer/MarginContainer/VBoxContainer/HBoxContainer2"]
+layout_mode = 2
+
+[node name="MarginContainer" type="MarginContainer" parent="PanelContainer/MarginContainer/VBoxContainer/HBoxContainer2/AvgTime"]
+layout_mode = 2
+theme_override_constants/margin_left = 4
+theme_override_constants/margin_top = 4
+theme_override_constants/margin_right = 4
+theme_override_constants/margin_bottom = 4
+
+[node name="HBoxContainer" type="HBoxContainer" parent="PanelContainer/MarginContainer/VBoxContainer/HBoxContainer2/AvgTime/MarginContainer"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="PanelContainer/MarginContainer/VBoxContainer/HBoxContainer2/AvgTime/MarginContainer/HBoxContainer"]
+layout_mode = 2
+text = "Avg"
+
+[node name="_" type="Label" parent="PanelContainer/MarginContainer/VBoxContainer/HBoxContainer2/AvgTime/MarginContainer/HBoxContainer"]
+layout_mode = 2
+text = ":"
+
+[node name="Value" type="Label" parent="PanelContainer/MarginContainer/VBoxContainer/HBoxContainer2/AvgTime/MarginContainer/HBoxContainer"]
+custom_minimum_size = Vector2(50, 0)
+layout_mode = 2
+text = "2.00ms"
+horizontal_alignment = 1
+
+[node name="MinTime" type="PanelContainer" parent="PanelContainer/MarginContainer/VBoxContainer/HBoxContainer2"]
+layout_mode = 2
+
+[node name="MarginContainer" type="MarginContainer" parent="PanelContainer/MarginContainer/VBoxContainer/HBoxContainer2/MinTime"]
+layout_mode = 2
+theme_override_constants/margin_left = 4
+theme_override_constants/margin_top = 4
+theme_override_constants/margin_right = 4
+theme_override_constants/margin_bottom = 4
+
+[node name="HBoxContainer" type="HBoxContainer" parent="PanelContainer/MarginContainer/VBoxContainer/HBoxContainer2/MinTime/MarginContainer"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="PanelContainer/MarginContainer/VBoxContainer/HBoxContainer2/MinTime/MarginContainer/HBoxContainer"]
+layout_mode = 2
+text = "Min"
+
+[node name="_" type="Label" parent="PanelContainer/MarginContainer/VBoxContainer/HBoxContainer2/MinTime/MarginContainer/HBoxContainer"]
+layout_mode = 2
+text = ":"
+
+[node name="Value" type="Label" parent="PanelContainer/MarginContainer/VBoxContainer/HBoxContainer2/MinTime/MarginContainer/HBoxContainer"]
+custom_minimum_size = Vector2(50, 0)
+layout_mode = 2
+text = "2.00ms"
+horizontal_alignment = 1
+
+[node name="MaxTime" type="PanelContainer" parent="PanelContainer/MarginContainer/VBoxContainer/HBoxContainer2"]
+layout_mode = 2
+
+[node name="MarginContainer" type="MarginContainer" parent="PanelContainer/MarginContainer/VBoxContainer/HBoxContainer2/MaxTime"]
+layout_mode = 2
+theme_override_constants/margin_left = 4
+theme_override_constants/margin_top = 4
+theme_override_constants/margin_right = 4
+theme_override_constants/margin_bottom = 4
+
+[node name="HBoxContainer" type="HBoxContainer" parent="PanelContainer/MarginContainer/VBoxContainer/HBoxContainer2/MaxTime/MarginContainer"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="PanelContainer/MarginContainer/VBoxContainer/HBoxContainer2/MaxTime/MarginContainer/HBoxContainer"]
+layout_mode = 2
+text = "Max"
+
+[node name="_" type="Label" parent="PanelContainer/MarginContainer/VBoxContainer/HBoxContainer2/MaxTime/MarginContainer/HBoxContainer"]
+layout_mode = 2
+text = ":"
+
+[node name="Value" type="Label" parent="PanelContainer/MarginContainer/VBoxContainer/HBoxContainer2/MaxTime/MarginContainer/HBoxContainer"]
+custom_minimum_size = Vector2(50, 0)
+layout_mode = 2
+text = "2.00ms"
+horizontal_alignment = 1
+
+[node name="PanelContainer" type="PanelContainer" parent="PanelContainer/MarginContainer/VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="MarginContainer" type="MarginContainer" parent="PanelContainer/MarginContainer/VBoxContainer/PanelContainer"]
+layout_mode = 2
+theme_override_constants/margin_left = 8
+theme_override_constants/margin_top = 8
+theme_override_constants/margin_right = 8
+theme_override_constants/margin_bottom = 8
+
+[node name="ScrollContainer" type="ScrollContainer" parent="PanelContainer/MarginContainer/VBoxContainer/PanelContainer/MarginContainer"]
+layout_mode = 2
+horizontal_scroll_mode = 0
+
+[node name="VBoxContainer" type="VBoxContainer" parent="PanelContainer/MarginContainer/VBoxContainer/PanelContainer/MarginContainer/ScrollContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="GridContainer" type="GridContainer" parent="PanelContainer/MarginContainer/VBoxContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+columns = 4
+
+[node name="NodeOperatorLabel" type="Label" parent="PanelContainer/MarginContainer/VBoxContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/GridContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 17
+text = "Operator"
+horizontal_alignment = 1
+
+[node name="AverageTimeLabel" type="Label" parent="PanelContainer/MarginContainer/VBoxContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/GridContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 17
+text = "Avg"
+horizontal_alignment = 1
+
+[node name="MinTimeLabel" type="Label" parent="PanelContainer/MarginContainer/VBoxContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/GridContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 17
+text = "Min"
+horizontal_alignment = 1
+
+[node name="MaxTimeLabel" type="Label" parent="PanelContainer/MarginContainer/VBoxContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/GridContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 17
+text = "Max"
+horizontal_alignment = 1
+
+[node name="EntriesParentControl" type="VBoxContainer" parent="PanelContainer/MarginContainer/VBoxContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="NodeEntry" parent="PanelContainer/MarginContainer/VBoxContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/EntriesParentControl" instance=ExtResource("2_1y3gq")]
+layout_mode = 2
+
+[node name="NodeEntry2" parent="PanelContainer/MarginContainer/VBoxContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/EntriesParentControl" instance=ExtResource("2_1y3gq")]
+layout_mode = 2
+
+[node name="NodeEntry3" parent="PanelContainer/MarginContainer/VBoxContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/EntriesParentControl" instance=ExtResource("2_1y3gq")]
+layout_mode = 2
+
+[node name="NodeEntry4" parent="PanelContainer/MarginContainer/VBoxContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/EntriesParentControl" instance=ExtResource("2_1y3gq")]
+layout_mode = 2
+
+[node name="NodeEntry5" parent="PanelContainer/MarginContainer/VBoxContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/EntriesParentControl" instance=ExtResource("2_1y3gq")]
+layout_mode = 2
+
+[node name="NodeEntry6" parent="PanelContainer/MarginContainer/VBoxContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/EntriesParentControl" instance=ExtResource("2_1y3gq")]
+layout_mode = 2
+
+[node name="OptionsContainer" type="PanelContainer" parent="PanelContainer/MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="HBoxContainer" type="HBoxContainer" parent="PanelContainer/MarginContainer/VBoxContainer/OptionsContainer"]
+layout_mode = 2
+
+[node name="ClearEntries" type="Button" parent="PanelContainer/MarginContainer/VBoxContainer/OptionsContainer/HBoxContainer"]
+layout_mode = 2
+text = "Clear"
+
+[node name="Export" type="Button" parent="PanelContainer/MarginContainer/VBoxContainer/OptionsContainer/HBoxContainer"]
+layout_mode = 2
+text = "Export"
+
+[node name="CollectingDataCheckBox" type="CheckBox" parent="PanelContainer/MarginContainer/VBoxContainer/OptionsContainer/HBoxContainer"]
+layout_mode = 2
+button_pressed = true
+text = "Collecting reports"
+
+[node name="SaveFileDialog" type="FileDialog" parent="."]
+access = 2
+filters = PackedStringArray("*.json")
+use_native_dialog = true

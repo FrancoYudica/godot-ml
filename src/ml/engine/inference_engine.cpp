@@ -297,10 +297,13 @@ void MLInferenceEngine::_process_task(Ref<InferenceTask> task) {
 
     _rd->compute_list_add_barrier(compute_list);
 
+    uint32_t node_index = 0;
     for (const ml::Physical::Node& node : graph.nodes) {
         _run_node(node, compute_list, initializers_tm, task->activations_tm, shape_table);
         _rd->compute_list_add_barrier(compute_list);
-        _capture_timestamp(String::num(task->task_id) + ":" + ml::Utils::op_name(node.op).c_str());
+        _capture_timestamp(
+            String::num(task->task_id) + ":" +
+            String::num(node_index++) + "_" + ml::Utils::op_name(node.op).c_str());
     }
 
     ml::OutputHandlerContext out_ctx = {
@@ -456,9 +459,7 @@ void MLInferenceEngine::_collect_task_timestamps() {
         if (colon == -1)
             continue;
 
-        // UtilityFunctions::print("Captured GPU timestamp: " + name + " - " + String::num(gpu_time) + "ns");
         uint32_t tid = static_cast<uint32_t>(name.substr(0, colon).to_int());
-        // UtilityFunctions::print("Parsed task_id: " + String::num(tid));
         String label = name.substr(colon + 1);
         per_task[tid].push_back({label, gpu_time});
     }
@@ -473,7 +474,9 @@ void MLInferenceEngine::_collect_task_timestamps() {
         Ref<InferenceTask>& task = _tasks[tid];
         task->has_performance_report = true;
         uint64_t total_ns = 0;
-        for (size_t i = 1; i < entries.size(); i++) {
+        // Skip the first and last entries, which are the "begin" and "end" timestamps for the whole task.
+        // The intermediate entries correspond to individual nodes.
+        for (size_t i = 1; i < entries.size() - 1; i++) {
             uint64_t delta = entries[i].second - entries[i - 1].second;
             total_ns += delta;
             task->timestamp_entries.push_back({entries[i].first, static_cast<float>(delta) / 1'000'000.0f});

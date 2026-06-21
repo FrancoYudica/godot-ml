@@ -1,0 +1,42 @@
+[gd_scene load_steps=2 format=3 uid="uid://ct6vxy5bjdnup"]
+
+[ext_resource type="Script" uid="uid://ndiglxttf0e5" path="res://addons/ml/tools/node_entry.gd" id="1_w4fx3"]
+
+[node name="NodeEntry" type="PanelContainer" node_paths=PackedStringArray("name_label", "avg_label", "min_label", "max_label")]
+script = ExtResource("1_w4fx3")
+name_label = NodePath("GridContainer/NodeOperatorLabel")
+avg_label = NodePath("GridContainer/AverageTimeLabel")
+min_label = NodePath("GridContainer/MinTimeLabel")
+max_label = NodePath("GridContainer/MaxTimeLabel")
+
+[node name="GridContainer" type="GridContainer" parent="."]
+layout_mode = 2
+columns = 4
+
+[node name="NodeOperatorLabel" type="Label" parent="GridContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 13
+text = "GeMM"
+horizontal_alignment = 1
+
+[node name="AverageTimeLabel" type="Label" parent="GridContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 13
+text = "0.012ms"
+horizontal_alignment = 1
+
+[node name="MinTimeLabel" type="Label" parent="GridContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 13
+text = "0.001"
+horizontal_alignment = 1
+
+[node name="MaxTimeLabel" type="Label" parent="GridContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 13
+text = "0.1"
+horizontal_alignment = 1
