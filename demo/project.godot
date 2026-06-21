@@ -17,7 +17,6 @@ compatibility/default_parent_skeleton_in_mesh_instance_3d=true
 config/name="demo-cnn"
 run/main_scene="uid://fgdflnihsc5u"
 config/features=PackedStringArray("4.5", "Forward Plus")
-run/max_fps=60
 
 [autoload]
 

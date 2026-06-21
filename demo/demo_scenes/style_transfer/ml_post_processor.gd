@@ -38,14 +38,18 @@ func _ready() -> void:
 	result_texture = Texture2DRD.new()
 	result_texture.texture_rd_rid = texture_rid
 	texture_rect.texture = result_texture
+	RenderingServer.frame_pre_draw.connect(_pre_draw)
 
 var _t = 0
 
-func _process(_delta: float) -> void:
+func _pre_draw():
 	if not input_texture_viewport or model_id == 0:
 		return
 		
 	_dispatch_inference()
+
+func _process(_delta: float) -> void:
+
 	_t += _delta
 	
 	if _t >= 1.0:
@@ -73,7 +77,7 @@ func _dispatch_inference() -> void:
 
 func _on_inference_completed(task: InferenceTask) -> void:
 	if profile:
-		await get_tree().create_timer(0.25).timeout
+		await get_tree().create_timer(0.1).timeout
 		reporter.push_task_report(task.get_performance_report())
 		
 	engine.destroy_task(task)

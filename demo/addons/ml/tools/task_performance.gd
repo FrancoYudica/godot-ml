@@ -34,6 +34,7 @@ func _ready() -> void:
 func push_task_report(data: Dictionary):
 	if not _collecting:
 		_refresh_ui()
+		_refresh_entries_ratios()
 		return
 	
 	if data.is_empty():
@@ -47,6 +48,7 @@ func push_task_report(data: Dictionary):
 	_max = maxf(data.total_gpu_time_ms, _max)
 	
 	_refresh_ui()
+	_refresh_entries_ratios()
 
 	for operator in data.operators:
 		var entry = _get_or_create_entry(operator.name)
@@ -88,6 +90,24 @@ func _export_request():
 func _file_selected(filename: String):
 	_export_to(filename)
 
+func _refresh_entries_ratios():
+	var ratios := _compute_entry_ratios()
+	for entry_name in ratios:
+		_entries[entry_name].set_ratio(ratios[entry_name])
+
+func _compute_entry_ratios() -> Dictionary[String, float]:
+	var total_avg_time = 0.0
+	for entry in _entries.values():
+		total_avg_time += entry.avg
+		
+	var ratios: Dictionary[String, float] = {}
+	for entry_name in _entries:
+		var entry = _entries[entry_name]
+		var ratio = 0.0 if total_avg_time == 0.0 else entry.avg / total_avg_time
+		ratios[entry_name] = ratio
+		
+	return ratios
+	
 func _export_to(filename: String):
 	print("Exporting to file %s" % filename)
 	
@@ -99,6 +119,7 @@ func _export_to(filename: String):
 	
 	var data = {}
 	data["summary"] = summary
+	data["ratios"] = _compute_entry_ratios()
 	data["reports"] = _reports
 	
 	var file := FileAccess.open(filename, FileAccess.WRITE)

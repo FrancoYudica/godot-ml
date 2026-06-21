@@ -16,7 +16,6 @@ clear_button = NodePath("PanelContainer/MarginContainer/VBoxContainer/OptionsCon
 export_button = NodePath("PanelContainer/MarginContainer/VBoxContainer/OptionsContainer/HBoxContainer/Export")
 collecting_reports_check = NodePath("PanelContainer/MarginContainer/VBoxContainer/OptionsContainer/HBoxContainer/CollectingDataCheckBox")
 entries_parent = NodePath("PanelContainer/MarginContainer/VBoxContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/EntriesParentControl")
-entry_scene = null
 dispatch_count = NodePath("PanelContainer/MarginContainer/VBoxContainer/HBoxContainer2/DispatchCount/MarginContainer/HBoxContainer/Value")
 avg_dispatch_time = NodePath("PanelContainer/MarginContainer/VBoxContainer/HBoxContainer2/AvgTime/MarginContainer/HBoxContainer/Value")
 min_dispatch_time = NodePath("PanelContainer/MarginContainer/VBoxContainer/HBoxContainer2/MinTime/MarginContainer/HBoxContainer/Value")
@@ -181,35 +180,37 @@ size_flags_vertical = 3
 
 [node name="GridContainer" type="GridContainer" parent="PanelContainer/MarginContainer/VBoxContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
 layout_mode = 2
-columns = 4
+columns = 5
 
 [node name="NodeOperatorLabel" type="Label" parent="PanelContainer/MarginContainer/VBoxContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/GridContainer"]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 17
 text = "Operator"
-horizontal_alignment = 1
 
 [node name="AverageTimeLabel" type="Label" parent="PanelContainer/MarginContainer/VBoxContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/GridContainer"]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 17
 text = "Avg"
-horizontal_alignment = 1
 
 [node name="MinTimeLabel" type="Label" parent="PanelContainer/MarginContainer/VBoxContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/GridContainer"]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 17
 text = "Min"
-horizontal_alignment = 1
 
 [node name="MaxTimeLabel" type="Label" parent="PanelContainer/MarginContainer/VBoxContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/GridContainer"]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 17
 text = "Max"
-horizontal_alignment = 1
+
+[node name="RatioLabel" type="Label" parent="PanelContainer/MarginContainer/VBoxContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/GridContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 17
+text = "%"
 
 [node name="EntriesParentControl" type="VBoxContainer" parent="PanelContainer/MarginContainer/VBoxContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
 layout_mode = 2
