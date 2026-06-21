@@ -82,7 +82,7 @@ func _clear_entries():
 	_reports.clear()
 
 func _export_request():
-	save_file_dialog.show()
+	save_file_dialog.popup_centered()
 
 
 func _file_selected(filename: String):

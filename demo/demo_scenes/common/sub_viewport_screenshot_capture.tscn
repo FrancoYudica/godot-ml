@@ -1,0 +1,19 @@
+[gd_scene load_steps=2 format=3 uid="uid://yrcxm6dvca07"]
+
+[ext_resource type="Script" uid="uid://4s42821gmhkl" path="res://demo_scenes/common/sub_viewport_screenshot_capture.gd" id="1_x4x8u"]
+
+[node name="SubViewportScreenshotCapture" type="Control" node_paths=PackedStringArray("save_file_dialog")]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("1_x4x8u")
+save_file_dialog = NodePath("SaveFileDialog")
+
+[node name="SaveFileDialog" type="FileDialog" parent="."]
+access = 2
+filters = PackedStringArray("*.png")
+use_native_dialog = true
