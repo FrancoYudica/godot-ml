@@ -17,7 +17,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--base_path", 
         type=str, 
-        default="", 
+        default=".", 
         help="Directory to save generated .onnx models."
     )
     args = parser.parse_args()

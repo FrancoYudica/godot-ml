@@ -1,7 +1,6 @@
 import onnx
 import math
 from onnx import helper, TensorProto
-from torch import var
 from core import TestBuilder, TestData
 
 class SigmoidBasic(TestBuilder):

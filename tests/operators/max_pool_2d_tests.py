@@ -1,4 +1,3 @@
-
 import onnx
 from onnx import helper, TensorProto
 import onnxruntime as ort

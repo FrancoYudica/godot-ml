@@ -1,0 +1,4 @@
+generated_tests
+.venv/
+__pycache__/
+*.pyc

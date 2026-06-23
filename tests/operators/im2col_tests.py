@@ -1,7 +1,6 @@
 import onnx
 from onnx import helper, TensorProto
 from core import build_filename, TestData, TestBuilder
-import numpy as np
 
 def im2col_evaluate(input_data, input_shape, kernel_shape, strides, pads, dilations):
     # Dimensions [1, 1, H, W]
