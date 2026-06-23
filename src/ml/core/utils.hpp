@@ -1,5 +1,4 @@
 #pragma once
-#include "core_types.hpp"
 #include "logical_types.hpp"
 #include "physical_types.hpp"
 

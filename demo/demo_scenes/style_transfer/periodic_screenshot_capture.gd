@@ -2,11 +2,16 @@ extends Node
 
 @export var sub_viewport: SubViewport
 @export var delay_between_frames: int = 300
+@export var target_count: int = -1 # No limit
 
 @export var images_root_path: String
 var _capture_counter: int = 0
 
 func _process(_delta: float) -> void:
+	
+	if _capture_counter == target_count:
+		return
+	
 	var time = Time.get_ticks_msec()
 	if _capture_counter < time / delay_between_frames:
 		_capture()

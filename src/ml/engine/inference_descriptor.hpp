@@ -5,13 +5,13 @@
 namespace godot {
 
 enum LoadTextureMode {
-    TEXTURE_LOAD_RGB = 0,       // 3 channels → [R, G, B]
-    TEXTURE_LOAD_RGBA = 1,      // 4 channels → [R, G, B, A]
-    TEXTURE_LOAD_RED = 2,       // 1 channel  → [R]
-    TEXTURE_LOAD_GREEN = 3,     // 1 channel  → [G]
-    TEXTURE_LOAD_BLUE = 4,      // 1 channel  → [B]
-    TEXTURE_LOAD_ALPHA = 5,     // 1 channel  → [A]
-    TEXTURE_LOAD_GRAYSCALE = 6, // 1 channel  → [0.299R + 0.587G + 0.114B]
+    TEXTURE_LOAD_RGB = 0,       // 3 channels -> [R, G, B]
+    TEXTURE_LOAD_RGBA = 1,      // 4 channels -> [R, G, B, A]
+    TEXTURE_LOAD_RED = 2,       // 1 channel  -> [R]
+    TEXTURE_LOAD_GREEN = 3,     // 1 channel  -> [G]
+    TEXTURE_LOAD_BLUE = 4,      // 1 channel  -> [B]
+    TEXTURE_LOAD_ALPHA = 5,     // 1 channel  -> [A]
+    TEXTURE_LOAD_GRAYSCALE = 6, // 1 channel  -> [0.299R + 0.587G + 0.114B]
 };
 
 class InferenceDescriptor : public RefCounted {

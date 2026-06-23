@@ -79,5 +79,5 @@ func _on_inference_completed(task: InferenceTask) -> void:
 	if profile:
 		await get_tree().create_timer(0.1).timeout
 		reporter.push_task_report(task.get_performance_report())
-		
+	
 	engine.destroy_task(task)

@@ -32,9 +32,7 @@ Dictionary InferenceTask::get_performance_report() const {
         UtilityFunctions::print(
             "Performance report not available for task " + String::num(task_id) +
                 ". This may be because the task is not yet completed or GPU timestamps were not captured.",
-            __FUNCTION__,
-            __FILE__,
-            __LINE__);
+            __FUNCTION__);
         return report;
     }
 
