@@ -1,0 +1,83 @@
+[gd_scene load_steps=4 format=3 uid="uid://bi7dm5ykdfunp"]
+
+[ext_resource type="Texture2D" uid="uid://bif6ceo2bhp7d" path="res://demo_scenes/super_resolution/resources/textures/test_img_0.png" id="1_nj78w"]
+[ext_resource type="Script" uid="uid://c2wyd33f3rjwp" path="res://demo_scenes/mlp/ml_post_processor.gd" id="2_0ht63"]
+[ext_resource type="ONNXResource" uid="uid://j76i6b0gmbtu" path="res://demo_scenes/mlp/resources/models/color_mlp_warm_tone.onnx" id="3_1ccvn"]
+
+[node name="Mlp" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="ToolsHBoxContainer" type="HBoxContainer" parent="VBoxContainer"]
+layout_mode = 2
+
+[node name="OptionButton" type="OptionButton" parent="VBoxContainer/ToolsHBoxContainer"]
+layout_mode = 2
+selected = 0
+item_count = 2
+popup/item_0/text = "WarmTone"
+popup/item_0/id = 0
+popup/item_1/text = "Grayscale"
+popup/item_1/id = 1
+
+[node name="HBoxContainer" type="HBoxContainer" parent="VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="SrcSubViewportContainer" type="SubViewportContainer" parent="VBoxContainer/HBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+stretch = true
+
+[node name="SubViewport" type="SubViewport" parent="VBoxContainer/HBoxContainer/SrcSubViewportContainer"]
+handle_input_locally = false
+size = Vector2i(574, 613)
+render_target_update_mode = 4
+
+[node name="TextureRect" type="TextureRect" parent="VBoxContainer/HBoxContainer/SrcSubViewportContainer/SubViewport"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+texture = ExtResource("1_nj78w")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="ResultSubViewportContainer" type="SubViewportContainer" parent="VBoxContainer/HBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+stretch = true
+
+[node name="SubViewport" type="SubViewport" parent="VBoxContainer/HBoxContainer/ResultSubViewportContainer"]
+handle_input_locally = false
+size = Vector2i(574, 613)
+render_target_update_mode = 4
+
+[node name="TextureRect" type="TextureRect" parent="VBoxContainer/HBoxContainer/ResultSubViewportContainer/SubViewport"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+texture = ExtResource("1_nj78w")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="MLPostProcessor" type="Node" parent="." node_paths=PackedStringArray("input_texture_viewport", "texture_rect")]
+script = ExtResource("2_0ht63")
+input_texture_viewport = NodePath("../VBoxContainer/HBoxContainer/SrcSubViewportContainer/SubViewport")
+texture_rect = NodePath("../VBoxContainer/HBoxContainer/ResultSubViewportContainer/SubViewport/TextureRect")
+onnx_model = ExtResource("3_1ccvn")

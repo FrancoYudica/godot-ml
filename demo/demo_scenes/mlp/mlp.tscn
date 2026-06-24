@@ -1,0 +1,159 @@
+[gd_scene load_steps=12 format=3 uid="uid://bi7dm5ykdfunp"]
+
+[ext_resource type="Script" uid="uid://tlq5q5s1uq3y" path="res://demo_scenes/mlp/mlp.gd" id="1_855fw"]
+[ext_resource type="Texture2D" uid="uid://bif6ceo2bhp7d" path="res://demo_scenes/super_resolution/resources/textures/test_img_0.png" id="1_nj78w"]
+[ext_resource type="Script" uid="uid://c2wyd33f3rjwp" path="res://demo_scenes/mlp/ml_post_processor.gd" id="2_0ht63"]
+[ext_resource type="ONNXResource" uid="uid://j76i6b0gmbtu" path="res://demo_scenes/mlp/resources/models/color_mlp_warm_tone.onnx" id="3_1ccvn"]
+[ext_resource type="ONNXResource" uid="uid://ywwjr87aqjl3" path="res://demo_scenes/mlp/resources/models/color_mlp_grayscale.onnx" id="3_n2ven"]
+[ext_resource type="ONNXResource" uid="uid://dttbevhe7wiij" path="res://demo_scenes/mlp/resources/models/color_mlp_sepia.onnx" id="4_lkyl8"]
+[ext_resource type="ONNXResource" uid="uid://d0f0la3ygwbwe" path="res://demo_scenes/mlp/resources/models/color_mlp_invert.onnx" id="5_18ory"]
+[ext_resource type="ONNXResource" uid="uid://cuqyvbau5qf6s" path="res://demo_scenes/mlp/resources/models/color_mlp_reinhard.onnx" id="5_g6dyg"]
+[ext_resource type="ONNXResource" uid="uid://d00ih48dnbxai" path="res://demo_scenes/mlp/resources/models/color_mlp_gamma.onnx" id="7_r553f"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_r553f"]
+bg_color = Color(0.18000486, 0.1800049, 0.18000478, 1)
+
+[sub_resource type="ViewportTexture" id="ViewportTexture_1ccvn"]
+viewport_path = NodePath("SrcSubViewport")
+
+[node name="Mlp" type="Control" node_paths=PackedStringArray("_option")]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_855fw")
+_models = Array[ONNXResource]([ExtResource("3_1ccvn"), ExtResource("3_n2ven"), ExtResource("4_lkyl8"), ExtResource("5_g6dyg"), ExtResource("5_18ory"), ExtResource("7_r553f")])
+_option = NodePath("MarginContainer/VBoxContainer/PanelContainer/MarginContainer/ToolsHBoxContainer/ModelOption/OptionButton")
+
+[node name="ColorRect" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0, 0, 0, 1)
+
+[node name="SrcSubViewport" type="SubViewport" parent="."]
+transparent_bg = true
+handle_input_locally = false
+render_target_update_mode = 4
+
+[node name="TextureRect" type="TextureRect" parent="SrcSubViewport"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+texture = ExtResource("1_nj78w")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="MarginContainer" type="MarginContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 8
+theme_override_constants/margin_top = 8
+theme_override_constants/margin_right = 8
+theme_override_constants/margin_bottom = 8
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="PanelContainer" type="PanelContainer" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_r553f")
+
+[node name="MarginContainer" type="MarginContainer" parent="MarginContainer/VBoxContainer/PanelContainer"]
+layout_mode = 2
+theme_override_constants/margin_left = 8
+theme_override_constants/margin_top = 8
+theme_override_constants/margin_right = 8
+theme_override_constants/margin_bottom = 8
+
+[node name="ToolsHBoxContainer" type="HBoxContainer" parent="MarginContainer/VBoxContainer/PanelContainer/MarginContainer"]
+layout_mode = 2
+
+[node name="ModelOption" type="HBoxContainer" parent="MarginContainer/VBoxContainer/PanelContainer/MarginContainer/ToolsHBoxContainer"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="MarginContainer/VBoxContainer/PanelContainer/MarginContainer/ToolsHBoxContainer/ModelOption"]
+layout_mode = 2
+text = "MODEL:"
+
+[node name="OptionButton" type="OptionButton" parent="MarginContainer/VBoxContainer/PanelContainer/MarginContainer/ToolsHBoxContainer/ModelOption"]
+layout_mode = 2
+selected = 0
+item_count = 6
+popup/item_0/text = "WarmTone"
+popup/item_0/id = 0
+popup/item_1/text = "Grayscale"
+popup/item_1/id = 1
+popup/item_2/text = "Sepia"
+popup/item_2/id = 2
+popup/item_3/text = "Reinhard"
+popup/item_3/id = 3
+popup/item_4/text = "Invert"
+popup/item_4/id = 4
+popup/item_5/text = "Gamma"
+popup/item_5/id = 5
+
+[node name="RendersPanelContainer" type="PanelContainer" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_r553f")
+
+[node name="MarginContainer" type="MarginContainer" parent="MarginContainer/VBoxContainer/RendersPanelContainer"]
+layout_mode = 2
+
+[node name="HBoxContainer" type="HBoxContainer" parent="MarginContainer/VBoxContainer/RendersPanelContainer/MarginContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="SrcVBoxContainer" type="VBoxContainer" parent="MarginContainer/VBoxContainer/RendersPanelContainer/MarginContainer/HBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Label" type="Label" parent="MarginContainer/VBoxContainer/RendersPanelContainer/MarginContainer/HBoxContainer/SrcVBoxContainer"]
+layout_mode = 2
+text = "SRC"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="SrcTextureRect" type="TextureRect" parent="MarginContainer/VBoxContainer/RendersPanelContainer/MarginContainer/HBoxContainer/SrcVBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+texture = SubResource("ViewportTexture_1ccvn")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="OutputVBoxContainer" type="VBoxContainer" parent="MarginContainer/VBoxContainer/RendersPanelContainer/MarginContainer/HBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Label" type="Label" parent="MarginContainer/VBoxContainer/RendersPanelContainer/MarginContainer/HBoxContainer/OutputVBoxContainer"]
+layout_mode = 2
+text = "Output"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="OutputTextureRect" type="TextureRect" parent="MarginContainer/VBoxContainer/RendersPanelContainer/MarginContainer/HBoxContainer/OutputVBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+texture = SubResource("ViewportTexture_1ccvn")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="MLPostProcessor" type="Node" parent="." node_paths=PackedStringArray("input_texture_viewport", "texture_rect")]
+script = ExtResource("2_0ht63")
+input_texture_viewport = NodePath("../SrcSubViewport")
+texture_rect = NodePath("../MarginContainer/VBoxContainer/RendersPanelContainer/MarginContainer/HBoxContainer/OutputVBoxContainer/OutputTextureRect")
