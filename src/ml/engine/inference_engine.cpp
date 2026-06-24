@@ -141,7 +141,10 @@ void MLInferenceEngine::unload_model(uint32_t model_rid) {
         !_has_graph(model_rid),
         "InferenceEngine: model " + String::num(model_rid) + " not found.");
 
-    _graphs.erase(model_rid);
+    if (!_destroy_graph_if_unused(model_rid)) {
+        _pending_graph_deletions.insert(model_rid);
+        return;
+    }
 }
 
 void MLInferenceEngine::destroy() {
@@ -241,6 +244,9 @@ void MLInferenceEngine::_process_pending_tasks() {
     _collect_task_timestamps();
 
     _pending_tasks.clear();
+
+    // Process any pending graph deletions that were waiting for tasks to complete
+    _destroy_pending_graphs_if_unused();
 }
 
 void MLInferenceEngine::_process_task(Ref<InferenceTask> task) {
@@ -483,6 +489,25 @@ void MLInferenceEngine::_collect_task_timestamps() {
         }
         task->total_gpu_time_ms = static_cast<float>(total_ns) / 1'000'000.0f;
     }
+}
+
+bool MLInferenceEngine::_destroy_graph_if_unused(uint32_t model_rid) {
+    // Check if the graph is still referenced by any tasks
+    for (const auto& task : _tasks) {
+        if (task.second->graph_id == model_rid) {
+            return false;
+        }
+    }
+
+    // If no tasks are referencing the graph, it's safe to destroy
+    _graphs.erase(model_rid);
+    return true;
+}
+
+void MLInferenceEngine::_destroy_pending_graphs_if_unused() {
+    std::erase_if(_pending_graph_deletions, [this](uint32_t rid) {
+        return _destroy_graph_if_unused(rid);
+    });
 }
 
 } // namespace godot

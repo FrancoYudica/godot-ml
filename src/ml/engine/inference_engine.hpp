@@ -13,7 +13,7 @@
 #include <godot_cpp/classes/rd_uniform.hpp>
 #include <godot_cpp/classes/ref.hpp>
 #include <godot_cpp/classes/rendering_device.hpp>
-
+#include <unordered_set>
 namespace godot {
 
 struct GraphContext {
@@ -66,6 +66,8 @@ class MLInferenceEngine : public RefCounted {
 
     void _capture_timestamp(const String& label);
     void _collect_task_timestamps();
+    bool _destroy_graph_if_unused(uint32_t model_rid);
+    void _destroy_pending_graphs_if_unused();
 
   private:
     RenderingDevice* _rd;
@@ -85,6 +87,8 @@ class MLInferenceEngine : public RefCounted {
 
     uint32_t _next_graph_id = 1;
     uint32_t _next_task_id = 0;
+
+    std::unordered_set<uint32_t> _pending_graph_deletions;
 };
 } // namespace godot
 
