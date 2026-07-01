@@ -2,7 +2,7 @@
 
 GPU-accelerated neural network inference for Godot, built as a GDExtension.
 
-<!-- TODO: Add Demo video or GIF -->
+<img width="800" height="450" alt="mnist-sample" src="https://github.com/user-attachments/assets/661b9e6c-d636-4db7-958c-6d9de76a4bc2" />
 
 ## What is godot-ml?
 
