@@ -1,4 +1,4 @@
-[gd_scene load_steps=10 format=3 uid="uid://fgdflnihsc5u"]
+[gd_scene load_steps=11 format=3 uid="uid://fgdflnihsc5u"]
 
 [ext_resource type="PackedScene" uid="uid://53tws5cwxsas" path="res://demo_scenes/style_transfer/game/flappy_game.tscn" id="1_g8li3"]
 [ext_resource type="Script" uid="uid://chh3x32c8u4h3" path="res://demo_scenes/style_transfer/style_transfer_game_demo.gd" id="1_hcnuq"]
@@ -11,6 +11,9 @@
 
 [sub_resource type="ViewportTexture" id="ViewportTexture_bad66"]
 viewport_path = NodePath("HighResSubViewport")
+
+[sub_resource type="ViewportTexture" id="ViewportTexture_1oowg"]
+viewport_path = NodePath("LowResSubViewport")
 
 [node name="StyleTransferGameDemo" type="Control" node_paths=PackedStringArray("high_res_sub_viewport")]
 layout_mode = 3
@@ -69,11 +72,35 @@ sub_viewport = NodePath("../LowResSubViewport")
 
 [node name="HBoxContainer" type="HBoxContainer" parent="."]
 layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -514.0
+offset_top = -256.0
+offset_right = 514.0
+offset_bottom = 256.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="SubViewportContainer2" type="SubViewportContainer" parent="HBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="SubViewport" type="SubViewport" parent="HBoxContainer/SubViewportContainer2"]
+handle_input_locally = false
+render_target_update_mode = 4
+
+[node name="TextureRect" type="TextureRect" parent="HBoxContainer/SubViewportContainer2/SubViewport"]
+texture_filter = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+size_flags_horizontal = 3
+texture = SubResource("ViewportTexture_1oowg")
 
 [node name="SubViewportContainer" type="SubViewportContainer" parent="HBoxContainer"]
 layout_mode = 2
@@ -95,6 +122,7 @@ expand_mode = 1
 stretch_mode = 5
 
 [node name="TaskPerformance" parent="HBoxContainer" instance=ExtResource("5_ynokh")]
+visible = false
 custom_minimum_size = Vector2(500, 0)
 layout_mode = 2
 entry_scene = ExtResource("6_g6sjt")

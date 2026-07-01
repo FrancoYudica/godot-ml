@@ -1,64 +1,27 @@
 # godot-ml
-A GDExtension-based neural inference backend for Godot 4.x, utilizing Compute Shaders for zero-copy GPU processing.
 
+GPU-accelerated neural network inference for Godot, built as a GDExtension.
+
+<!-- TODO: Add Demo video or GIF -->
+
+## What is godot-ml?
+
+godot-ml is an ONNX inference engine that runs directly inside Godot's rendering pipeline. You bring a trained model exported as [`.onnx`](https://onnx.ai/), godot-ml loads it, compiles the compute graph, and runs it on the GPU alongside your game's rendering, with no CPU-GPU transfers and no external runtime dependencies.
+
+This is an inference engine, not a training framework. It is built on Godot's `RenderingDevice` API and supports every platform that supports compute shaders: Windows (Vulkan/D3D12), Linux (Vulkan), macOS (Metal), and more.
 
 ## Features
-* **Asynchronous Execution**: Inference runs on the RenderingDevice without blocking the main thread.
-* **Zero-Copy Pipeline**: (WIP) Texture-to-Buffer GPU-only data paths.
-* **Modular Architecture**: Easily extensible `InputHandler/OutputHandler` and `Operator` classes.
-* **ONNX Support**: Native parsing of ONNX models into compute-compatible graphs.
 
-## Building
+- **GPU-native execution**: inference runs in the same Vulkan/D3D12/Metal context as rendering. No context switches, no external runtimes, no CPU-GPU round-trips.
+- **ONNX compatible**: loads models exported directly from PyTorch or TensorFlow. No manual conversion steps.
+- **Dynamic input resolutions**: input dimensions are resolved at inference time, so screen resolution changes require no model reload.
+- **100% GDScript API**: register models, queue inferences, and read results without writing any C++.
+- **Native engine I/O**: accepts `Texture2D` inputs and writes outputs straight back to a texture, keeping all data on the GPU.
+- **Multiple concurrent models**: each registered model gets its own GPU resources and can run within the same frame.
+- **Async by design**: inference tasks complete via a `completed` signal, the main thread is never blocked.
+- **Numerically validated**: every operator is tested against ONNX Runtime as reference.
 
-**Prerequisites**
-- Python + [SCons](https://scons.org/)
-- A C++20-capable compiler (MSVC 2019+, GCC 10+, Clang 10+)
-- [vcpkg](https://vcpkg.io/) installed and `VCPKG_ROOT` pointing to it
+## Documentation
 
-**1. Clone**
-
-The repo uses git submodules for `godot-cpp` and the ONNX proto definitions, so clone recursively:
-
-```bash
-git clone --recursive git@github.com:FrancoYudica/godot-ml.git
-cd godot-ml
-```
-
-**2. Install dependencies via vcpkg**
-
-The project ships a `vcpkg.json` manifest. Running `vcpkg install` from the project root reads it and installs protobuf and Abseil locally into `vcpkg_installed/` — nothing goes into your global vcpkg directory.
-
-Static linking is required. The GDExtension must be a single self-contained binary with no external runtime DLLs to ship alongside it.
-
-```bash
-# Windows
-vcpkg install --triplet x64-windows-static
-
-# Linux
-vcpkg install --triplet x64-linux-static
-
-# macOS
-vcpkg install --triplet arm64-osx-static
-```
-
-This step takes a while the first time since both libraries are compiled from source. Subsequent runs are instant.
-
-**3. Build**
-
-```bash
-cd src
-scons platform=windows   # or linux / macos
-```
-
-Or the following for release
-```bash
-scons platform=windows target=template_release
-```
-
-The extension is written to `demo/addons/ml/bin/`. The build picks up the vcpkg install automatically — no extra flags needed as long as `VCPKG_ROOT` is set.
-
-If you need a non-default triplet or vcpkg location you can pass them explicitly:
-
-```bash
-scons platform=windows vcpkg_triplet=x64-windows-static vcpkg_root=C:/dev/vcpkg
-```
+- [Building from source](docs/building.md)
+- [Development setup](docs/development.md)
