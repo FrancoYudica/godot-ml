@@ -1,0 +1,43 @@
+name: Tests
+
+on:
+  push:
+  pull_request:
+
+env:
+  GODOT_VERSION: "4.5-stable"
+
+jobs:
+  smoke-test:
+    # NOTE: this job only validates that Godot itself boots and runs a scene
+    # under GitHub Actions (software Vulkan via Lavapipe + Xvfb). It does not
+    # build the GDExtension or run the real ONNX inference test suite yet -
+    # that comes in a follow-up once this baseline is green.
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install system packages
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libvulkan1 mesa-vulkan-drivers xvfb curl unzip
+
+      - name: Download Godot
+        run: |
+          curl -L -o godot.zip "https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}/Godot_v${GODOT_VERSION}_linux.x86_64.zip"
+          unzip -q godot.zip
+          chmod +x "Godot_v${GODOT_VERSION}_linux.x86_64"
+          sudo mv "Godot_v${GODOT_VERSION}_linux.x86_64" /usr/local/bin/godot
+
+      - name: Import project
+        # The ML GDExtension is only built for Windows right now, so Godot
+        # will log an error for the missing Linux library during import.
+        # That's expected and harmless for this smoke test - the `|| true`
+        # keeps that from failing the step.
+        run: xvfb-run --auto-servernum godot --headless --path demo/ --editor --quit 2>&1 || true
+
+      - name: Run smoke test scene
+        timeout-minutes: 5
+        run: xvfb-run --auto-servernum godot --path demo/ --rendering-driver vulkan res://tests/ci_smoke.tscn

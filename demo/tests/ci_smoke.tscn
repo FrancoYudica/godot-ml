@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3 uid="uid://cskgo4ts0h3rs"]
+
+[ext_resource type="Script" uid="uid://bbhk6kfus7ce" path="res://tests/ci_smoke.gd" id="1"]
+
+[node name="CISmoke" type="Node"]
+script = ExtResource("1")
