@@ -17,10 +17,10 @@ _project_root = os.path.dirname(Dir("#").abspath)
 
 _default_triplets = {
     "windows": "x64-windows-static",
-    "linux":   "x64-linux-static",
-    "macos":   "arm64-osx-static",
+    "linux":   "x64-linux",
+    "macos":   "arm64-osx",
     "android": "arm64-android",
-    "ios":     "arm64-ios-static",
+    "ios":     "arm64-ios",
 }
 vcpkg_triplet = ARGUMENTS.get(
     "vcpkg_triplet",

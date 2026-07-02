@@ -26,11 +26,16 @@ Static linking is required. The GDExtension must be a single self-contained bina
 vcpkg install --triplet x64-windows-static
 
 # Linux
-vcpkg install --triplet x64-linux-static
+vcpkg install --triplet x64-linux
 
 # macOS
-vcpkg install --triplet arm64-osx-static
+vcpkg install --triplet arm64-osx
 ```
+
+Windows needs the explicit `-static` triplet since vcpkg's default `x64-windows` triplet links
+dynamically. On Linux and macOS, the plain triplet (`x64-linux`, `arm64-osx`) already builds
+static libraries by default -- vcpkg doesn't ship a separate `-static` variant for those
+platforms.
 
 This step takes a while the first time since both libraries are compiled from source. Subsequent runs are instant.
 

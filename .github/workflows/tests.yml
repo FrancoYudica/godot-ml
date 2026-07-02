@@ -48,11 +48,11 @@ jobs:
       - name: Restore vcpkg cache
         uses: actions/cache@v4
         with:
-          path: vcpkg_installed/x64-linux-static
+          path: vcpkg_installed/x64-linux
           key: vcpkg-${{ runner.os }}-${{ env.VCPKG_REF }}-${{ hashFiles('vcpkg.json') }}
 
       - name: Install vcpkg packages
-        run: /tmp/vcpkg/vcpkg install --triplet x64-linux-static
+        run: /tmp/vcpkg/vcpkg install --triplet x64-linux
 
       - name: Restore SCons build cache
         uses: actions/cache@v4
