@@ -73,6 +73,16 @@ if "ML_ENV" in env:
     env.Append(LIBS=env["ML_ENV"]["LIBS"])
     env.Append(LIBPATH=env["ML_ENV"].get("LIBPATH", []))
 
+if env["platform"] == "linux":
+    # vcpkg's static protobuf/abseil libs have circular inter-dependencies
+    # (abseil ships as dozens of small .a files). GNU ld resolves those only
+    # within a --start-group/--end-group region, regardless of link order.
+    # Re-emitting $_LIBFLAGS once more, grouped, at the very end is a safe
+    # no-op for already-resolved symbols and fixes the circular ones.
+    env["SHLINKCOM"] = str(env["SHLINKCOM"]) + " -Wl,--start-group $_LIBFLAGS -Wl,--end-group"
+    # Catch missing symbols at build time instead of at Godot's dlopen() time.
+    env.Append(LINKFLAGS=["-Wl,--no-undefined"])
+
 # Extension library
 sources = (
     ["register_types.cpp"]
