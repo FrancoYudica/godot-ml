@@ -6,6 +6,8 @@ extends Node
 
 var engine = MLInferenceEngine.new()
 var model_cache: Dictionary = {}
+var _pending: int = 0
+var _any_failed: bool = false
 
 func _ready() -> void:
 	if not run: return
@@ -17,20 +19,31 @@ func _run_json_suite(path: String):
 	var json_string = FileAccess.get_file_as_string(path)
 	var json = JSON.new()
 	var error = json.parse(json_string)
-	
+
 	if error != OK:
 		push_error("JSON Parse Error: %s at line %d" % [json.get_error_message(), json.get_error_line()])
+		_any_failed = true
+		get_tree().quit(1)
 		return
 
 	var test_data_array = json.get_data()
+	_pending = test_data_array.size()
+	if _pending == 0:
+		push_error("Test suite is empty: %s" % path)
+		get_tree().quit(1)
+		return
+
 	for data in test_data_array:
 		_execute_test(data)
 
 func _execute_test(data: Dictionary):
 	# Register/Get Model
 	var onnx_root_path = test_suite_path.get_base_dir()
-	var model_id = _get_or_register_model(onnx_root_path + "/" + data.name + ".onnx")
-	if model_id == 0: return
+	var model_filepath = onnx_root_path + "/" + data.name + ".onnx"
+	var model_id = _get_or_register_model(model_filepath)
+	if model_id == 0:
+		push_error("Unable to load model: %s" % model_filepath)
+		get_tree().quit(1)
 
 	# Configure
 	var descriptor = InferenceDescriptor.new()
@@ -39,6 +52,11 @@ func _execute_test(data: Dictionary):
 
 	# Run
 	var task = engine.queue_request(model_id, descriptor)
+
+	if not task:
+		push_error("Unable to create task for model: %s" % model_filepath)
+		get_tree().quit(1)
+
 	task.completed.connect(_on_test_completed.bind(data, task))
 
 func _get_or_register_model(path: String) -> int:
@@ -61,14 +79,19 @@ func _on_test_completed(data: Dictionary, task: InferenceTask):
 	_assert_almost_equals(data.name, expected, result)
 	engine.destroy_task(task)
 
+	_pending -= 1
+	if _pending == 0:
+		get_tree().quit(1 if _any_failed else 0)
+
 func _assert_almost_equals(test_name: String, a: PackedFloat32Array, b: PackedFloat32Array, epsilon = 0.0001):
 	if a.size() != b.size():
 		push_error("FAIL: %s | Size mismatch (Expected %d, Got %d)" % [test_name, a.size(), b.size()])
+		_any_failed = true
 		return
 	for i in range(a.size()):
 		if abs(a[i] - b[i]) > epsilon:
 			push_error("FAIL: %s | Mismatch at %d (Expected %f, Got %f)" % [test_name, i, a[i], b[i]])
 			push_error("\tExpected %s\n\tGot %s)" % [a, b])
-			
+			_any_failed = true
 			return
 	print("SUCCESS: %s" % test_name)

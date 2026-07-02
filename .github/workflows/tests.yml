@@ -6,23 +6,27 @@ on:
 
 env:
   GODOT_VERSION: "4.5-stable"
+  VCPKG_REF: "2026.06.24"
 
 jobs:
-  smoke-test:
-    # NOTE: this job only validates that Godot itself boots and runs a scene
-    # under GitHub Actions (software Vulkan via Lavapipe + Xvfb). It does not
-    # build the GDExtension or run the real ONNX inference test suite yet -
-    # that comes in a follow-up once this baseline is green.
+  test:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 30
     steps:
+      - name: Allow anonymous HTTPS clone of SSH-configured submodules
+        run: git config --global url."https://github.com/".insteadOf "git@github.com:"
+
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          submodules: recursive
 
       - name: Install system packages
         run: |
           sudo apt-get update
-          sudo apt-get install -y libvulkan1 mesa-vulkan-drivers xvfb curl unzip
+          sudo apt-get install -y \
+            build-essential scons clang cmake ninja-build pkg-config \
+            libvulkan1 mesa-vulkan-drivers xvfb curl unzip python3
 
       - name: Download Godot
         run: |
@@ -31,13 +35,40 @@ jobs:
           chmod +x "Godot_v${GODOT_VERSION}_linux.x86_64"
           sudo mv "Godot_v${GODOT_VERSION}_linux.x86_64" /usr/local/bin/godot
 
+      - name: Smoke-test Godot itself (fail fast before the expensive build)
+        timeout-minutes: 3
+        run: xvfb-run --auto-servernum godot --path demo/ --rendering-driver vulkan res://tests/ci_smoke.tscn
+
+      - name: Bootstrap vcpkg
+        run: |
+          git clone --depth 1 --branch "${VCPKG_REF}" https://github.com/microsoft/vcpkg.git /tmp/vcpkg
+          /tmp/vcpkg/bootstrap-vcpkg.sh
+          echo "VCPKG_ROOT=/tmp/vcpkg" >> "$GITHUB_ENV"
+
+      - name: Restore vcpkg cache
+        uses: actions/cache@v4
+        with:
+          path: vcpkg_installed/x64-linux-static
+          key: vcpkg-${{ runner.os }}-${{ env.VCPKG_REF }}-${{ hashFiles('vcpkg.json') }}
+
+      - name: Install vcpkg packages
+        run: /tmp/vcpkg/vcpkg install --triplet x64-linux-static
+
+      - name: Restore SCons build cache
+        uses: actions/cache@v4
+        with:
+          path: src/.scons-cache
+          key: scons-linux-${{ github.sha }}
+          restore-keys: scons-linux-
+
+      - name: Build GDExtension
+        run: |
+          cd src
+          scons platform=linux target=template_debug --cache-dir=.scons-cache -j$(nproc)
+
       - name: Import project
-        # The ML GDExtension is only built for Windows right now, so Godot
-        # will log an error for the missing Linux library during import.
-        # That's expected and harmless for this smoke test - the `|| true`
-        # keeps that from failing the step.
         run: xvfb-run --auto-servernum godot --headless --path demo/ --editor --quit 2>&1 || true
 
-      - name: Run smoke test scene
+      - name: Run test suite
         timeout-minutes: 5
-        run: xvfb-run --auto-servernum godot --path demo/ --rendering-driver vulkan res://tests/ci_smoke.tscn
+        run: xvfb-run --auto-servernum godot --path demo/ --rendering-driver vulkan res://tests/test_runner.tscn
