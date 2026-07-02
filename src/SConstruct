@@ -4,6 +4,10 @@ import sys
 
 env = SConscript("thirdparty/godot-cpp/SConstruct")
 
+# Opt-in build cache (e.g. for CI): SCONS_CACHE_DIR=path scons ...
+if os.environ.get("SCONS_CACHE_DIR"):
+    CacheDir(os.environ["SCONS_CACHE_DIR"])
+
 env.Tool('compilation_db')
 compilation_db = env.CompilationDatabase('compile_commands.json')
 env.Alias('compiledb', compilation_db)

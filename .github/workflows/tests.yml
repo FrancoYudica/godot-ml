@@ -62,9 +62,11 @@ jobs:
           restore-keys: scons-linux-
 
       - name: Build GDExtension
+        env:
+          SCONS_CACHE_DIR: ${{ github.workspace }}/src/.scons-cache
         run: |
           cd src
-          scons platform=linux target=template_debug --cache-dir=.scons-cache -j$(nproc)
+          scons platform=linux target=template_debug -j$(nproc)
 
       - name: Import project
         run: xvfb-run --auto-servernum godot --headless --path demo/ --editor --quit 2>&1 || true
