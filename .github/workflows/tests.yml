@@ -1,76 +1,76 @@
 name: Tests
 
 on:
-  push:
-  pull_request:
+    push:
+    pull_request:
 
 env:
-  GODOT_VERSION: "4.5-stable"
-  VCPKG_REF: "2026.06.24"
+    GODOT_VERSION: "4.5-stable"
+    VCPKG_REF: "2026.06.24"
 
 jobs:
-  test:
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
-    steps:
-      - name: Allow anonymous HTTPS clone of SSH-configured submodules
-        run: git config --global url."https://github.com/".insteadOf "git@github.com:"
+    test:
+        runs-on: ubuntu-latest
+        timeout-minutes: 30
+        steps:
+            - name: Allow anonymous HTTPS clone of SSH-configured submodules
+              run: git config --global url."https://github.com/".insteadOf "git@github.com:"
 
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          submodules: recursive
+            - name: Checkout
+              uses: actions/checkout@v4
+              with:
+                  submodules: recursive
 
-      - name: Install system packages
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y \
-            build-essential scons clang cmake ninja-build pkg-config \
-            libvulkan1 mesa-vulkan-drivers xvfb curl unzip python3
+            - name: Install system packages
+              run: |
+                  sudo apt-get update
+                  sudo apt-get install -y \
+                    build-essential scons clang cmake ninja-build pkg-config \
+                    libvulkan1 mesa-vulkan-drivers xvfb curl unzip python3
 
-      - name: Download Godot
-        run: |
-          curl -L -o godot.zip "https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}/Godot_v${GODOT_VERSION}_linux.x86_64.zip"
-          unzip -q godot.zip
-          chmod +x "Godot_v${GODOT_VERSION}_linux.x86_64"
-          sudo mv "Godot_v${GODOT_VERSION}_linux.x86_64" /usr/local/bin/godot
+            - name: Download Godot
+              run: |
+                  curl -L -o godot.zip "https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}/Godot_v${GODOT_VERSION}_linux.x86_64.zip"
+                  unzip -q godot.zip
+                  chmod +x "Godot_v${GODOT_VERSION}_linux.x86_64"
+                  sudo mv "Godot_v${GODOT_VERSION}_linux.x86_64" /usr/local/bin/godot
 
-      - name: Smoke-test Godot itself (fail fast before the expensive build)
-        timeout-minutes: 3
-        run: xvfb-run --auto-servernum godot --path demo/ --rendering-driver vulkan res://tests/ci_smoke.tscn
+            - name: Smoke-test Godot itself (fail fast before the expensive build)
+              timeout-minutes: 3
+              run: xvfb-run --auto-servernum godot --path demo/ --rendering-driver vulkan res://tests/ci_smoke.tscn
 
-      - name: Bootstrap vcpkg
-        run: |
-          git clone --depth 1 --branch "${VCPKG_REF}" https://github.com/microsoft/vcpkg.git /tmp/vcpkg
-          /tmp/vcpkg/bootstrap-vcpkg.sh
-          echo "VCPKG_ROOT=/tmp/vcpkg" >> "$GITHUB_ENV"
+            - name: Bootstrap vcpkg
+              run: |
+                  git clone --depth 1 --branch "${VCPKG_REF}" https://github.com/microsoft/vcpkg.git /tmp/vcpkg
+                  /tmp/vcpkg/bootstrap-vcpkg.sh
+                  echo "VCPKG_ROOT=/tmp/vcpkg" >> "$GITHUB_ENV"
 
-      - name: Restore vcpkg cache
-        uses: actions/cache@v4
-        with:
-          path: vcpkg_installed/x64-linux
-          key: vcpkg-${{ runner.os }}-${{ env.VCPKG_REF }}-${{ hashFiles('vcpkg.json') }}
+            - name: Restore vcpkg cache
+              uses: actions/cache@v4
+              with:
+                  path: vcpkg_installed
+                  key: vcpkg-${{ runner.os }}-${{ env.VCPKG_REF }}-${{ hashFiles('vcpkg.json') }}
 
-      - name: Install vcpkg packages
-        run: /tmp/vcpkg/vcpkg install --triplet x64-linux
+            - name: Install vcpkg packages
+              run: /tmp/vcpkg/vcpkg install --triplet x64-linux
 
-      - name: Restore SCons build cache
-        uses: actions/cache@v4
-        with:
-          path: src/.scons-cache
-          key: scons-linux-${{ github.sha }}
-          restore-keys: scons-linux-
+            - name: Restore SCons build cache
+              uses: actions/cache@v4
+              with:
+                  path: src/.scons-cache
+                  key: scons-linux-${{ github.sha }}
+                  restore-keys: scons-linux-
 
-      - name: Build GDExtension
-        env:
-          SCONS_CACHE_DIR: ${{ github.workspace }}/src/.scons-cache
-        run: |
-          cd src
-          scons platform=linux target=template_debug -j$(nproc)
+            - name: Build GDExtension
+              env:
+                  SCONS_CACHE_DIR: ${{ github.workspace }}/src/.scons-cache
+              run: |
+                  cd src
+                  scons platform=linux target=template_debug -j$(nproc)
 
-      - name: Import project
-        run: xvfb-run --auto-servernum godot --headless --path demo/ --editor --quit 2>&1 || true
+            - name: Import project
+              run: xvfb-run --auto-servernum godot --headless --path demo/ --editor --quit 2>&1 || true
 
-      - name: Run test suite
-        timeout-minutes: 5
-        run: xvfb-run --auto-servernum godot --path demo/ --rendering-driver vulkan res://tests/test_runner.tscn
+            - name: Run test suite
+              timeout-minutes: 5
+              run: xvfb-run --auto-servernum godot --path demo/ --rendering-driver vulkan res://tests/test_runner.tscn
