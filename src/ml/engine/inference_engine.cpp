@@ -127,7 +127,7 @@ uint32_t MLInferenceEngine::register_model(Ref<ONNXResource> resource) {
     graph_context.initializers_tm->init(_rd, &_sb_pool);
 
     uint32_t graph_rid = _next_graph_id++;
-    _graphs[graph_rid] = graph_context;
+    _graphs.emplace(graph_rid, std::move(graph_context));
 
     for (const auto& [name, tensor] : graph_context.graph.initializers) {
         graph_context.initializers_tm->get_or_create(name, tensor.shape, tensor.data);
