@@ -6,8 +6,7 @@ namespace godot {
 void godot::InferenceTask::_bind_methods() {
     ADD_SIGNAL(
         MethodInfo(
-            "completed",
-            PropertyInfo(Variant::PACKED_FLOAT32_ARRAY, "result")));
+            "completed"));
     ClassDB::bind_method(
         D_METHOD("get_performance_report"),
         &InferenceTask::get_performance_report);
