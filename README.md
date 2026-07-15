@@ -1,6 +1,18 @@
 # godot-ml
 
-[![Tests](https://github.com/FrancoYudica/godot-ml/actions/workflows/tests.yml/badge.svg)](https://github.com/FrancoYudica/godot-ml/actions/workflows/tests.yml)
+<p align="center">
+  <a href="https://godotengine.org/download/windows/">
+      <img alt="Static Badge" src="https://img.shields.io/badge/Godot-4.5%2B-blue">
+  </a>
+  
+  <a href="https://github.com/FrancoYudica/godot-ml/actions/workflows/tests.yml">
+    <img alt="Tests" src="https://img.shields.io/github/actions/workflow/status/FrancoYudica/godot-ml/tests.yml?label=tests">
+  </a>
+
+  <a href="LICENSE">
+    <img alt="GitHub License" src="https://img.shields.io/github/license/FrancoYudica/godot-ml">
+  </a>
+</p>
 
 GPU-accelerated neural network inference for Godot, built as a GDExtension.
 
