@@ -1,0 +1,2 @@
+# Vendored third-party code (onnx, godot-cpp): not ours to lint.
+Checks: '-*'
