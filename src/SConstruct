@@ -8,11 +8,11 @@ env = SConscript("thirdparty/godot-cpp/SConstruct")
 if os.environ.get("SCONS_CACHE_DIR"):
     CacheDir(os.environ["SCONS_CACHE_DIR"])
 
-env.Tool('compilation_db')
-compilation_db = env.CompilationDatabase('compile_commands.json')
-env.Alias('compiledb', compilation_db)
+env.Tool("compilation_db")
+compilation_db = env.CompilationDatabase("compile_commands.json")
+env.Alias("compiledb", compilation_db)
 
-env["ML_SOURCES"]  = []
+env["GD_INFER_SOURCES"] = []
 env["ONNX_SOURCES"] = []
 
 # ── vcpkg integration ─────────────────────────────────────────────────────────
@@ -21,14 +21,13 @@ _project_root = os.path.dirname(Dir("#").abspath)
 
 _default_triplets = {
     "windows": "x64-windows-static",
-    "linux":   "x64-linux",
-    "macos":   "arm64-osx",
+    "linux": "x64-linux",
+    "macos": "arm64-osx",
     "android": "arm64-android",
-    "ios":     "arm64-ios",
+    "ios": "arm64-ios",
 }
 vcpkg_triplet = ARGUMENTS.get(
-    "vcpkg_triplet",
-    _default_triplets.get(env["platform"], "x64-windows-static")
+    "vcpkg_triplet", _default_triplets.get(env["platform"], "x64-windows-static")
 )
 
 # Manifest-mode local install (preferred): vcpkg_installed/ next to vcpkg.json
@@ -36,7 +35,9 @@ _manifest_installed = os.path.join(_project_root, "vcpkg_installed", vcpkg_tripl
 
 # Classic-mode fallback: {VCPKG_ROOT}/installed/{triplet}
 vcpkg_root = ARGUMENTS.get("vcpkg_root", os.environ.get("VCPKG_ROOT", ""))
-_classic_installed = os.path.join(vcpkg_root, "installed", vcpkg_triplet) if vcpkg_root else ""
+_classic_installed = (
+    os.path.join(vcpkg_root, "installed", vcpkg_triplet) if vcpkg_root else ""
+)
 
 if os.path.isdir(_manifest_installed):
     vcpkg_installed = _manifest_installed
@@ -45,16 +46,18 @@ elif _classic_installed and os.path.isdir(_classic_installed):
     vcpkg_installed = _classic_installed
     print(f"[vcpkg] classic mode — installed: {vcpkg_installed}")
 else:
-    vcpkg_installed = _manifest_installed  # not yet installed; path will be used once created
+    vcpkg_installed = (
+        _manifest_installed  # not yet installed; path will be used once created
+    )
     print(f"[vcpkg] WARNING: packages not found at {vcpkg_installed}")
     print(f"[vcpkg]   Run: vcpkg install --triplet {vcpkg_triplet}")
     print(f"[vcpkg]   (from the project root: {_project_root})")
 
-env["VCPKG_TRIPLET"]   = vcpkg_triplet
+env["VCPKG_TRIPLET"] = vcpkg_triplet
 env["VCPKG_INSTALLED"] = vcpkg_installed
 
 # Propagate vcpkg include/lib paths to all sub-scripts via the parent env.
-# env_onnx and env_ml are clones, so they inherit these automatically.
+# env_onnx and env_godot_infer are clones, so they inherit these automatically.
 if os.path.isdir(vcpkg_installed):
     env.Append(CPPPATH=[os.path.join(vcpkg_installed, "include")])
     env.Append(LIBPATH=[os.path.join(vcpkg_installed, "lib")])
@@ -62,16 +65,16 @@ if os.path.isdir(vcpkg_installed):
 # Thirdparty
 SConscript("thirdparty/SCsub", exports="env")
 
-# ML Runtime
-SConscript("ml/SCsub", exports="env")
+# GD_INFER Runtime
+SConscript("godot_infer/SCsub", exports="env")
 
 # Include paths + libs
-env.Append(CPPPATH=env.get("ML_INCLUDE_PATHS", []))
+env.Append(CPPPATH=env.get("GD_INFER_INCLUDE_PATHS", []))
 env.Append(CPPPATH=env.get("ONNX_INCLUDE_PATHS", []))
 
-if "ML_ENV" in env:
-    env.Append(LIBS=env["ML_ENV"]["LIBS"])
-    env.Append(LIBPATH=env["ML_ENV"].get("LIBPATH", []))
+if "GD_INFER_ENV" in env:
+    env.Append(LIBS=env["GD_INFER_ENV"]["LIBS"])
+    env.Append(LIBPATH=env["GD_INFER_ENV"].get("LIBPATH", []))
 
 if env["platform"] == "linux":
     # vcpkg's static protobuf/abseil libs have circular inter-dependencies
@@ -79,19 +82,21 @@ if env["platform"] == "linux":
     # within a --start-group/--end-group region, regardless of link order.
     # Re-emitting $_LIBFLAGS once more, grouped, at the very end is a safe
     # no-op for already-resolved symbols and fixes the circular ones.
-    env["SHLINKCOM"] = str(env["SHLINKCOM"]) + " -Wl,--start-group $_LIBFLAGS -Wl,--end-group"
+    env["SHLINKCOM"] = (
+        str(env["SHLINKCOM"]) + " -Wl,--start-group $_LIBFLAGS -Wl,--end-group"
+    )
     # Catch missing symbols at build time instead of at Godot's dlopen() time.
     env.Append(LINKFLAGS=["-Wl,--no-undefined"])
 
 # Extension library
 sources = (
     ["register_types.cpp"]
-    + env.get("ML_SOURCES", [])
+    + env.get("GD_INFER_SOURCES", [])
     + env.get("ONNX_SOURCES", [])
 )
 
-lib_base_name = "libml"
-demo_bin = "../demo/addons/ml/bin/"
+lib_base_name = "lib_godot_infer"
+demo_bin = "../demo/addons/godot_infer/bin/"
 
 if env["platform"] == "macos":
     target_path = "{}{}.{}.{}.framework/{}".format(
@@ -99,7 +104,7 @@ if env["platform"] == "macos":
     )
     library = env.SharedLibrary(target_path, source=sources)
 elif env["platform"] == "ios":
-    suffix      = ".simulator.a" if env["ios_simulator"] else ".a"
+    suffix = ".simulator.a" if env["ios_simulator"] else ".a"
     target_path = "{}{}.{}.{}{}".format(
         demo_bin, lib_base_name, env["platform"], env["target"], suffix
     )

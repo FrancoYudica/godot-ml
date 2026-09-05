@@ -9,10 +9,10 @@ class ONNXResource : public Resource {
 
     PackedByteArray _data;
 
-protected:
+  protected:
     static void _bind_methods();
 
-public:
+  public:
     PackedByteArray get_data() const { return _data; }
     void set_data(const PackedByteArray& data) { _data = data; }
 };

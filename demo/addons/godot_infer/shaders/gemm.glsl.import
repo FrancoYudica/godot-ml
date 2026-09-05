@@ -1,0 +1,14 @@
+[remap]
+
+importer="glsl"
+type="RDShaderFile"
+uid="uid://cyev02x7wtlhv"
+path="res://.godot/imported/gemm.glsl-01f8369ab89b75751ebd43b272560551.res"
+
+[deps]
+
+source_file="res://addons/godot_infer/shaders/gemm.glsl"
+dest_files=["res://.godot/imported/gemm.glsl-01f8369ab89b75751ebd43b272560551.res"]
+
+[params]
+

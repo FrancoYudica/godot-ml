@@ -13,7 +13,7 @@ namespace ml::Utils {
 
 godot::String get_project_relative_path(
     const godot::String& addon_relative_path) {
-    static const godot::String base_path = "res://addons/ml/";
+    static const godot::String base_path = "res://addons/godot_infer/";
     return base_path + addon_relative_path;
 }
 

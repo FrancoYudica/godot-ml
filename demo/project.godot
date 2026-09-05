@@ -14,7 +14,7 @@ compatibility/default_parent_skeleton_in_mesh_instance_3d=true
 
 [application]
 
-config/name="demo-cnn"
+config/name="demo-godot-infer"
 run/main_scene="uid://fgdflnihsc5u"
 config/features=PackedStringArray("4.5", "Forward Plus")
 run/max_fps=60

@@ -1,0 +1,47 @@
+# godot_infer/SCsub
+import os
+import glob
+
+Import("env")
+
+env_godot_infer = env.Clone()
+
+scsub_dir = Dir(".").abspath
+build_dir = os.path.join(scsub_dir, "build")
+
+env_godot_infer.Append(CPPDEFINES=["ONNX_ML=0"])
+
+if env["platform"] == "windows":
+    env_godot_infer.Append(CXXFLAGS=["/std:c++20"])
+else:
+    env_godot_infer.Append(CXXFLAGS=["-std=c++20"])
+env_godot_infer.Append(
+    CPPPATH=[
+        os.path.dirname(scsub_dir),  # src/
+        scsub_dir,  # src/godot_infer/
+    ]
+    + env.get("ONNX_INCLUDE_PATHS", [])
+)
+
+# ── Sources ───────────────────────────────────────────────────────────────────
+
+all_cpp = glob.glob(os.path.join(scsub_dir, "**/*.cpp"), recursive=True)
+ml_sources = [f for f in all_cpp if "thirdparty" not in f and "build" not in f]
+
+env_godot_infer.Append(LIBS=env.get("ONNX_LIBS", []))
+
+env["GD_INFER_SOURCES"] = [
+    env_godot_infer.SharedObject(
+        target=os.path.join(
+            build_dir,
+            os.path.relpath(src, scsub_dir).replace(os.sep, "_").replace(".cpp", ""),
+        ),
+        source=src,
+    )
+    for src in ml_sources
+]
+env["GD_INFER_ENV"] = env_godot_infer
+env["GD_INFER_INCLUDE_PATHS"] = [
+    os.path.dirname(scsub_dir),
+    scsub_dir,
+]

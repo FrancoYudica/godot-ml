@@ -133,7 +133,7 @@ script = ExtResource("8_1oowg")
 sub_viewport = NodePath("../HBoxContainer/SubViewportContainer/SubViewport")
 delay_between_frames = 500
 target_count = 1
-images_root_path = "C:\\Users\\franc\\Desktop\\New folder\\godot-ml"
+images_root_path = "C:\\Users\\franc\\Desktop\\New folder\\godot-infer"
 
 [node name="LowResPeriodicScreenshotCapture" type="Node" parent="." node_paths=PackedStringArray("sub_viewport")]
 process_mode = 4

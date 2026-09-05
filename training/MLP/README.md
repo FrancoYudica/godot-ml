@@ -1,6 +1,6 @@
 # MLP - Color Transform
 
-Trains a tiny pixel-wise MLP (3→8→3) to approximate a color transformation, then exports the result as an ONNX model ready to load into the godot-ml engine.
+Trains a tiny pixel-wise MLP (3→8→3) to approximate a color transformation, then exports the result as an ONNX model ready to load into the godot-infer engine.
 
 ## Setup
 

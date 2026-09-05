@@ -1,0 +1,14 @@
+[remap]
+
+importer="glsl"
+type="RDShaderFile"
+uid="uid://bhmsy3fh5qqal"
+path="res://.godot/imported/sigmoid.glsl-8ad40ccf9e767dbc9dc1ca1244a0eccc.res"
+
+[deps]
+
+source_file="res://addons/godot_infer/shaders/sigmoid.glsl"
+dest_files=["res://.godot/imported/sigmoid.glsl-8ad40ccf9e767dbc9dc1ca1244a0eccc.res"]
+
+[params]
+

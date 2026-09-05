@@ -1,8 +1,8 @@
 #include "register_types.h"
 
-#include "ml/engine/engine.hpp"
-#include "ml/io/onnx_resource.hpp"
-#include "ml/io/onnx_resource_loader.hpp"
+#include "godot_infer/engine/engine.hpp"
+#include "godot_infer/io/onnx_resource.hpp"
+#include "godot_infer/io/onnx_resource_loader.hpp"
 
 #include <gdextension_interface.h>
 #include <godot_cpp/classes/resource_loader.hpp>

@@ -1,4 +1,4 @@
-# Building godot-ml
+# Building godot-infer
 
 ## Prerequisites
 
@@ -11,8 +11,8 @@
 The repo uses git submodules for `godot-cpp` and the ONNX proto definitions, so clone recursively:
 
 ```bash
-git clone --recursive git@github.com:FrancoYudica/godot-ml.git
-cd godot-ml
+git clone --recursive git@github.com:FrancoYudica/godot-infer.git
+cd godot-infer
 ```
 
 ## 2. Install dependencies via vcpkg

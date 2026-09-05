@@ -1,0 +1,14 @@
+[remap]
+
+importer="glsl"
+type="RDShaderFile"
+uid="uid://1yh0l3145i48"
+path="res://.godot/imported/max_pool_2d.glsl-50373db61ce9d6a9e384386cdd7c669d.res"
+
+[deps]
+
+source_file="res://addons/godot_infer/shaders/max_pool_2d.glsl"
+dest_files=["res://.godot/imported/max_pool_2d.glsl-50373db61ce9d6a9e384386cdd7c669d.res"]
+
+[params]
+

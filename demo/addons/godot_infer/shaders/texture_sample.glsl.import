@@ -1,0 +1,14 @@
+[remap]
+
+importer="glsl"
+type="RDShaderFile"
+uid="uid://bkvvrwdri88n"
+path="res://.godot/imported/texture_sample.glsl-21e4ca023861aed3ae25d6b9fcb1b42b.res"
+
+[deps]
+
+source_file="res://addons/godot_infer/shaders/texture_sample.glsl"
+dest_files=["res://.godot/imported/texture_sample.glsl-21e4ca023861aed3ae25d6b9fcb1b42b.res"]
+
+[params]
+

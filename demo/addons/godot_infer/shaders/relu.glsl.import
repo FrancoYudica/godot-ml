@@ -1,0 +1,14 @@
+[remap]
+
+importer="glsl"
+type="RDShaderFile"
+uid="uid://bwpguunm5ibtp"
+path="res://.godot/imported/relu.glsl-41597be3cf4859cbc7f9f86fea47bc36.res"
+
+[deps]
+
+source_file="res://addons/godot_infer/shaders/relu.glsl"
+dest_files=["res://.godot/imported/relu.glsl-41597be3cf4859cbc7f9f86fea47bc36.res"]
+
+[params]
+

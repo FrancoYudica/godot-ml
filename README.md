@@ -1,16 +1,16 @@
-# godot-ml
+# godot-infer
 
 <p align="center">
   <a href="https://godotengine.org/download/windows/">
       <img alt="Static Badge" src="https://img.shields.io/badge/Godot-4.5%2B-blue">
   </a>
   
-  <a href="https://github.com/FrancoYudica/godot-ml/actions/workflows/tests.yml">
-    <img alt="Tests" src="https://img.shields.io/github/actions/workflow/status/FrancoYudica/godot-ml/tests.yml?label=tests">
+  <a href="https://github.com/FrancoYudica/godot-infer/actions/workflows/tests.yml">
+    <img alt="Tests" src="https://img.shields.io/github/actions/workflow/status/FrancoYudica/godot-infer/tests.yml?label=tests">
   </a>
 
   <a href="LICENSE">
-    <img alt="GitHub License" src="https://img.shields.io/github/license/FrancoYudica/godot-ml">
+    <img alt="GitHub License" src="https://img.shields.io/github/license/FrancoYudica/godot-infer">
   </a>
 </p>
 
@@ -18,9 +18,9 @@ GPU-accelerated neural network inference for Godot, built as a GDExtension.
 
 <img width="800" height="450" alt="mnist-sample" src="https://github.com/user-attachments/assets/661b9e6c-d636-4db7-958c-6d9de76a4bc2" />
 
-## What is godot-ml?
+## What is godot-infer?
 
-godot-ml is an ONNX inference engine that runs directly inside Godot's rendering pipeline. You bring a trained model exported as [`.onnx`](https://onnx.ai/), godot-ml loads it, compiles the compute graph, and runs it on the GPU alongside your game's rendering, with no CPU-GPU transfers and no external runtime dependencies.
+godot-infer is an ONNX inference engine that runs directly inside Godot's rendering pipeline. You bring a trained model exported as [`.onnx`](https://onnx.ai/), godot-infer loads it, compiles the compute graph, and runs it on the GPU alongside your game's rendering, with no CPU-GPU transfers and no external runtime dependencies.
 
 This is an inference engine, not a training framework. It is built on Godot's `RenderingDevice` API and supports every platform that supports compute shaders: Windows (Vulkan/D3D12), Linux (Vulkan), macOS (Metal), and more.
 

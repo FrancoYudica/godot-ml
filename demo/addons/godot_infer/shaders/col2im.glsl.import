@@ -1,0 +1,14 @@
+[remap]
+
+importer="glsl"
+type="RDShaderFile"
+uid="uid://dkh5namxvk0wy"
+path="res://.godot/imported/col2im.glsl-011fb1710836a94210ebf968179286b0.res"
+
+[deps]
+
+source_file="res://addons/godot_infer/shaders/col2im.glsl"
+dest_files=["res://.godot/imported/col2im.glsl-011fb1710836a94210ebf968179286b0.res"]
+
+[params]
+

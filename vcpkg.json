@@ -1,5 +1,5 @@
 {
-  "name": "godot-ml",
+  "name": "godot-infer",
   "version": "0.1.0",
   "dependencies": [
     "protobuf",
