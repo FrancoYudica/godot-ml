@@ -1,0 +1,15 @@
+[remap]
+
+importer="godot_infer.onnx"
+type="ONNXResource"
+uid="uid://cgk4roe3llck4"
+path="res://.godot/imported/conv2d_(kernel_size=[3, 3])_(stride=[2, 2])_(padding=[1, 1, 1, 1])_(dilation=[1, 1]).onnx-bde47ecdd47be5df67eb317bc51b29d7.res"
+
+[deps]
+
+source_file="res://tests/tests/generated_tests/conv2d_(kernel_size=[3, 3])_(stride=[2, 2])_(padding=[1, 1, 1, 1])_(dilation=[1, 1]).onnx"
+dest_files=["res://.godot/imported/conv2d_(kernel_size=[3, 3])_(stride=[2, 2])_(padding=[1, 1, 1, 1])_(dilation=[1, 1]).onnx-bde47ecdd47be5df67eb317bc51b29d7.res"]
+
+[params]
+
+merge_operators=true

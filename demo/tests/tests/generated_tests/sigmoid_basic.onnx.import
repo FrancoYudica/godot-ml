@@ -1,0 +1,15 @@
+[remap]
+
+importer="godot_infer.onnx"
+type="ONNXResource"
+uid="uid://1ixabbbtx5g"
+path="res://.godot/imported/sigmoid_basic.onnx-4147527f7d81012322e253f3378e8bec.res"
+
+[deps]
+
+source_file="res://tests/tests/generated_tests/sigmoid_basic.onnx"
+dest_files=["res://.godot/imported/sigmoid_basic.onnx-4147527f7d81012322e253f3378e8bec.res"]
+
+[params]
+
+merge_operators=true

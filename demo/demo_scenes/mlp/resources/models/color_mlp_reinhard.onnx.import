@@ -1,0 +1,15 @@
+[remap]
+
+importer="godot_infer.onnx"
+type="ONNXResource"
+uid="uid://df4h7u1r27o8u"
+path="res://.godot/imported/color_mlp_reinhard.onnx-5f74b75c9f8bf9d72a008fc8bc0423dc.res"
+
+[deps]
+
+source_file="res://demo_scenes/mlp/resources/models/color_mlp_reinhard.onnx"
+dest_files=["res://.godot/imported/color_mlp_reinhard.onnx-5f74b75c9f8bf9d72a008fc8bc0423dc.res"]
+
+[params]
+
+merge_operators=true

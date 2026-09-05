@@ -27,18 +27,6 @@ Checks: >
   -readability-inconsistent-ifelse-braces,
   -readability-magic-numbers
 
-# Naming conventions in this codebase mix snake_case (functions, members) with
-# PascalCase (some namespaces, e.g. Utils), so identifier-naming is left
-# disabled rather than fighting existing style.
-#
-# Tensor/shape code indexes std::vector heavily by design, so the bounds-safety
-# container-access check is disabled too rather than flagging idiomatic code.
-#
-# else-after-return / inconsistent-ifelse-braces are disabled because Godot's
-# ERR_FAIL_COND_V_MSG family of macros (used pervasively via godot-cpp) expands
-# to an "if (...) return; else ..." shape that would otherwise flag on nearly
-# every use.
-
 WarningsAsErrors: ''
 HeaderFilterRegex: '^.*/godot_infer/.*'
 FormatStyle: file

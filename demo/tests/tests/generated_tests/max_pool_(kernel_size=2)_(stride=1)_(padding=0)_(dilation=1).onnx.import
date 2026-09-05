@@ -1,0 +1,15 @@
+[remap]
+
+importer="godot_infer.onnx"
+type="ONNXResource"
+uid="uid://30c48r2rbm8r"
+path="res://.godot/imported/max_pool_(kernel_size=2)_(stride=1)_(padding=0)_(dilation=1).onnx-e9cabd16023d291e24c9a497f87c06d1.res"
+
+[deps]
+
+source_file="res://tests/tests/generated_tests/max_pool_(kernel_size=2)_(stride=1)_(padding=0)_(dilation=1).onnx"
+dest_files=["res://.godot/imported/max_pool_(kernel_size=2)_(stride=1)_(padding=0)_(dilation=1).onnx-e9cabd16023d291e24c9a497f87c06d1.res"]
+
+[params]
+
+merge_operators=true

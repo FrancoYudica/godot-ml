@@ -1,0 +1,15 @@
+[remap]
+
+importer="godot_infer.onnx"
+type="ONNXResource"
+uid="uid://d16eaf7d6yot4"
+path="res://.godot/imported/super_resolution_4x.onnx-32d828cbdfce63e07f9305b91087c9fb.res"
+
+[deps]
+
+source_file="res://demo_scenes/super_resolution/resources/models/super_resolution_4x.onnx"
+dest_files=["res://.godot/imported/super_resolution_4x.onnx-32d828cbdfce63e07f9305b91087c9fb.res"]
+
+[params]
+
+merge_operators=true

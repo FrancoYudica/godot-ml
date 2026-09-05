@@ -1,0 +1,15 @@
+[remap]
+
+importer="godot_infer.onnx"
+type="ONNXResource"
+uid="uid://b6iqtk15e4jia"
+path="res://.godot/imported/relu_basic.onnx-f18de48188465a0660dc3e6b537df540.res"
+
+[deps]
+
+source_file="res://tests/tests/generated_tests/relu_basic.onnx"
+dest_files=["res://.godot/imported/relu_basic.onnx-f18de48188465a0660dc3e6b537df540.res"]
+
+[params]
+
+merge_operators=true

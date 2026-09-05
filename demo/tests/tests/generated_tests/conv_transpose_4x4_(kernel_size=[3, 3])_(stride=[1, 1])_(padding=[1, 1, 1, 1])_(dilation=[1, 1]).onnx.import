@@ -1,0 +1,15 @@
+[remap]
+
+importer="godot_infer.onnx"
+type="ONNXResource"
+uid="uid://dch1yh0wxlrvl"
+path="res://.godot/imported/conv_transpose_4x4_(kernel_size=[3, 3])_(stride=[1, 1])_(padding=[1, 1, 1, 1])_(dilation=[1, 1]).onnx-77531ac9c76ab85d297c170a61c29615.res"
+
+[deps]
+
+source_file="res://tests/tests/generated_tests/conv_transpose_4x4_(kernel_size=[3, 3])_(stride=[1, 1])_(padding=[1, 1, 1, 1])_(dilation=[1, 1]).onnx"
+dest_files=["res://.godot/imported/conv_transpose_4x4_(kernel_size=[3, 3])_(stride=[1, 1])_(padding=[1, 1, 1, 1])_(dilation=[1, 1]).onnx-77531ac9c76ab85d297c170a61c29615.res"]
+
+[params]
+
+merge_operators=true

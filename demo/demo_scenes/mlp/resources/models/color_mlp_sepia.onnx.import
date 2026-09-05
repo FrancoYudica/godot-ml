@@ -1,0 +1,15 @@
+[remap]
+
+importer="godot_infer.onnx"
+type="ONNXResource"
+uid="uid://256ogp2opu84"
+path="res://.godot/imported/color_mlp_sepia.onnx-385c44815b2e1d064990aecd78435d64.res"
+
+[deps]
+
+source_file="res://demo_scenes/mlp/resources/models/color_mlp_sepia.onnx"
+dest_files=["res://.godot/imported/color_mlp_sepia.onnx-385c44815b2e1d064990aecd78435d64.res"]
+
+[params]
+
+merge_operators=true

@@ -1,8 +1,6 @@
 #include "onnx_resource_loader.hpp"
 #include "onnx_resource.hpp"
 
-#include <godot_cpp/classes/file_access.hpp>
-
 namespace godot {
 
 PackedStringArray ONNXResourceLoader::_get_recognized_extensions() const {
@@ -26,17 +24,7 @@ Variant ONNXResourceLoader::_load(
     const String& original_path,
     bool use_sub_threads,
     int32_t cache_mode) const {
-
-    Ref<FileAccess> file = FileAccess::open(path, FileAccess::READ);
-    ERR_FAIL_COND_V_MSG(
-        file.is_null(),
-        Ref<ONNXResource>(),
-        "ONNXResourceLoader: cannot open file: " + path);
-
-    Ref<ONNXResource> resource;
-    resource.instantiate();
-    resource->set_data(file->get_buffer(file->get_length()));
-    return resource;
+    return ONNXResource::load_from_file(path);
 }
 
 } // namespace godot

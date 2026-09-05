@@ -41,7 +41,7 @@ func _execute_test(data: Dictionary):
 
 func _get_or_register_model(path: String) -> int:
 	if model_cache.has(path): return model_cache[path]
-	var id = engine.register_model(path)
+	var id = engine.register_model(load(path))
 	if id != 0: model_cache[path] = id
 	else: push_error("Failed to load: " + path)
 	return id

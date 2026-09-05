@@ -3,10 +3,10 @@
 [ext_resource type="PackedScene" uid="uid://53tws5cwxsas" path="res://demo_scenes/style_transfer/game/flappy_game.tscn" id="1_g8li3"]
 [ext_resource type="Script" uid="uid://chh3x32c8u4h3" path="res://demo_scenes/style_transfer/style_transfer_game_demo.gd" id="1_hcnuq"]
 [ext_resource type="Script" uid="uid://drgdtqr5cc66" path="res://demo_scenes/style_transfer/ml_post_processor.gd" id="2_hcnuq"]
-[ext_resource type="ONNXResource" uid="uid://bxhacms120hyp" path="res://demo_scenes/style_transfer/resources/models/style_transfer_4x.onnx" id="3_ynokh"]
+[ext_resource type="ONNXResource" uid="uid://cjpvwuqdajl3t" path="res://demo_scenes/style_transfer/resources/models/style_transfer_4x.onnx" id="3_ynokh"]
 [ext_resource type="PackedScene" uid="uid://yrcxm6dvca07" path="res://demo_scenes/common/sub_viewport_screenshot_capture.tscn" id="5_rbeoe"]
-[ext_resource type="PackedScene" uid="uid://2uyxsf7mhhxy" path="res://addons/ml/tools/task_performance.tscn" id="5_ynokh"]
-[ext_resource type="PackedScene" uid="uid://ct6vxy5bjdnup" path="res://addons/ml/tools/node_entry.tscn" id="6_g6sjt"]
+[ext_resource type="PackedScene" uid="uid://2uyxsf7mhhxy" path="res://addons/godot_infer/tools/task_performance.tscn" id="5_ynokh"]
+[ext_resource type="PackedScene" uid="uid://ct6vxy5bjdnup" path="res://addons/godot_infer/tools/node_entry.tscn" id="6_g6sjt"]
 [ext_resource type="Script" uid="uid://5h6mxu2wtcra" path="res://demo_scenes/style_transfer/periodic_screenshot_capture.gd" id="8_1oowg"]
 
 [sub_resource type="ViewportTexture" id="ViewportTexture_bad66"]

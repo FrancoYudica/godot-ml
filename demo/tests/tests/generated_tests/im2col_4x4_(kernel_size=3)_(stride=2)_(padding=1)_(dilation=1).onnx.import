@@ -1,0 +1,15 @@
+[remap]
+
+importer="godot_infer.onnx"
+type="ONNXResource"
+uid="uid://c5nbmdrgm621e"
+path="res://.godot/imported/im2col_4x4_(kernel_size=3)_(stride=2)_(padding=1)_(dilation=1).onnx-038c2649d130bf8af831bff009302a48.res"
+
+[deps]
+
+source_file="res://tests/tests/generated_tests/im2col_4x4_(kernel_size=3)_(stride=2)_(padding=1)_(dilation=1).onnx"
+dest_files=["res://.godot/imported/im2col_4x4_(kernel_size=3)_(stride=2)_(padding=1)_(dilation=1).onnx-038c2649d130bf8af831bff009302a48.res"]
+
+[params]
+
+merge_operators=true

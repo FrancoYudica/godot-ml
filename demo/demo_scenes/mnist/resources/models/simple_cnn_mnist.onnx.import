@@ -1,0 +1,15 @@
+[remap]
+
+importer="godot_infer.onnx"
+type="ONNXResource"
+uid="uid://dslboyx7qjfxk"
+path="res://.godot/imported/simple_cnn_mnist.onnx-42fdda53e10cfcbdff8ccbc36504ab7d.res"
+
+[deps]
+
+source_file="res://demo_scenes/mnist/resources/models/simple_cnn_mnist.onnx"
+dest_files=["res://.godot/imported/simple_cnn_mnist.onnx-42fdda53e10cfcbdff8ccbc36504ab7d.res"]
+
+[params]
+
+merge_operators=true

@@ -1,0 +1,15 @@
+[remap]
+
+importer="godot_infer.onnx"
+type="ONNXResource"
+uid="uid://bp0dad3fdgnbh"
+path="res://.godot/imported/gemm_identity_(alpha=1.0)_(beta=1.0).onnx-de356e09b11d2f3b6735e220c774db60.res"
+
+[deps]
+
+source_file="res://tests/tests/generated_tests/gemm_identity_(alpha=1.0)_(beta=1.0).onnx"
+dest_files=["res://.godot/imported/gemm_identity_(alpha=1.0)_(beta=1.0).onnx-de356e09b11d2f3b6735e220c774db60.res"]
+
+[params]
+
+merge_operators=true

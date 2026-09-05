@@ -1,0 +1,15 @@
+[remap]
+
+importer="godot_infer.onnx"
+type="ONNXResource"
+uid="uid://bbxi36f2pbehs"
+path="res://.godot/imported/color_mlp_gamma.onnx-63977324400883c3061f6b27f97ce647.res"
+
+[deps]
+
+source_file="res://demo_scenes/mlp/resources/models/color_mlp_gamma.onnx"
+dest_files=["res://.godot/imported/color_mlp_gamma.onnx-63977324400883c3061f6b27f97ce647.res"]
+
+[params]
+
+merge_operators=true

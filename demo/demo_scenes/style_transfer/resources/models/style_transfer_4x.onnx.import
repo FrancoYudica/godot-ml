@@ -1,0 +1,15 @@
+[remap]
+
+importer="godot_infer.onnx"
+type="ONNXResource"
+uid="uid://cjpvwuqdajl3t"
+path="res://.godot/imported/style_transfer_4x.onnx-983ed4bbf09c96c53b69dc3fd86b6af9.res"
+
+[deps]
+
+source_file="res://demo_scenes/style_transfer/resources/models/style_transfer_4x.onnx"
+dest_files=["res://.godot/imported/style_transfer_4x.onnx-983ed4bbf09c96c53b69dc3fd86b6af9.res"]
+
+[params]
+
+merge_operators=true
