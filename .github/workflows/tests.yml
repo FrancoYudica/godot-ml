@@ -25,7 +25,7 @@ jobs:
               run: |
                   sudo apt-get update
                   sudo apt-get install -y \
-                    build-essential scons clang clang-tidy cmake ninja-build pkg-config \
+                    build-essential clang clang-tidy cmake ninja-build ccache pkg-config \
                     libvulkan1 mesa-vulkan-drivers xvfb curl unzip python3
 
             - name: Download Godot
@@ -54,25 +54,30 @@ jobs:
             - name: Install vcpkg packages
               run: /tmp/vcpkg/vcpkg install --triplet x64-linux
 
-            - name: Restore SCons build cache
+            - name: Restore ccache
               uses: actions/cache@v4
               with:
-                  path: src/.scons-cache
-                  key: scons-linux-${{ github.sha }}
-                  restore-keys: scons-linux-
+                  path: ~/.cache/ccache
+                  key: ccache-linux-${{ github.sha }}
+                  restore-keys: ccache-linux-
+
+            - name: Configure CMake
+              run: |
+                  cmake -S src -B build -G Ninja \
+                    -DCMAKE_BUILD_TYPE=Debug \
+                    -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
+                    -DCMAKE_C_COMPILER_LAUNCHER=ccache \
+                    -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
+                    -DCMAKE_TOOLCHAIN_FILE="$VCPKG_ROOT/scripts/buildsystems/vcpkg.cmake" \
+                    -DVCPKG_TARGET_TRIPLET=x64-linux \
+                    -DGODOTCPP_TARGET=template_debug
 
             - name: Build GDExtension
-              env:
-                  SCONS_CACHE_DIR: ${{ github.workspace }}/src/.scons-cache
-              run: |
-                  cd src
-                  scons platform=linux target=template_debug -j$(nproc)
+              run: cmake --build build -j$(nproc)
 
             - name: Lint (clang-tidy)
               continue-on-error: true
-              run: |
-                  cd src
-                  find godot_infer -name '*.cpp' -print0 | xargs -0 clang-tidy -p .
+              run: find src/godot_infer -name '*.cpp' -print0 | xargs -0 clang-tidy -p build
 
             - name: Import project
               run: xvfb-run --auto-servernum godot --headless --path demo/ --editor --quit 2>&1 || true

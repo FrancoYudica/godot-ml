@@ -6,7 +6,9 @@
 config.log
 .sconf_temp
 compile_commands.json
+build_cmake
 .cache
 vcpkg_installed
 .prettierrc
 __pycache__
+build

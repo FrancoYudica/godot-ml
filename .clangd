@@ -1,6 +1,6 @@
 CompileFlags:
   Remove: [-fno-gnu-unique]
-  CompilationDatabase: src
+  CompilationDatabase: build
 
 InlayHints:
   Designators: true
